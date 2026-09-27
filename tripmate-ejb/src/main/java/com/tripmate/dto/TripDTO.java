@@ -15,6 +15,11 @@ import com.tripmate.entity.TripStatus;
  * trips is one query rather than twenty. It also carries no expense or
  * itinerary data; those have their own DTOs.
  *
+ * <p>{@code description} is an addition to the field list in ROADMAP section 7,
+ * which stops at {@code memberCount}. The column exists, the seed data
+ * populates it, and the trip detail page has to display it, so leaving it out
+ * would make the field writable only by hand in SQL.
+ *
  * <p>{@link TripStatus} is reused from the entity package rather than
  * duplicated here. It is a domain value, not a persistence detail: it has no
  * JPA annotations, and copying it would create two enums that must be kept in
@@ -27,6 +32,7 @@ public class TripDTO implements Serializable {
     private Long tripId;
     private String tripName;
     private String destination;
+    private String description;
     private LocalDate startDate;
     private LocalDate endDate;
     private TripStatus status;
@@ -36,12 +42,13 @@ public class TripDTO implements Serializable {
     public TripDTO() {
     }
 
-    public TripDTO(Long tripId, String tripName, String destination,
+    public TripDTO(Long tripId, String tripName, String destination, String description,
                    LocalDate startDate, LocalDate endDate, TripStatus status,
                    String adminName, int memberCount) {
         this.tripId = tripId;
         this.tripName = tripName;
         this.destination = destination;
+        this.description = description;
         this.startDate = startDate;
         this.endDate = endDate;
         this.status = status;
@@ -64,6 +71,7 @@ public class TripDTO implements Serializable {
                 trip.getTripId(),
                 trip.getTripName(),
                 trip.getDestination(),
+                trip.getDescription(),
                 trip.getStartDate(),
                 trip.getEndDate(),
                 trip.getStatus(),
@@ -112,6 +120,14 @@ public class TripDTO implements Serializable {
 
     public void setDestination(String destination) {
         this.destination = destination;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public LocalDate getStartDate() {

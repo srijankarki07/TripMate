@@ -13,43 +13,33 @@
     <main class="tm-page">
 
         <header class="tm-hero">
-            <p class="tm-eyebrow">Phase 0 · deployment check</p>
+            <p class="tm-eyebrow">Group trip planning and expense tracking</p>
             <h1 class="tm-title">TripMate</h1>
             <p class="tm-lede">
-                Group trip planning and expense tracking. This page is served by the
-                presentation tier, rendered through Jakarta Faces, and answered by a
-                stateless session bean in the business tier.
+                A shared itinerary and a running record of who paid for what, for a small
+                group of travellers. The business tier holds the rules, the persistence
+                tier maps the seven tables, and the web tier only presents.
             </p>
         </header>
 
         <section class="tm-card">
-            <h:form>
-                <h:outputLabel styleClass="tm-label" for="name" value="Your name"/>
-                <div class="tm-field">
-                    <h:inputText id="name"
-                                 styleClass="tm-input"
-                                 value="#{helloBean.name}"
-                                 autocomplete="off"/>
-                    <h:commandButton styleClass="tm-button"
-                                     value="Call the EJB tier"
-                                     action="#{helloBean.refresh}"/>
-                </div>
-            </h:form>
-
-            <p class="tm-greeting">
-                <h:outputText value="#{helloBean.greeting}"/>
-            </p>
+            <h2 class="tm-display-sm">Where the project is</h2>
+            <ul class="tm-check-list">
+                <li class="tm-check-ok">Phase 0: EAR deploys to GlassFish 7 as a Jakarta EE 10 application</li>
+                <li class="tm-check-ok">Phase 1: seven linked tables in PostgreSQL, with sample data</li>
+                <li class="tm-check-ok">Phase 2: seven JPA entities mapped and round-tripping</li>
+                <li class="tm-check-ok">Phase 3: nine DTOs as the remote boundary contract</li>
+                <li class="tm-check-ok">Phase 4: five session beans with remote interfaces, full CRUD</li>
+            </ul>
             <p class="tm-meta">
-                <h:outputText value="#{helloBean.runtimeInfo}"/>
+                The sign-in flow and the trip pages arrive in Phase 6. Until then,
+                <h:link outcome="diagnostics" value="the diagnostics page"/>
+                exercises the business tier end to end.
             </p>
         </section>
 
         <footer class="tm-footer">
             Jakarta EE 10 · GlassFish 7 · PostgreSQL
-            <span class="tm-footer-links">
-                <h:link outcome="phase2-check" value="Persistence check"/>
-                <h:link outcome="phase3-check" value="DTO mapping check"/>
-            </span>
         </footer>
 
     </main>

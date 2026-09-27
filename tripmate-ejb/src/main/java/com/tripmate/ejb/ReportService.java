@@ -64,15 +64,30 @@ public class ReportService implements ReportServiceRemote {
     }
 
     /**
-     * QUERY 5 (ROADMAP section 9.5): category spending across a user's trips.
+     * QUERY 5 (ROADMAP section 9.5): category spending for one user.
      *
-     * <p>Four entities, joined rather than correlated: starting from the split
-     * and walking outward is what makes the totals per category, since it is
-     * the split that records what a person actually owes.
+     * <p>Four entities are joined: ExpenseSplit, Expense, Trip and TripMember.
+     * The join to TripMember keeps the navigation the assignment asks for and
+     * doubles as a membership guard, so a split only counts if the user is on
+     * the trip it belongs to.
      *
-     * <p>The join to TripMember is what restricts the answer to trips the user
-     * belongs to. Grouping happens in the database; doing it in Java would mean
-     * loading every split the user has ever incurred.
+     * <h2>Correction to the ROADMAP's version of this query</h2>
+     *
+     * Section 9.5 filters on {@code tm.user.userId}, the member reached through
+     * the join, and sums every split it finds. That measures something else:
+     * the total the <em>group</em> spent on the trips the user was part of. For
+     * a user who is on every trip it returns the entire database, and for the
+     * seeded data user 1 gets 160,300.00 against 41,135.00 for their own share.
+     *
+     * <p>The report is called "Where Your Money Went", so the split's own owner
+     * is what it has to measure. Filtering on {@code es.user.userId} as well
+     * keeps the row count right: the join to members would otherwise multiply
+     * each split once per member of the trip.
+     *
+     * <p>This follows the ROADMAP's own guiding principle in section 21: where
+     * a change makes the application more useful to real users without breaking
+     * the assignment requirement, choose it. The requirement, navigating three
+     * or more related entities, is still met.
      */
     @Override
     public List<CategorySpendingDTO> getCategorySpendingForUser(Long userId) {
@@ -86,7 +101,8 @@ public class ReportService implements ReportServiceRemote {
                                 + "   JOIN es.expense e"
                                 + "   JOIN e.trip t"
                                 + "   JOIN t.members tm"
-                                + " WHERE tm.user.userId = :userId"
+                                + " WHERE es.user.userId = :userId"
+                                + "   AND tm.user.userId = :userId"
                                 + " GROUP BY e.category"
                                 + " ORDER BY SUM(es.amountOwed) DESC",
                         CategorySpendingDTO.class)

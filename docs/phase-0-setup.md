@@ -54,6 +54,7 @@ TripMate/
 ├── tripmate-web/           packaging `war` — presentation tier
 │   ├── index.xhtml                              Faces 4.0 view
 │   ├── WEB-INF/{web,faces-config,beans}.xml     Servlet 6.0 / Faces 4.0 / CDI 4.0
+│   ├── resources/css/tripmate.css               DESIGN.md tokens as CSS custom properties
 │   └── com.tripmate.web.backing.HelloBean       CDI backing bean
 ├── tripmate-ear/           packaging `ear` — assembles EJB + WAR
 └── scripts/                env.sh, build.sh, deploy.sh, undeploy.sh, domain.sh
@@ -135,6 +136,16 @@ the submitted value.
 `./scripts/undeploy.sh` then `./scripts/deploy.sh` were run end to end:
 the application was removed, rebuilt, redeployed, and served correctly.
 
+### 4.5 Rendered page
+
+![Phase 0 deployment check](screenshots/phase-0-deployment-check.png)
+
+*The deployment-check page at 1280px. Captured with headless Chrome against the
+running server.* The styling is the DESIGN.md token layer applied: white canvas
+with no dark mode, a single Rausch (#ff385c) CTA at 8px radius, a 14px-radius
+card carrying the system's one elevation tier, ink `#222222` for the heading and
+muted `#6a6a6a` for the eyebrow, field label, and meta line.
+
 ---
 
 ## 5. Reproducing
@@ -173,6 +184,16 @@ a different installation.
 - **PrimeFaces and Bootstrap are not yet added.** ROADMAP §11.1 places them in
   Phase 6. Phase 0 uses plain Faces components so the deployment check has no
   third-party dependency to debug.
+- **The design token layer is in place.** `resources/css/tripmate.css`
+  translates DESIGN.md into CSS custom properties (`--tm-color-*`,
+  `--tm-radius-*`, `--tm-space-*`, `--tm-elevation-card`) plus 18 type-scale
+  utility classes, one per DESIGN.md typography token. Two translation
+  decisions worth remembering: the proprietary Airbnb Cereal VF and Circular
+  fonts are unavailable, so Inter — the substitute DESIGN.md names — is slotted
+  into the font stack rather than fetched from a CDN, keeping the app fully
+  offline; and Bootstrap 5, when it arrives in Phase 6, overrides these
+  variables by reference instead of re-declaring values. Only the components
+  the deployment-check page needs are styled so far.
 - **`faces-config.xml` pins spec level 4.0** and carries a locale configuration;
   it is otherwise empty because Faces 4.0 auto-registers its servlet and CDI
   resolves `@Named` beans without declaration.

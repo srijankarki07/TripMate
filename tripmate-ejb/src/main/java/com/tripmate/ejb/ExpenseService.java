@@ -7,6 +7,8 @@ import java.util.List;
 import com.tripmate.dto.ExpenseDTO;
 import com.tripmate.dto.SettlementDTO;
 import com.tripmate.dto.SplitDTO;
+import com.tripmate.messaging.ExpenseMessage;
+import com.tripmate.exception.ValidationException;
 import com.tripmate.entity.Expense;
 import com.tripmate.entity.ExpenseSplit;
 import com.tripmate.entity.Settlement;
@@ -14,7 +16,12 @@ import com.tripmate.entity.Trip;
 import com.tripmate.entity.User;
 import com.tripmate.remote.ExpenseServiceRemote;
 
+import jakarta.annotation.Resource;
 import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
+import jakarta.jms.JMSConnectionFactory;
+import jakarta.jms.JMSContext;
+import jakarta.jms.Queue;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -47,6 +54,20 @@ public class ExpenseService implements ExpenseServiceRemote {
     @PersistenceContext(unitName = "tripmatePU")
     private EntityManager em;
 
+    /**
+     * The JMS context is injected rather than created from a connection
+     * factory. Injected this way it participates in the bean's transaction, so
+     * the send is committed with the caller's transaction and a rollback takes
+     * the message with it. A context created by hand would be separate and
+     * would also have to be closed.
+     */
+    @Inject
+    @JMSConnectionFactory("jms/ExpenseQueueFactory")
+    private JMSContext jmsContext;
+
+    @Resource(lookup = "jms/ExpenseQueue")
+    private Queue expenseQueue;
+
     @Override
     public ExpenseDTO persistExpense(ExpenseDTO expense) {
         return write(expense);
@@ -59,11 +80,27 @@ public class ExpenseService implements ExpenseServiceRemote {
 
     @Override
     public void submitExpenseAsync(ExpenseDTO expense) {
-        // Phase 7 replaces this with a JMS send to ExpenseQueue, and
-        // ExpenseMessageBean calls persistExpense when it reads the message.
-        // Until then the write happens here so the application is usable and
-        // the behaviour is honest about what it does.
-        write(expense);
+        submitExpenseAsync(expense, expense == null ? null : expense.getPaidById());
+    }
+
+    /**
+     * Submits an expense for asynchronous writing, recording who asked for it.
+     *
+     * <p>The caller's identity is a separate argument rather than being read
+     * from the expense, because the payer and the person submitting the form
+     * are not necessarily the same, and a stateless bean has no way to tell.
+     */
+    @Override
+    public void submitExpenseAsync(ExpenseDTO expense, Long submittedBy) {
+        require(expense, "expense");
+
+        // Checked here rather than left to the consumer. The point of the
+        // asynchronous path is to move the write, not to move the validation:
+        // rejecting obviously bad input in the caller's own transaction is
+        // cheaper and gives the user an immediate answer.
+        validate(expense);
+
+        jmsContext.createProducer().send(expenseQueue, new ExpenseMessage(expense, submittedBy));
     }
 
     @Override
@@ -105,7 +142,7 @@ public class ExpenseService implements ExpenseServiceRemote {
 
         Expense entity = em.find(Expense.class, expense.getExpenseId());
         if (entity == null) {
-            throw new IllegalArgumentException("no such expense: " + expense.getExpenseId());
+            throw new ValidationException("no such expense: " + expense.getExpenseId());
         }
 
         if (expense.getDescription() != null) {
@@ -132,7 +169,7 @@ public class ExpenseService implements ExpenseServiceRemote {
             // will be stored.
             BigDecimal total = entity.getSplitTotal();
             if (entity.getAmount().compareTo(total) != 0) {
-                throw new IllegalArgumentException(
+                throw new ValidationException(
                         "splits total " + total + " does not equal the amount "
                                 + entity.getAmount());
             }
@@ -148,7 +185,7 @@ public class ExpenseService implements ExpenseServiceRemote {
 
         Expense entity = em.find(Expense.class, expenseId);
         if (entity == null) {
-            throw new IllegalArgumentException("no such expense: " + expenseId);
+            throw new ValidationException("no such expense: " + expenseId);
         }
         // The splits go with it through cascade and orphan removal on
         // Expense.splits, so there is no need to delete them by hand.
@@ -172,7 +209,7 @@ public class ExpenseService implements ExpenseServiceRemote {
         // Business rule ROADMAP section 8.3, and also a CHECK constraint.
         // Checked here so the caller gets a sentence.
         if (settlement.getPayerId().equals(settlement.getReceiverId())) {
-            throw new IllegalArgumentException(
+            throw new ValidationException(
                     "a settlement must be between two different people");
         }
 
@@ -228,7 +265,7 @@ public class ExpenseService implements ExpenseServiceRemote {
 
         Settlement entity = em.find(Settlement.class, settlementId);
         if (entity == null) {
-            throw new IllegalArgumentException("no such settlement: " + settlementId);
+            throw new ValidationException("no such settlement: " + settlementId);
         }
         em.remove(entity);
         em.flush();
@@ -256,18 +293,40 @@ public class ExpenseService implements ExpenseServiceRemote {
     // ------------------------------------------------------------------
 
     /**
-     * Builds and stores an expense with its splits, in one transaction.
+     * Checks everything that has to hold before an expense can be written.
      *
-     * <p>Shared by the three submit and persist entry points so they cannot
-     * drift apart. Phase 7 will leave only the message-driven bean calling it.
+     * <p>Separate from the write so the asynchronous path can apply exactly the
+     * same rules in the caller's own transaction. A message that could never be
+     * stored should be refused while the user is still looking at the form,
+     * rather than put on a queue to be rejected later by a consumer with no way
+     * to tell anyone.
      */
-    private ExpenseDTO write(ExpenseDTO dto) {
+    private void validate(ExpenseDTO dto) {
         require(dto, "expense");
         require(dto.getTripId(), "tripId");
         require(dto.getDescription(), "description");
         require(dto.getExpenseDate(), "expenseDate");
         require(dto.getAmount(), "amount");
         requirePositive(dto.getAmount(), "amount");
+
+        if (dto.getSplits().isEmpty()) {
+            throw new ValidationException("an expense needs at least one split");
+        }
+        if (!dto.isBalanced()) {
+            throw new ValidationException(
+                    "splits total " + dto.getSplitTotal() + " does not equal the amount "
+                            + dto.getAmount());
+        }
+    }
+
+    /**
+     * Builds and stores an expense with its splits, in one transaction.
+     *
+     * <p>Shared by the three submit and persist entry points so they cannot
+     * drift apart. Phase 7 will leave only the message-driven bean calling it.
+     */
+    private ExpenseDTO write(ExpenseDTO dto) {
+        validate(dto);
 
         Trip trip = requireTrip(dto.getTripId());
 
@@ -282,14 +341,6 @@ public class ExpenseService implements ExpenseServiceRemote {
             entity.setPaidBy(requireUser(dto.getPaidById()));
         }
 
-        if (dto.getSplits().isEmpty()) {
-            throw new IllegalArgumentException("an expense needs at least one split");
-        }
-        if (!dto.isBalanced()) {
-            throw new IllegalArgumentException(
-                    "splits total " + dto.getSplitTotal() + " does not equal the amount "
-                            + dto.getAmount());
-        }
         replaceSplits(entity, dto.getSplits());
 
         em.persist(entity);
@@ -336,7 +387,7 @@ public class ExpenseService implements ExpenseServiceRemote {
         }
 
         if (!problems.isEmpty()) {
-            throw new IllegalArgumentException(String.join("; ", problems));
+            throw new ValidationException(String.join("; ", problems));
         }
     }
 
@@ -347,7 +398,7 @@ public class ExpenseService implements ExpenseServiceRemote {
     private Trip requireTrip(Long tripId) {
         Trip trip = em.find(Trip.class, tripId);
         if (trip == null) {
-            throw new IllegalArgumentException("no such trip: " + tripId);
+            throw new ValidationException("no such trip: " + tripId);
         }
         return trip;
     }
@@ -355,23 +406,23 @@ public class ExpenseService implements ExpenseServiceRemote {
     private User requireUser(Long userId) {
         User user = em.find(User.class, userId);
         if (user == null) {
-            throw new IllegalArgumentException("no such user: " + userId);
+            throw new ValidationException("no such user: " + userId);
         }
         return user;
     }
 
     private static void requirePositive(BigDecimal value, String name) {
         if (value.signum() <= 0) {
-            throw new IllegalArgumentException(name + " must be greater than zero");
+            throw new ValidationException(name + " must be greater than zero");
         }
     }
 
     private static void require(Object value, String name) {
         if (value == null) {
-            throw new IllegalArgumentException(name + " is required");
+            throw new ValidationException(name + " is required");
         }
         if (value instanceof String text && text.isBlank()) {
-            throw new IllegalArgumentException(name + " is required");
+            throw new ValidationException(name + " is required");
         }
     }
 }

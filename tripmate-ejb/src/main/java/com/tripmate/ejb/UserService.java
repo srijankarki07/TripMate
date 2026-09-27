@@ -3,6 +3,7 @@ package com.tripmate.ejb;
 import java.util.List;
 
 import com.tripmate.dto.UserDTO;
+import com.tripmate.exception.ValidationException;
 import com.tripmate.entity.User;
 import com.tripmate.remote.UserServiceRemote;
 import com.tripmate.security.PasswordHasher;
@@ -41,7 +42,7 @@ public class UserService implements UserServiceRemote {
         // still stands behind this: two concurrent registrations of the same
         // address would both pass this check, and only one would commit.
         if (findByEmail(email) != null) {
-            throw new IllegalArgumentException("email already registered: " + email);
+            throw new ValidationException("email already registered: " + email);
         }
 
         User entity = new User();
@@ -108,7 +109,7 @@ public class UserService implements UserServiceRemote {
 
         User entity = em.find(User.class, user.getUserId());
         if (entity == null) {
-            throw new IllegalArgumentException("no such user: " + user.getUserId());
+            throw new ValidationException("no such user: " + user.getUserId());
         }
 
         // Email is the login identifier, so a change has to respect uniqueness.
@@ -116,7 +117,7 @@ public class UserService implements UserServiceRemote {
             String email = user.getEmail().trim();
             User clash = findByEmail(email);
             if (clash != null && !clash.getUserId().equals(entity.getUserId())) {
-                throw new IllegalArgumentException("email already registered: " + email);
+                throw new ValidationException("email already registered: " + email);
             }
             entity.setEmail(email);
         }
@@ -139,7 +140,7 @@ public class UserService implements UserServiceRemote {
 
         User entity = em.find(User.class, userId);
         if (entity == null) {
-            throw new IllegalArgumentException("no such user: " + userId);
+            throw new ValidationException("no such user: " + userId);
         }
         entity.setPasswordHash(PasswordHasher.hash(newPlainPassword));
         em.flush();
@@ -151,7 +152,7 @@ public class UserService implements UserServiceRemote {
 
         User entity = em.find(User.class, userId);
         if (entity == null) {
-            throw new IllegalArgumentException("no such user: " + userId);
+            throw new ValidationException("no such user: " + userId);
         }
         // Memberships, splits and settlements cascade at the database level;
         // trips the user created keep their rows and lose only created_by.
@@ -175,10 +176,10 @@ public class UserService implements UserServiceRemote {
 
     private static void require(Object value, String name) {
         if (value == null) {
-            throw new IllegalArgumentException(name + " is required");
+            throw new ValidationException(name + " is required");
         }
         if (value instanceof String text && text.isBlank()) {
-            throw new IllegalArgumentException(name + " is required");
+            throw new ValidationException(name + " is required");
         }
     }
 }

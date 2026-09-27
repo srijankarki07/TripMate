@@ -3,6 +3,7 @@ package com.tripmate.ejb;
 import java.util.List;
 
 import com.tripmate.dto.ItineraryItemDTO;
+import com.tripmate.exception.ValidationException;
 import com.tripmate.entity.ItineraryItem;
 import com.tripmate.entity.Trip;
 import com.tripmate.entity.User;
@@ -32,7 +33,7 @@ public class ItineraryService implements ItineraryServiceRemote {
 
         Trip trip = em.find(Trip.class, tripId);
         if (trip == null) {
-            throw new IllegalArgumentException("no such trip: " + tripId);
+            throw new ValidationException("no such trip: " + tripId);
         }
 
         ItineraryItem entity = new ItineraryItem();
@@ -47,7 +48,7 @@ public class ItineraryService implements ItineraryServiceRemote {
         if (authorId != null) {
             User author = em.find(User.class, authorId);
             if (author == null) {
-                throw new IllegalArgumentException("no such user: " + authorId);
+                throw new ValidationException("no such user: " + authorId);
             }
             entity.setCreatedBy(author);
         }
@@ -96,7 +97,7 @@ public class ItineraryService implements ItineraryServiceRemote {
 
         ItineraryItem entity = em.find(ItineraryItem.class, item.getItemId());
         if (entity == null) {
-            throw new IllegalArgumentException("no such itinerary item: " + item.getItemId());
+            throw new ValidationException("no such itinerary item: " + item.getItemId());
         }
 
         if (item.getTitle() != null) {
@@ -120,7 +121,7 @@ public class ItineraryService implements ItineraryServiceRemote {
 
         ItineraryItem entity = em.find(ItineraryItem.class, itemId);
         if (entity == null) {
-            throw new IllegalArgumentException("no such itinerary item: " + itemId);
+            throw new ValidationException("no such itinerary item: " + itemId);
         }
         em.remove(entity);
         em.flush();
@@ -140,10 +141,10 @@ public class ItineraryService implements ItineraryServiceRemote {
 
     private static void require(Object value, String name) {
         if (value == null) {
-            throw new IllegalArgumentException(name + " is required");
+            throw new ValidationException(name + " is required");
         }
         if (value instanceof String text && text.isBlank()) {
-            throw new IllegalArgumentException(name + " is required");
+            throw new ValidationException(name + " is required");
         }
     }
 }

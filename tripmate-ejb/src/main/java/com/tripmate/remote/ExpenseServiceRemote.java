@@ -49,13 +49,27 @@ public interface ExpenseServiceRemote {
     /**
      * Submits an expense without waiting for it to be written.
      *
-     * <p>Phase 4 writes it synchronously, so the name is not yet accurate.
-     * Phase 7 replaces the body with a JMS send and the message-driven bean
-     * performs the write, which is what the ROADMAP section 10.1 rationale
-     * describes: several rows are involved, and the browser should not be
-     * blocked on them.
+     * <p>Puts an {@code ExpenseMessage} on the expense queue and returns. The
+     * message-driven bean performs the write, which is what the ROADMAP
+     * section 10.1 rationale describes: several rows are involved and the
+     * browser should not be blocked on them.
+     *
+     * <p>The input is validated before the message is sent, so an expense that
+     * could never be stored is refused while the user is still looking at the
+     * form rather than being rejected later by a consumer that has no way to
+     * tell anyone.
      */
     void submitExpenseAsync(ExpenseDTO expense);
+
+    /**
+     * Submits an expense without waiting for it to be written, recording who
+     * asked for it.
+     *
+     * <p>The submitter is a separate argument rather than being read from the
+     * expense, because the person filling in the form and the person who paid
+     * are not necessarily the same, and a stateless bean cannot tell.
+     */
+    void submitExpenseAsync(ExpenseDTO expense, Long submittedBy);
 
     /** @return the expense with its splits, or {@code null} if no such id */
     ExpenseDTO getExpense(Long expenseId);

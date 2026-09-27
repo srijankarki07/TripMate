@@ -22,6 +22,11 @@ mvn -B clean package "$@"
 echo
 "$(dirname "${BASH_SOURCE[0]}")/glassfish-setup.sh"
 
+# Same reasoning for the queue: ExpenseMessageBean binds to it during
+# deployment.
+echo
+"$(dirname "${BASH_SOURCE[0]}")/glassfish-jms.sh"
+
 echo
 echo "==> Deploying '${APP_NAME}'"
 "${ASADMIN}" deploy --force=true --name="${APP_NAME}" "${EAR_FILE}"

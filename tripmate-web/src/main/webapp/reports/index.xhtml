@@ -1,24 +1,80 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
     <meta charset="UTF-8"/>
-</head>
+</h:head>
 <h:body>
 
 <ui:composition template="/WEB-INF/templates/layout.xhtml">
     <ui:define name="title">Reports · TripMate</ui:define>
 
     <ui:define name="content">
+
         <header class="tm-hero">
             <p class="tm-eyebrow">Reports</p>
             <h1 class="tm-title">Where your money went</h1>
             <p class="tm-lede">
-                Your spending by category, across every trip you belong to.
+                Your share of every expense, grouped by category, across all the
+                trips you belong to.
             </p>
         </header>
+
+        <section class="tm-stats">
+            <div class="tm-stat">
+                <p class="tm-stat-label">Your total share</p>
+                <p class="tm-stat-value">NPR #{reportsBean.totalSpent}</p>
+                <p class="tm-stat-note">across every trip</p>
+            </div>
+            <div class="tm-stat">
+                <p class="tm-stat-label">Categories</p>
+                <p class="tm-stat-value">#{reportsBean.categoryCount}</p>
+                <p class="tm-stat-note">that you have spent in</p>
+            </div>
+            <div class="tm-stat">
+                <p class="tm-stat-label">Biggest</p>
+                <p class="tm-stat-value">
+                    #{reportsBean.largest.category}
+                </p>
+                <p class="tm-stat-note">
+                    #{reportsBean.largestSharePercent}% of your spending
+                </p>
+            </div>
+        </section>
+
+        <section class="tm-card" rendered="#{reportsBean.hasData}">
+            <h2 class="tm-display-sm">By category</h2>
+
+            <div class="tm-chart">
+                <p:chart value="#{reportsBean.chartJson}" style="width:100%;height:320px"/>
+            </div>
+
+            <p:dataTable value="#{reportsBean.categories}" var="row" emptyMessage="">
+                <p:column headerText="Category">
+                    <h:outputText value="#{row.category}"/>
+                </p:column>
+                <p:column headerText="Your share" sortBy="#{row.totalSpent}">
+                    <h:outputText value="NPR #{row.totalSpent}"/>
+                </p:column>
+                <p:column headerText="Trips" sortBy="#{row.tripCount}">
+                    <h:outputText value="#{row.tripCount}"/>
+                </p:column>
+            </p:dataTable>
+
+            <p class="tm-caption-sm tm-text-muted">
+                The trip count is how many separate trips that category's spending
+                appears in, so the same category on two trips counts twice.
+            </p>
+        </section>
+
+        <h:panelGroup layout="block" styleClass="tm-empty" rendered="#{not reportsBean.hasData}">
+            No expenses recorded on your trips yet, so there is nothing to report.
+        </h:panelGroup>
+
     </ui:define>
 </ui:composition>
 

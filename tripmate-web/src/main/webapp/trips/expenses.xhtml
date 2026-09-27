@@ -1,22 +1,194 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
     <meta charset="UTF-8"/>
-</head>
+</h:head>
 <h:body>
 
 <ui:composition template="/WEB-INF/templates/layout.xhtml">
-    <ui:define name="title">Expenses · TripMate</ui:define>
+
+    <f:metadata>
+        <f:viewParam name="tripId" value="#{expenseBean.tripId}"/>
+        <f:viewAction action="#{expenseBean.load}"/>
+    </f:metadata>
+
+    <ui:define name="title">Expenses · #{expenseBean.trip.tripName}</ui:define>
 
     <ui:define name="content">
-        <header class="tm-hero">
-            <p class="tm-eyebrow">Trip</p>
-            <h1 class="tm-title">Expenses</h1>
-            <p class="tm-lede">Log what was spent and how it is split.</p>
-        </header>
+
+        <h:panelGroup layout="block" styleClass="tm-error"
+                      rendered="#{not empty expenseBean.error}">
+            <h:outputText value="#{expenseBean.error}"/>
+        </h:panelGroup>
+
+        <ui:fragment rendered="#{expenseBean.loaded}">
+
+            <header class="tm-hero">
+                <p class="tm-eyebrow">
+                    <h:link outcome="/trips/detail.xhtml" value="#{expenseBean.trip.tripName}">
+                        <f:param name="tripId" value="#{expenseBean.tripId}"/>
+                    </h:link>
+                </p>
+                <h1 class="tm-title">Expenses</h1>
+                <p class="tm-lede">
+                    NPR #{expenseBean.expenseTotal} across
+                    #{expenseBean.expenses.size()} expenses.
+                </p>
+            </header>
+
+            <h:panelGroup layout="block" styleClass="tm-notice"
+                          rendered="#{not empty expenseBean.message}">
+                <h:outputText value="#{expenseBean.message}"/>
+            </h:panelGroup>
+
+            <!-- ============================================================
+                 Add an expense
+                 ============================================================ -->
+            <section class="tm-card">
+                <h2 class="tm-display-sm">Log an expense</h2>
+
+                <h:form id="expenseForm">
+
+                    <div class="tm-form-grid">
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="description">What</label>
+                            <p:inputText id="description" styleClass="tm-input-full"
+                                         value="#{expenseBean.description}"/>
+                        </div>
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="amount">Amount (NPR)</label>
+                            <p:inputText id="amount" styleClass="tm-input-full"
+                                         value="#{expenseBean.amount}"/>
+                        </div>
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="category">Category</label>
+                            <p:selectOneMenu id="category" styleClass="tm-input-full"
+                                             editable="true"
+                                             value="#{expenseBean.category}">
+                                <f:selectItems value="#{expenseBean.categories}" var="c"
+                                               itemLabel="#{c}" itemValue="#{c}"/>
+                            </p:selectOneMenu>
+                        </div>
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="expenseDate">Date</label>
+                            <p:datePicker id="expenseDate" pattern="yyyy-MM-dd"
+                                          value="#{expenseBean.expenseDate}"/>
+                        </div>
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="paidBy">Paid by</label>
+                            <p:selectOneMenu id="paidBy" styleClass="tm-input-full"
+                                             value="#{expenseBean.paidById}">
+                                <f:selectItems value="#{expenseBean.members}" var="m"
+                                               itemLabel="#{m.fullName}" itemValue="#{m.userId}"/>
+                            </p:selectOneMenu>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         Split editor
+                         ================================================ -->
+                    <h3 class="tm-display-sm">Who shares it</h3>
+                    <p class="tm-body-sm tm-text-muted">
+                        Tick everyone who shares this cost, then split it equally or
+                        type each share. The shares have to add up to the amount.
+                    </p>
+
+                    <p:dataTable id="splitTable" value="#{expenseBean.splits}" var="row"
+                                 styleClass="tm-table" emptyMessage="">
+                        <p:column headerText="Included">
+                            <p:selectBooleanCheckbox value="#{row.included}"/>
+                        </p:column>
+                        <p:column headerText="Person">
+                            <h:outputText value="#{row.name}"/>
+                        </p:column>
+                        <p:column headerText="Share (NPR)">
+                            <p:inputText value="#{row.amount}"
+                                         rendered="#{row.included}"
+                                         styleClass="tm-input-narrow"/>
+                        </p:column>
+                    </p:dataTable>
+
+                    <div class="tm-actions">
+                        <p:commandButton value="Split equally"
+                                         action="#{expenseBean.splitEqually}"
+                                         update="@form"
+                                         ajax="true"/>
+                        <p:commandButton value="Clear shares"
+                                         styleClass="ui-button-secondary"
+                                         action="#{expenseBean.clearSplit}"
+                                         update="@form"
+                                         ajax="true"/>
+                    </div>
+
+                    <p class="tm-body-sm">
+                        <span class="tm-text-muted">Shares add up to </span>
+                        <span class="tm-positive">NPR #{expenseBean.splitTotal}</span>
+                        <h:panelGroup layout="block" rendered="#{expenseBean.showRemainder}"
+                                      styleClass="tm-text-error">
+                            <h:outputText value="Still to assign: NPR #{expenseBean.unassigned}"/>
+                        </h:panelGroup>
+                    </p>
+
+                    <div class="tm-actions">
+                        <p:commandButton value="Save expense"
+                                         action="#{expenseBean.save}"
+                                         ajax="false"/>
+                    </div>
+
+                </h:form>
+            </section>
+
+            <!-- ============================================================
+                 What has been logged
+                 ============================================================ -->
+            <section class="tm-card">
+                <h2 class="tm-display-sm">Logged so far</h2>
+
+                <h:form id="expenseListForm">
+                    <p:dataTable value="#{expenseBean.expenses}" var="expense"
+                                 rendered="#{expenseBean.hasExpenses}" emptyMessage="">
+                        <p:column headerText="Date" sortBy="#{expense.expenseDate}">
+                            <h:outputText value="#{expense.expenseDate}"/>
+                        </p:column>
+                        <p:column headerText="What" sortBy="#{expense.description}">
+                            <h:outputText value="#{expense.description}"/>
+                        </p:column>
+                        <p:column headerText="Category" sortBy="#{expense.category}">
+                            <h:outputText value="#{expense.category}"/>
+                        </p:column>
+                        <p:column headerText="Paid by">
+                            <h:outputText value="#{expense.paidByName}"/>
+                        </p:column>
+                        <p:column headerText="Split">
+                            <h:outputText value="#{expense.splits.size()}"/>
+                            <h:outputText value=" ways"/>
+                        </p:column>
+                        <p:column headerText="Amount" sortBy="#{expense.amount}">
+                            <h:outputText value="NPR #{expense.amount}"/>
+                        </p:column>
+                        <p:column headerText="">
+                            <p:commandButton value="Delete"
+                                             styleClass="ui-button-secondary"
+                                             action="#{expenseBean.delete(expense.expenseId)}"
+                                             ajax="false"
+                                             onclick="return confirm('Delete this expense?');"/>
+                        </p:column>
+                    </p:dataTable>
+                </h:form>
+
+                <h:panelGroup layout="block" styleClass="tm-empty"
+                              rendered="#{not expenseBean.hasExpenses}">
+                    Nothing logged yet.
+                </h:panelGroup>
+            </section>
+
+        </ui:fragment>
+
     </ui:define>
 </ui:composition>
 

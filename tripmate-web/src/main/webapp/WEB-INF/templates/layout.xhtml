@@ -48,6 +48,22 @@
     </header>
 
     <main class="tm-page">
+
+        <!--
+            Faces validation and conversion messages. Rendering these matters
+            more than it looks: a conversion failure makes JSF skip the
+            invoke-application phase, so the action never runs and the page
+            simply redisplays. Without somewhere for the message to appear, that
+            is indistinguishable from a broken button.
+
+            Wrapped in its own form because the component tree requires a UIForm
+            ancestor; without one the development stage logs a warning banner
+            across the top of every page.
+        -->
+        <h:form>
+            <p:messages showDetail="true" closable="true"/>
+        </h:form>
+
         <ui:insert name="content"/>
     </main>
 

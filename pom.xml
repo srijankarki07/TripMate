@@ -32,6 +32,13 @@
         <maven.compiler.release>17</maven.compiler.release>
         <jakartaee.version>10.0.0</jakartaee.version>
 
+        <!--
+            PrimeFaces 14 targets Faces 4.0 and is compiled to Java 11 bytecode,
+            so it runs on the Java 17 this project requires. PrimeFaces 15 wants
+            Faces 4.1, which GlassFish 7 does not ship.
+        -->
+        <primefaces.version>14.0.12</primefaces.version>
+
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
@@ -54,6 +61,22 @@
                 <artifactId>jakarta.jakartaee-api</artifactId>
                 <version>${jakartaee.version}</version>
                 <scope>provided</scope>
+            </dependency>
+
+            <!--
+                Bundled in the WAR rather than provided by the container: a JSF
+                component library is application code, not platform code.
+
+                The `jakarta` classifier is required. The default artifact of
+                this version is still built against javax.servlet, and the only
+                symptom is a NoClassDefFoundError for javax/servlet at deploy
+                time, with nothing in the coordinates to warn you.
+            -->
+            <dependency>
+                <groupId>org.primefaces</groupId>
+                <artifactId>primefaces</artifactId>
+                <version>${primefaces.version}</version>
+                <classifier>jakarta</classifier>
             </dependency>
         </dependencies>
     </dependencyManagement>

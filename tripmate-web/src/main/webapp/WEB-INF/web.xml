@@ -12,6 +12,31 @@
         <param-value>Development</param-value>
     </context-param>
 
+    <!--
+        PrimeFaces theme. "saga" is the closest of the bundled themes to the
+        design system in DESIGN.md: light surfaces, restrained type, no strong
+        brand colour of its own. Everything brand-critical is overridden in
+        resources/css/tripmate.css, so the theme supplies structure and spacing
+        while the tokens supply colour, type and shape.
+    -->
+    <context-param>
+        <param-name>primefaces.THEME</param-name>
+        <param-value>saga</param-value>
+    </context-param>
+
+    <!-- Icon font for PrimeFaces components. -->
+    <context-param>
+        <param-name>primefaces.FONT_AWESOME</param-name>
+        <param-value>true</param-value>
+    </context-param>
+
+    <!-- Uploads and client-side validation are not used yet; leaving the
+         defaults on would pull in extra scripts for nothing. -->
+    <context-param>
+        <param-name>primefaces.CLIENT_SIDE_VALIDATION</param-name>
+        <param-value>false</param-value>
+    </context-param>
+
     <!-- Faces view state is per-session by default; keep it that way so a
          browser refresh never replays a stale POST. -->
     <context-param>

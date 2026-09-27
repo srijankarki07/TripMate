@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.tripmate.dto.ExpenseDTO;
+import com.tripmate.dto.MemberBalanceDTO;
+import com.tripmate.dto.SettlementDTO;
+import com.tripmate.dto.TripDTO;
 import com.tripmate.dto.SettlementDTO;
 import com.tripmate.dto.SplitDTO;
 import com.tripmate.dto.TripDTO;
@@ -18,6 +21,7 @@ import com.tripmate.ejb.QueryVerificationSmokeTest;
 import com.tripmate.ejb.SessionBeanSmokeTest;
 import com.tripmate.entity.TripRole;
 import com.tripmate.remote.ExpenseServiceRemote;
+import com.tripmate.remote.ReportServiceRemote;
 import com.tripmate.remote.TripServiceRemote;
 import com.tripmate.remote.UserServiceRemote;
 
@@ -68,6 +72,9 @@ public class DiagnosticsBean implements Serializable {
     @EJB
     private ExpenseServiceRemote expenseService;
 
+    @EJB
+    private ReportServiceRemote reportService;
+
     private List<String> report;
     private String error;
 
@@ -82,6 +89,7 @@ public class DiagnosticsBean implements Serializable {
         runSuite("Session bean CRUD", sessionBeanTest::runCrudChecks);
         runSuite("The five required queries", queryVerificationTest::runQueryChecks);
         runSuite("Session bean rejections", this::runRejectionChecks);
+        runSuite("Balances and settle-up arithmetic", this::runBalanceArithmeticChecks);
     }
 
     // ------------------------------------------------------------------
@@ -95,6 +103,82 @@ public class DiagnosticsBean implements Serializable {
         } catch (RuntimeException ex) {
             report.add("FAIL  [" + title + "] suite did not complete: " + describe(ex));
         }
+    }
+
+    /**
+     * Checks the arithmetic behind the balances page.
+     *
+     * <p>That page combines query 4's gross figures with the settlements to get
+     * what is still outstanding, then suggests payments from those. It is the
+     * only place in the application where a figure the user acts on is computed
+     * in the web tier rather than by the database, so it is worth asserting
+     * rather than trusting.
+     *
+     * <p>The checks are properties rather than expected values, so they hold for
+     * any data: outstanding must sum to zero, and the suggestions must total
+     * exactly that and never ask anyone to pay more than they still owe.
+     */
+    private List<String> runBalanceArithmeticChecks() {
+        List<String> lines = new ArrayList<>();
+        UserDTO alice = userService.getUserByEmail("alice@tripmate.test");
+
+        for (TripDTO trip : tripService.getTripsForUser(alice.getUserId())) {
+            String label = "trip " + trip.getTripId();
+            List<MemberBalanceDTO> balances = reportService.getMemberBalances(trip.getTripId());
+            List<SettlementDTO> settlements = expenseService.getSettlementsForTrip(trip.getTripId());
+            List<BalancesBean.MemberPosition> positions =
+                    BalancesBean.buildPositions(balances, settlements);
+
+            BigDecimal outstandingTotal = positions.stream()
+                    .map(BalancesBean.MemberPosition::getOutstanding)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            check(lines, "Balances", label + ": outstanding positions sum to exactly zero",
+                    outstandingTotal.signum() == 0);
+
+            // A member who has neither paid nor received a repayment must have
+            // the same outstanding figure as their gross net.
+            check(lines, "Balances", label + ": an untouched member's outstanding equals their net",
+                    positions.stream()
+                            .filter(BalancesBean.MemberPosition::isUntouchedBySettlements)
+                            .allMatch(p -> p.getOutstanding().compareTo(p.getNet()) == 0));
+
+            List<BalancesBean.Transfer> suggested = BalancesBean.suggestTransfers(positions);
+
+            BigDecimal suggestedTotal = suggested.stream()
+                    .map(BalancesBean.Transfer::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal owedToCreditors = positions.stream()
+                    .filter(BalancesBean.MemberPosition::isCreditor)
+                    .map(BalancesBean.MemberPosition::getOutstanding)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            check(lines, "Settle-up", label + ": suggestions total what is owed to creditors",
+                    suggestedTotal.compareTo(owedToCreditors) == 0);
+
+            // The property that matters most: nobody is asked to pay more than
+            // they still owe. Reading the gross figures instead of the
+            // outstanding ones breaks exactly this.
+            boolean nobodyOverpays = true;
+            for (BalancesBean.MemberPosition p : positions) {
+                BigDecimal asked = suggested.stream()
+                        .filter(t -> t.getFrom().equals(p.getFullName()))
+                        .map(BalancesBean.Transfer::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                if (asked.compareTo(p.getOutstandingMagnitude()) > 0) {
+                    nobodyOverpays = false;
+                }
+            }
+            check(lines, "Settle-up", label + ": nobody is asked to pay more than they owe",
+                    nobodyOverpays);
+
+            check(lines, "Settle-up", label + ": a settled trip needs no payments",
+                    !positions.stream().noneMatch(p -> p.isDebtor()) || suggested.isEmpty());
+        }
+
+        long failures = lines.stream().filter(l -> l.startsWith("FAIL")).count();
+        lines.add(failures == 0
+                ? "SUMMARY: all " + lines.size() + " arithmetic checks passed"
+                : "SUMMARY: " + failures + " of " + lines.size() + " arithmetic checks FAILED");
+        return lines;
     }
 
     /**
@@ -196,6 +280,11 @@ public class DiagnosticsBean implements Serializable {
         expense.setExpenseDate(LocalDate.now());
         expense.addSplit(new SplitDTO(paidById, null, new BigDecimal("4000.00"), false));
         return expense;
+    }
+
+    /** Records one check as a report line. */
+    private void check(List<String> report, String tag, String what, boolean ok) {
+        report.add((ok ? "PASS" : "FAIL") + "  [" + tag + "] " + what);
     }
 
     private void expectRejected(List<String> lines, String bean, String what, Runnable action) {

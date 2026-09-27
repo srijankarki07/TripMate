@@ -42,10 +42,10 @@
 
             <section class="tm-stats">
                 <div class="tm-stat">
-                    <p class="tm-stat-label">Owed in total</p>
-                    <p class="tm-stat-value">NPR #{balancesBean.totalOwed}</p>
+                    <p class="tm-stat-label">Still outstanding</p>
+                    <p class="tm-stat-value">NPR #{balancesBean.totalOutstanding}</p>
                     <p class="tm-stat-note">
-                        across #{balancesBean.creditorCount} people
+                        after the repayments already made
                     </p>
                 </div>
                 <div class="tm-stat">
@@ -74,34 +74,54 @@
                     </p:button>
                 </div>
 
-                <p:dataTable value="#{balancesBean.balances}" var="b" emptyMessage="">
-                    <p:column headerText="Member" sortBy="#{b.fullName}">
-                        <h:outputText value="#{b.fullName}"/>
+                <p:dataTable value="#{balancesBean.positions}" var="p" emptyMessage="">
+                    <p:column headerText="Member" sortBy="#{p.fullName}">
+                        <h:outputText value="#{p.fullName}"/>
                     </p:column>
-                    <p:column headerText="Paid" sortBy="#{b.totalPaid}">
-                        <h:outputText value="NPR #{b.totalPaid}"/>
+                    <p:column headerText="Paid" sortBy="#{p.paid}">
+                        <h:outputText value="NPR #{p.paid}"/>
                     </p:column>
-                    <p:column headerText="Their share" sortBy="#{b.totalOwed}">
-                        <h:outputText value="NPR #{b.totalOwed}"/>
+                    <p:column headerText="Their share" sortBy="#{p.share}">
+                        <h:outputText value="NPR #{p.share}"/>
                     </p:column>
-                    <p:column headerText="Net" sortBy="#{b.netBalance}">
-                        <span class="#{b.netBalance.signum() >= 0 ? 'tm-positive' : 'tm-negative'}">
-                            <h:outputText value="NPR #{b.netBalance}"/>
+                    <p:column headerText="Net" sortBy="#{p.net}">
+                        <span class="#{p.net.signum() >= 0 ? 'tm-positive' : 'tm-negative'}">
+                            <h:outputText value="NPR #{p.net}"/>
+                        </span>
+                    </p:column>
+                    <p:column headerText="Repaid out">
+                        <h:outputText value="NPR #{p.repaidOut}"/>
+                    </p:column>
+                    <p:column headerText="Received">
+                        <h:outputText value="NPR #{p.received}"/>
+                    </p:column>
+                    <p:column headerText="Still outstanding" sortBy="#{p.outstanding}">
+                        <span class="#{p.outstanding.signum() >= 0 ? 'tm-positive' : 'tm-negative'}">
+                            <h:outputText value="NPR #{p.outstanding}"/>
                         </span>
                     </p:column>
                     <p:column headerText="Meaning">
-                        <h:outputText value="is owed" rendered="#{b.creditor}"/>
-                        <h:outputText value="owes" rendered="#{b.debtor}"/>
-                        <h:outputText value="even" rendered="#{not b.creditor and not b.debtor}"/>
+                        <h:outputText value="still pays" rendered="#{p.debtor}"/>
+                        <h:outputText value="still owed" rendered="#{p.creditor}"/>
+                        <h:outputText value="square" rendered="#{p.square}"/>
                     </p:column>
                 </p:dataTable>
 
                 <p class="tm-caption-sm tm-text-muted">
-                    These are gross positions: every split counts whether or not it has
-                    been repaid, and repayments recorded below are not netted off. The
-                    figure answers "who is up and who is down", not "what is still
-                    outstanding".
+                    <strong>Net</strong> is what each member paid minus their share of the
+                    trip, counting every split whether or not it has been repaid. It is
+                    the figure the trip overview's Balances tab shows.<br/>
+                    <strong>Still outstanding</strong> also accounts for the repayments
+                    listed below: net, plus what they have paid out, minus what they have
+                    received. That is what still has to move for everyone to be square,
+                    and it is what the suggestion below is built from.
+                    <h:panelGroup layout="block" rendered="#{balancesBean.repaymentsAffectFigures}">
+                        <h:outputText value="The two differ on this trip because repayments
+                            have already been made. A member who received money owes more
+                            than their net suggests, and one who paid money owes less."/>
+                    </h:panelGroup>
                 </p>
+
             </section>
 
             <section class="tm-card" rendered="#{balancesBean.hasSuggestions}">

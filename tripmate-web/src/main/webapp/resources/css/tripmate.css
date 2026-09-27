@@ -746,6 +746,157 @@ body .ui-chart {
     font-weight: 600;
 }
 
+/* --------------------------------------------------------------------------
+   Content links
+
+   Without this, an <a> renders in the browser's default blue, which is neither
+   of the system's colours and reads as an unstyled page. Body links are ink and
+   underlined; Rausch is reserved for actions, so a link only takes the accent
+   on hover.
+   -------------------------------------------------------------------------- */
+
+.tm-page a,
+.tm-auth-card a {
+    color: var(--tm-color-ink);
+    text-decoration: underline;
+}
+
+.tm-page a:hover,
+.tm-auth-card a:hover {
+    color: var(--tm-color-primary);
+}
+
+/* ==========================================================================
+   Application shell
+
+   Follows DESIGN.md's top-nav: white surface, 80px tall, one hairline beneath.
+   The wordmark sits left, the sections sit in the centre, and the account
+   controls sit right, which is the arrangement the source system uses.
+   ========================================================================== */
+
+.tm-topnav {
+    border-bottom: 1px solid var(--tm-color-hairline);
+    background-color: var(--tm-color-canvas);
+}
+
+.tm-topnav-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--tm-space-lg);
+    max-width: var(--tm-container-wide);
+    min-height: 80px;
+    margin: 0 auto;
+    padding: 0 var(--tm-space-lg);
+}
+
+.tm-wordmark {
+    color: var(--tm-color-primary);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.18px;
+    text-decoration: none;
+}
+
+.tm-nav {
+    display: flex;
+    flex: 1 1 auto;
+    gap: var(--tm-space-lg);
+    justify-content: center;
+}
+
+.tm-nav-link {
+    padding: var(--tm-space-sm) 0;
+    color: var(--tm-color-muted);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+    text-decoration: none;
+}
+
+.tm-nav-link:hover {
+    color: var(--tm-color-ink);
+}
+
+/* The active section is marked in ink rather than with an accent colour, which
+   keeps Rausch reserved for actions. */
+.tm-nav-link-active {
+    color: var(--tm-color-ink);
+}
+
+.tm-nav-account {
+    display: flex;
+    align-items: center;
+    gap: var(--tm-space-base);
+}
+
+/* The sign-out control is a compact secondary button, not a full-height CTA:
+   it sits inside an 80px bar. */
+.tm-nav-account .ui-button {
+    min-height: 40px;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+/* ==========================================================================
+   Sign-in and registration
+
+   A single centred card on the canvas, with no navigation: there is nothing to
+   navigate to before signing in.
+   ========================================================================== */
+
+.tm-auth-page {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    padding: var(--tm-space-xxl) var(--tm-space-lg);
+    background-color: var(--tm-color-canvas);
+}
+
+.tm-auth-card {
+    width: 100%;
+    max-width: 420px;
+    padding: var(--tm-space-xl);
+    border-radius: var(--tm-radius-md);
+    background-color: var(--tm-color-surface-card);
+    box-shadow: var(--tm-elevation-card);
+}
+
+.tm-auth-card h1 {
+    margin: 0 0 var(--tm-space-sm);
+    color: var(--tm-color-ink);
+}
+
+.tm-auth-card .tm-eyebrow {
+    margin-bottom: var(--tm-space-md);
+}
+
+.tm-auth-card .tm-body-sm {
+    margin: 0 0 var(--tm-space-lg);
+}
+
+.tm-auth-alt {
+    margin: var(--tm-space-lg) 0 0;
+}
+
+.tm-auth-hint {
+    margin: var(--tm-space-base) 0 0;
+    padding-top: var(--tm-space-base);
+    border-top: 1px solid var(--tm-color-hairline-soft);
+}
+
+/* Inputs and buttons fill the card, which is narrower than a content column. */
+body .tm-input-full,
+body .tm-input-full.ui-inputfield,
+body .tm-input-full.ui-password {
+    width: 100%;
+}
+
+.tm-button-block {
+    width: 100%;
+}
+
 /* ==========================================================================
    Development diagnostics
 

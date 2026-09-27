@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:ui="jakarta.faces.facelets"
+      lang="en">
+<h:head>
+    <meta charset="UTF-8"/>
+</h:head>
+<h:body>
+
+<ui:composition template="/WEB-INF/templates/layout.xhtml">
+    <ui:define name="title">Dashboard · TripMate</ui:define>
+
+    <ui:define name="content">
+        <header class="tm-hero">
+            <p class="tm-eyebrow">Dashboard</p>
+            <h1 class="tm-title">Hello, #{currentUser.fullName}</h1>
+        </header>
+
+        <section class="tm-card">
+            <p class="tm-body-md">
+                Your trips, recent activity and totals appear here.
+            </p>
+        </section>
+    </ui:define>
+</ui:composition>
+
+</h:body>
+</html>

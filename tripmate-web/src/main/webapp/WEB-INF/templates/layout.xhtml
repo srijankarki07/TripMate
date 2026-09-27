@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="jakarta.faces.facelets"
+      lang="en">
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>
+        <ui:insert name="title">TripMate</ui:insert>
+    </title>
+    <h:outputStylesheet library="css" name="tripmate.css"/>
+</h:head>
+
+<h:body>
+
+    <!--
+        The application shell. Every signed-in page composes this, so the
+        navigation exists in one place and cannot drift between pages.
+    -->
+    <header class="tm-topnav">
+        <div class="tm-topnav-inner">
+
+            <h:link outcome="dashboard" styleClass="tm-wordmark" value="TripMate"/>
+
+            <nav class="tm-nav">
+                <h:link outcome="dashboard" value="Dashboard"
+                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/dashboard.xhtml' ? 'tm-nav-link-active' : ''}"/>
+                <h:link outcome="trips/list" value="Trips"
+                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/trips/list.xhtml' ? 'tm-nav-link-active' : ''}"/>
+                <h:link outcome="reports/index" value="Reports"
+                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/reports/index.xhtml' ? 'tm-nav-link-active' : ''}"/>
+            </nav>
+
+            <div class="tm-nav-account">
+                <h:link outcome="profile" styleClass="tm-nav-link"
+                        value="#{currentUser.user.fullName}"/>
+                <h:form>
+                    <p:commandButton value="Sign out"
+                                     styleClass="ui-button-secondary"
+                                     action="#{currentUser.logoutAndReturn}"
+                                     ajax="false"/>
+                </h:form>
+            </div>
+
+        </div>
+    </header>
+
+    <main class="tm-page">
+        <ui:insert name="content"/>
+    </main>
+
+    <footer class="tm-footer">
+        Jakarta EE 10 · GlassFish 7 · PostgreSQL
+        <span class="tm-footer-links">
+            <h:link outcome="diagnostics" value="Integration checks"/>
+        </span>
+    </footer>
+
+</h:body>
+</html>

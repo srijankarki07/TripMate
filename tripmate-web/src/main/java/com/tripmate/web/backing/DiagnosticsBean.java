@@ -197,13 +197,15 @@ public class DiagnosticsBean implements Serializable {
 
         // Alice already administers Pokhara, so adding her again must fail.
         expectRejected(lines, "TripService", "a duplicate membership is rejected",
-                () -> tripService.addMember(pokhara.getTripId(), alice.getUserId(), TripRole.MEMBER));
+                () -> tripService.addMember(pokhara.getTripId(), alice.getUserId(),
+                        TripRole.MEMBER, alice.getUserId()));
 
         expectRejected(lines, "TripService", "adding a member to a non-existent trip is rejected",
-                () -> tripService.addMember(-1L, bob.getUserId(), TripRole.MEMBER));
+                () -> tripService.addMember(-1L, bob.getUserId(), TripRole.MEMBER,
+                        alice.getUserId()));
 
         expectRejected(lines, "TripService", "removing a non-member is rejected",
-                () -> tripService.removeMember(pokhara.getTripId(), 999999L));
+                () -> tripService.removeMember(pokhara.getTripId(), 999999L, alice.getUserId()));
 
         expectRejected(lines, "UserService", "registering a duplicate email is rejected",
                 () -> userService.register(
@@ -212,20 +214,21 @@ public class DiagnosticsBean implements Serializable {
         // The flagship rule: splits must reconcile with the amount.
         expectRejected(lines, "ExpenseService", "an expense whose splits do not sum to its amount is rejected",
                 () -> expenseService.persistExpense(
-                        unbalancedExpense(pokhara.getTripId(), alice.getUserId())));
+                        unbalancedExpense(pokhara.getTripId(), alice.getUserId()),
+                        alice.getUserId()));
 
         expectRejected(lines, "ExpenseService", "a zero amount is rejected",
                 () -> {
                     ExpenseDTO zero = unbalancedExpense(pokhara.getTripId(), alice.getUserId());
                     zero.setAmount(BigDecimal.ZERO);
-                    expenseService.persistExpense(zero);
+                    expenseService.persistExpense(zero, alice.getUserId());
                 });
 
         expectRejected(lines, "ExpenseService", "an expense with no splits is rejected",
                 () -> {
                     ExpenseDTO none = unbalancedExpense(pokhara.getTripId(), alice.getUserId());
                     none.getSplits().clear();
-                    expenseService.persistExpense(none);
+                    expenseService.persistExpense(none, alice.getUserId());
                 });
 
         expectRejected(lines, "ExpenseService", "a split for an unknown user is rejected",
@@ -233,7 +236,7 @@ public class DiagnosticsBean implements Serializable {
                     ExpenseDTO bad = unbalancedExpense(pokhara.getTripId(), alice.getUserId());
                     bad.getSplits().clear();
                     bad.addSplit(new SplitDTO(999999L, null, new BigDecimal("4800.00"), false));
-                    expenseService.persistExpense(bad);
+                    expenseService.persistExpense(bad, alice.getUserId());
                 });
 
         // Business rule ROADMAP section 8.3: a settlement needs two people.
@@ -244,7 +247,7 @@ public class DiagnosticsBean implements Serializable {
                     self.setPayerId(alice.getUserId());
                     self.setReceiverId(alice.getUserId());
                     self.setAmount(new BigDecimal("100.00"));
-                    expenseService.recordSettlement(self);
+                    expenseService.recordSettlement(self, alice.getUserId());
                 });
 
         expectRejected(lines, "ExpenseService", "a negative settlement is rejected",
@@ -254,8 +257,66 @@ public class DiagnosticsBean implements Serializable {
                     negative.setPayerId(bob.getUserId());
                     negative.setReceiverId(alice.getUserId());
                     negative.setAmount(new BigDecimal("-50.00"));
-                    expenseService.recordSettlement(negative);
+                    expenseService.recordSettlement(negative, alice.getUserId());
                 });
+
+        // ------------------------------------------------------------------
+        // Authorization. ROADMAP section 8.3 and the role table in section 4.
+        // Every one of these needs to know who is asking, which is why the
+        // service methods carry the acting user as an argument.
+        // ------------------------------------------------------------------
+        UserDTO emma = userService.getUserByEmail("emma@tripmate.test");
+        boolean emmaIsOnPokhara = tripService.isMember(pokhara.getTripId(), emma.getUserId());
+
+        // Emma is on two of the three seeded trips but not on Pokhara.
+        check(lines, "Authorization",
+                "a user who is not on the trip is not a member of it",
+                !emmaIsOnPokhara);
+
+        expectRejected(lines, "Authorization",
+                "a non-member cannot add an expense to the trip",
+                () -> expenseService.persistExpense(
+                        unbalancedExpense(pokhara.getTripId(), alice.getUserId()),
+                        emma.getUserId()));
+
+        expectRejected(lines, "Authorization",
+                "a non-member cannot record a repayment on the trip",
+                () -> {
+                    SettlementDTO outsider = new SettlementDTO();
+                    outsider.setTripId(pokhara.getTripId());
+                    outsider.setPayerId(bob.getUserId());
+                    outsider.setReceiverId(alice.getUserId());
+                    outsider.setAmount(new BigDecimal("10.00"));
+                    expenseService.recordSettlement(outsider, emma.getUserId());
+                });
+
+        // Bob is an ordinary member of Pokhara, not its administrator.
+        check(lines, "Authorization",
+                "the member used for these checks is not an administrator",
+                tripService.getMemberRole(pokhara.getTripId(), bob.getUserId()) == TripRole.MEMBER);
+
+        expectRejected(lines, "Authorization",
+                "a plain member cannot invite somebody",
+                () -> tripService.addMember(pokhara.getTripId(), emma.getUserId(),
+                        TripRole.MEMBER, bob.getUserId()));
+
+        expectRejected(lines, "Authorization",
+                "a plain member cannot remove somebody",
+                () -> tripService.removeMember(pokhara.getTripId(), 3L, bob.getUserId()));
+
+        expectRejected(lines, "Authorization",
+                "a plain member cannot edit the trip",
+                () -> tripService.updateTrip(pokhara, bob.getUserId()));
+
+        expectRejected(lines, "Authorization",
+                "a plain member cannot delete the trip",
+                () -> tripService.deleteTrip(pokhara.getTripId(), bob.getUserId()));
+
+        // Alice is Pokhara's only administrator, so she cannot leave it.
+        expectRejected(lines, "Authorization",
+                "the trip's only administrator cannot be removed",
+                () -> tripService.removeMember(pokhara.getTripId(), alice.getUserId(),
+                        alice.getUserId()));
 
         long failures = lines.stream().filter(line -> line.startsWith("FAIL")).count();
         lines.add(failures == 0

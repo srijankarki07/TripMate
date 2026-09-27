@@ -117,7 +117,7 @@ public class TripDetailBean implements Serializable {
         error = null;
         message = null;
         try {
-            trip = tripService.updateTrip(trip);
+            trip = tripService.updateTrip(trip, currentUser.getUserId());
             message = "Trip saved.";
             // The header shows the name and dates, which are read from the
             // refreshed DTO, so there is nothing else to reload for those.
@@ -131,7 +131,7 @@ public class TripDetailBean implements Serializable {
     public String delete() {
         error = null;
         try {
-            tripService.deleteTrip(tripId);
+            tripService.deleteTrip(tripId, currentUser.getUserId());
             return "/trips/list.xhtml?faces-redirect=true";
         } catch (RuntimeException ex) {
             error = rootMessage(ex);
@@ -152,7 +152,7 @@ public class TripDetailBean implements Serializable {
         }
         try {
             UserDTO user = userService.getUser(newMemberId);
-            tripService.addMember(tripId, newMemberId, TripRole.MEMBER);
+            tripService.addMember(tripId, newMemberId, TripRole.MEMBER, currentUser.getUserId());
             message = (user == null ? "Member" : user.getFullName()) + " joined the trip.";
             newMemberId = null;
             members = tripService.getTripMembers(tripId);
@@ -166,7 +166,7 @@ public class TripDetailBean implements Serializable {
         error = null;
         message = null;
         try {
-            tripService.removeMember(tripId, userId);
+            tripService.removeMember(tripId, userId, currentUser.getUserId());
             message = "Member removed.";
             members = tripService.getTripMembers(tripId);
             trip = tripService.getTrip(tripId);

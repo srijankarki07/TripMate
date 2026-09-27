@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.tripmate.dto.ExpenseDTO;
 import com.tripmate.dto.SettlementDTO;
+import com.tripmate.exception.ValidationException;
 
 import jakarta.ejb.Remote;
 
@@ -28,23 +29,26 @@ public interface ExpenseServiceRemote {
      * @param expense the expense; {@code expenseId} is ignored. The splits come
      *                from {@link ExpenseDTO#getSplits()}, and each identifies
      *                its participant by user id.
+     * @param actedBy who is recording it; must be a member of the trip
      * @return the stored expense with generated ids
-     * @throws IllegalArgumentException if the trip or payer does not exist, a
-     *                                  required field is missing, the amount is
-     *                                  not positive, a participant is unknown,
-     *                                  or the splits do not sum to the amount
+     * @throws ValidationException if the trip or payer does not exist, a
+     *                             required field is missing, the amount is not
+     *                             positive, a participant is unknown, the splits
+     *                             do not sum to the amount, or the caller is not
+     *                             a member of the trip
      */
-    ExpenseDTO persistExpense(ExpenseDTO expense);
+    ExpenseDTO persistExpense(ExpenseDTO expense, Long actedBy);
 
     /**
-     * Records an expense submitted by a user.
+     * Records an expense submitted by a user, and returns once it is stored.
      *
-     * <p>Currently delegates to {@link #persistExpense}. Phase 7 changes
-     * {@link #submitExpenseAsync} to enqueue a message so the browser is not
-     * held while several rows are written; this synchronous entry point stays
-     * for callers that need the id straight away.
+     * <p>The asynchronous route through {@link #submitExpenseAsync} is what the
+     * expense form uses. This one stays for callers that need the generated id
+     * straight away.
+     *
+     * @param actedBy who is recording it; must be a member of the trip
      */
-    ExpenseDTO submitExpense(ExpenseDTO expense);
+    ExpenseDTO submitExpense(ExpenseDTO expense, Long actedBy);
 
     /**
      * Submits an expense without waiting for it to be written.
@@ -54,22 +58,18 @@ public interface ExpenseServiceRemote {
      * section 10.1 rationale describes: several rows are involved and the
      * browser should not be blocked on them.
      *
-     * <p>The input is validated before the message is sent, so an expense that
-     * could never be stored is refused while the user is still looking at the
-     * form rather than being rejected later by a consumer that has no way to
-     * tell anyone.
-     */
-    void submitExpenseAsync(ExpenseDTO expense);
-
-    /**
-     * Submits an expense without waiting for it to be written, recording who
-     * asked for it.
+     * <p>The input is validated, and the caller's membership checked, before
+     * the message is sent. An expense that could never be stored is refused
+     * while the user is still looking at the form rather than being rejected
+     * later by a consumer that has no way to tell anyone.
      *
-     * <p>The submitter is a separate argument rather than being read from the
-     * expense, because the person filling in the form and the person who paid
-     * are not necessarily the same, and a stateless bean cannot tell.
+     * <p>There is no single-argument form. The acting user is not optional, and
+     * an overload that guessed it from the expense's payer would let a caller
+     * record an expense against someone else's membership.
+     *
+     * @param actedBy who is submitting it; must be a member of the trip
      */
-    void submitExpenseAsync(ExpenseDTO expense, Long submittedBy);
+    void submitExpenseAsync(ExpenseDTO expense, Long actedBy);
 
     /** @return the expense with its splits, or {@code null} if no such id */
     ExpenseDTO getExpense(Long expenseId);
@@ -91,17 +91,21 @@ public interface ExpenseServiceRemote {
      * when it carries none, so a caller editing only the description does not
      * have to resend the splits to avoid deleting them.
      *
-     * @throws IllegalArgumentException if the expense does not exist, or the
-     *                                  replacement splits are invalid
+     * @param actedBy who is editing it; must be a member of the trip
+     * @throws ValidationException if the expense does not exist, the replacement
+     *                             splits are invalid, or the caller is not a
+     *                             member of the trip
      */
-    ExpenseDTO updateExpense(ExpenseDTO expense);
+    ExpenseDTO updateExpense(ExpenseDTO expense, Long actedBy);
 
     /**
      * Deletes an expense and its splits.
      *
-     * @throws IllegalArgumentException if the expense does not exist
+     * @param actedBy who is deleting it; must be a member of the trip
+     * @throws ValidationException if the expense does not exist, or the caller
+     *                             is not a member of the trip
      */
-    void deleteExpense(Long expenseId);
+    void deleteExpense(Long expenseId, Long actedBy);
 
     // ------------------------------------------------------------------
     // Settlements
@@ -110,11 +114,13 @@ public interface ExpenseServiceRemote {
     /**
      * Records a repayment between two members of a trip.
      *
-     * @throws IllegalArgumentException if the trip, payer or receiver does not
-     *                                  exist, the two parties are the same
-     *                                  person, or the amount is not positive
+     * @param actedBy who is recording it; must be a member of the trip
+     * @throws ValidationException if the trip, payer or receiver does not exist,
+     *                             the two parties are the same person, the
+     *                             amount is not positive, or the caller is not a
+     *                             member of the trip
      */
-    SettlementDTO recordSettlement(SettlementDTO settlement);
+    SettlementDTO recordSettlement(SettlementDTO settlement, Long actedBy);
 
     /** @return the settlement, or {@code null} if no such id */
     SettlementDTO getSettlement(Long settlementId);
@@ -125,9 +131,11 @@ public interface ExpenseServiceRemote {
     /**
      * Deletes a settlement.
      *
-     * @throws IllegalArgumentException if the settlement does not exist
+     * @param actedBy who is deleting it; must be a member of the trip
+     * @throws ValidationException if the settlement does not exist, or the
+     *                             caller is not a member of the trip
      */
-    void deleteSettlement(Long settlementId);
+    void deleteSettlement(Long settlementId, Long actedBy);
 
     // ------------------------------------------------------------------
     // Totals

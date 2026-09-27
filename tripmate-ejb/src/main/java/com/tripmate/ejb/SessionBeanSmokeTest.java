@@ -159,7 +159,7 @@ public class SessionBeanSmokeTest {
                 tripService.getTripsForUser(bob.getUserId()).stream()
                         .noneMatch(t -> tripId.equals(t.getTripId())));
 
-        TripMemberDTO bobMember = tripService.addMember(tripId, bob.getUserId(), TripRole.MEMBER);
+        TripMemberDTO bobMember = tripService.addMember(tripId, bob.getUserId(), TripRole.MEMBER, alice.getUserId());
         check(report, "TripService", "addMember assigns an id", bobMember.getMemberId() != null);
         check(report, "TripService", "addMember records the role",
                 bobMember.getRole() == TripRole.MEMBER);
@@ -172,7 +172,7 @@ public class SessionBeanSmokeTest {
         statusChange.setTripId(tripId);
         statusChange.setStatus(TripStatus.ONGOING);
         check(report, "TripService", "updateTrip persists a status change",
-                tripService.updateTrip(statusChange).getStatus() == TripStatus.ONGOING);
+                tripService.updateTrip(statusChange, alice.getUserId()).getStatus() == TripStatus.ONGOING);
 
         // ==============================================================
         // ItineraryService
@@ -209,7 +209,7 @@ public class SessionBeanSmokeTest {
         // ExpenseService
         // ==============================================================
         ExpenseDTO expense = expenseOf(tripId, alice.getUserId(), alice.getUserId(), bob.getUserId());
-        ExpenseDTO stored = expenseService.persistExpense(expense);
+        ExpenseDTO stored = expenseService.persistExpense(expense, alice.getUserId());
 
         check(report, "ExpenseService", "persistExpense assigns an id", stored.getExpenseId() != null);
         check(report, "ExpenseService", "both splits are written with the expense",
@@ -237,7 +237,7 @@ public class SessionBeanSmokeTest {
         settlement.setAmount(SETTLEMENT_AMOUNT);
         settlement.setNote("Smoke settlement");
 
-        SettlementDTO recorded = expenseService.recordSettlement(settlement);
+        SettlementDTO recorded = expenseService.recordSettlement(settlement, alice.getUserId());
         check(report, "ExpenseService", "recordSettlement assigns an id",
                 recorded.getSettlementId() != null);
         check(report, "ExpenseService", "both parties' names resolve",
@@ -289,11 +289,11 @@ public class SessionBeanSmokeTest {
         // ==============================================================
         // Deletes, in dependency order
         // ==============================================================
-        expenseService.deleteSettlement(recorded.getSettlementId());
+        expenseService.deleteSettlement(recorded.getSettlementId(), alice.getUserId());
         check(report, "ExpenseService", "deleteSettlement removes the row",
                 expenseService.getSettlementsForTrip(tripId).isEmpty());
 
-        expenseService.deleteExpense(stored.getExpenseId());
+        expenseService.deleteExpense(stored.getExpenseId(), alice.getUserId());
         check(report, "ExpenseService", "deleteExpense removes the expense",
                 expenseService.getExpense(stored.getExpenseId()) == null);
         check(report, "ExpenseService", "the splits went with the expense",
@@ -303,11 +303,11 @@ public class SessionBeanSmokeTest {
         check(report, "ItineraryService", "deleteItem removes the row",
                 itineraryService.getItem(morning.getItemId()) == null);
 
-        tripService.removeMember(tripId, bob.getUserId());
+        tripService.removeMember(tripId, bob.getUserId(), alice.getUserId());
         check(report, "TripService", "removeMember removes the membership",
                 !tripService.isMember(tripId, bob.getUserId()));
 
-        tripService.deleteTrip(tripId);
+        tripService.deleteTrip(tripId, alice.getUserId());
         check(report, "TripService", "deleteTrip removes the trip",
                 tripService.getTrip(tripId) == null);
         check(report, "TripService", "the trip's remaining rows went with it",

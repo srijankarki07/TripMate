@@ -284,7 +284,7 @@ public class ExpenseBean implements Serializable {
         error = null;
         message = null;
         try {
-            expenseService.deleteExpense(expenseId);
+            expenseService.deleteExpense(expenseId, currentUser.getUserId());
             message = "Expense removed.";
             refresh();
         } catch (RuntimeException ex) {

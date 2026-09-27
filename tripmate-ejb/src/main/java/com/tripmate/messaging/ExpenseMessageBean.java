@@ -90,7 +90,10 @@ public class ExpenseMessageBean implements MessageListener {
         ExpenseDTO expense = payload.getExpense();
 
         try {
-            ExpenseDTO stored = expenseService.persistExpense(expense);
+            // The submitter recorded on the message is the acting user. Membership is
+            // re-checked here, so an expense submitted and then invalidated by the
+            // submitter leaving the trip is refused rather than written.
+            ExpenseDTO stored = expenseService.persistExpense(expense, payload.getSubmittedBy());
 
             LOG.info("Expense written from the queue [correlationId=" + correlationId
                     + "] expenseId=" + stored.getExpenseId()

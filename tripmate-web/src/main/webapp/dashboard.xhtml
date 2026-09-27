@@ -50,7 +50,7 @@
         <section class="tm-card">
             <div class="tm-toolbar">
                 <h2 class="tm-display-sm">My trips</h2>
-                <p:button outcome="trips/create" value="New trip" styleClass="ui-button-secondary"/>
+                <p:button outcome="/trips/create.xhtml" value="New trip" styleClass="ui-button-secondary"/>
             </div>
 
             <p:dataTable value="#{dashboardBean.trips}"
@@ -62,7 +62,7 @@
                          paginator="false">
 
                 <p:column headerText="Trip">
-                    <h:link outcome="trips/detail" value="#{trip.tripName}">
+                    <h:link outcome="/trips/detail.xhtml" value="#{trip.tripName}">
                         <f:param name="tripId" value="#{trip.tripId}"/>
                     </h:link>
                 </p:column>

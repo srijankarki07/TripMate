@@ -22,19 +22,19 @@
     <header class="tm-topnav">
         <div class="tm-topnav-inner">
 
-            <h:link outcome="dashboard" styleClass="tm-wordmark" value="TripMate"/>
+            <h:link outcome="/dashboard.xhtml" styleClass="tm-wordmark" value="TripMate"/>
 
             <nav class="tm-nav">
-                <h:link outcome="dashboard" value="Dashboard"
+                <h:link outcome="/dashboard.xhtml" value="Dashboard"
                         styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/dashboard.xhtml' ? 'tm-nav-link-active' : ''}"/>
-                <h:link outcome="trips/list" value="Trips"
+                <h:link outcome="/trips/list.xhtml" value="Trips"
                         styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/trips/list.xhtml' ? 'tm-nav-link-active' : ''}"/>
-                <h:link outcome="reports/index" value="Reports"
+                <h:link outcome="/reports/index.xhtml" value="Reports"
                         styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/reports/index.xhtml' ? 'tm-nav-link-active' : ''}"/>
             </nav>
 
             <div class="tm-nav-account">
-                <h:link outcome="profile" styleClass="tm-nav-link"
+                <h:link outcome="/profile.xhtml" styleClass="tm-nav-link"
                         value="#{currentUser.user.fullName}"/>
                 <h:form>
                     <p:commandButton value="Sign out"
@@ -54,7 +54,7 @@
     <footer class="tm-footer">
         Jakarta EE 10 · GlassFish 7 · PostgreSQL
         <span class="tm-footer-links">
-            <h:link outcome="diagnostics" value="Integration checks"/>
+            <h:link outcome="/diagnostics.xhtml" value="Integration checks"/>
         </span>
     </footer>
 

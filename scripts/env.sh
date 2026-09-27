@@ -78,6 +78,13 @@ export TM_DB_HOST="${TM_DB_HOST:-localhost}"
 export TM_DB_PORT="${TM_DB_PORT:-5432}"
 export TM_DB_URL="jdbc:postgresql://${TM_DB_HOST}:${TM_DB_PORT}/${TM_DB_NAME}"
 
+# GlassFish JDBC resource names. scripts/glassfish-setup.sh creates these, and
+# tripmate-ejb/src/main/resources/META-INF/persistence.xml refers to the JNDI
+# name, so changing it here means changing it there too.
+export TM_DOMAIN="${TM_DOMAIN:-domain1}"
+export TM_POOL_NAME="${TM_POOL_NAME:-tripmatePool}"
+export TM_JNDI_NAME="${TM_JNDI_NAME:-jdbc/tripmate}"
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -15,11 +15,12 @@ cd "${PROJECT_ROOT}"
 echo "==> Building"
 mvn -B clean package "$@"
 
-if ! tm_domain_running; then
-    echo
-    echo "==> Starting GlassFish domain"
-    "${ASADMIN}" start-domain
-fi
+# The persistence unit resolves jdbc/tripmate when the application deploys, so
+# the datasource has to exist first — a missing one fails the deployment rather
+# than failing later with a clear message. glassfish-setup.sh is idempotent, and
+# it starts the domain if it is not already up.
+echo
+"$(dirname "${BASH_SOURCE[0]}")/glassfish-setup.sh"
 
 echo
 echo "==> Deploying '${APP_NAME}'"

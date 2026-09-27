@@ -20,6 +20,7 @@
     <!-- Modules are declared here as each tier is implemented. -->
     <modules>
         <module>tripmate-ejb</module>
+        <module>tripmate-web</module>
     </modules>
 
     <properties>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      lang="en">
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>TripMate</title>
+</h:head>
+
+<h:body>
+    <main class="tm-page">
+
+        <header class="tm-hero">
+            <p class="tm-eyebrow">Phase 0 · deployment check</p>
+            <h1 class="tm-title">TripMate</h1>
+            <p class="tm-lede">
+                Group trip planning and expense tracking. This page is served by the
+                presentation tier, rendered through Jakarta Faces, and answered by a
+                stateless session bean in the business tier.
+            </p>
+        </header>
+
+        <section class="tm-card">
+            <h:form>
+                <label class="tm-label" for="name">Your name</label>
+                <h:inputText id="name"
+                             styleClass="tm-input"
+                             value="#{helloBean.name}"
+                             autocomplete="off"/>
+                <h:commandButton styleClass="tm-button"
+                                 value="Call the EJB tier"
+                                 action="#{helloBean.refresh}"/>
+            </h:form>
+
+            <p class="tm-greeting">
+                <h:outputText value="#{helloBean.greeting}"/>
+            </p>
+            <p class="tm-meta">
+                <h:outputText value="#{helloBean.runtimeInfo}"/>
+            </p>
+        </section>
+
+        <footer class="tm-footer">
+            Jakarta EE 10 · GlassFish 7 · PostgreSQL
+        </footer>
+
+    </main>
+</h:body>
+</html>

@@ -21,6 +21,12 @@ import com.tripmate.entity.Expense;
  * <p>{@code amount} stays a {@link BigDecimal} across the boundary. Converting
  * to {@code double} for transport and back would reintroduce exactly the
  * rounding drift the database schema avoids by using {@code DECIMAL(12,2)}.
+ *
+ * <p>{@code paidById} accompanies {@code paidByName}, which ROADMAP section 7
+ * lists on its own. A name cannot identify a payer for a write: two users may
+ * share one, and a name is not a key. The ROADMAP already pairs an id with a
+ * name in {@code TripMemberDTO} and in {@code SettlementDTO}, so this makes
+ * {@code ExpenseDTO} consistent with the pattern used everywhere else.
  */
 public class ExpenseDTO implements Serializable {
 
@@ -28,6 +34,7 @@ public class ExpenseDTO implements Serializable {
 
     private Long expenseId;
     private Long tripId;
+    private Long paidById;
     private String paidByName;
     private String description;
     private BigDecimal amount;
@@ -38,11 +45,12 @@ public class ExpenseDTO implements Serializable {
     public ExpenseDTO() {
     }
 
-    public ExpenseDTO(Long expenseId, Long tripId, String paidByName, String description,
+    public ExpenseDTO(Long expenseId, Long tripId, Long paidById, String paidByName, String description,
                       BigDecimal amount, String category, LocalDate expenseDate,
                       List<SplitDTO> splits) {
         this.expenseId = expenseId;
         this.tripId = tripId;
+        this.paidById = paidById;
         this.paidByName = paidByName;
         this.description = description;
         this.amount = amount;
@@ -75,6 +83,7 @@ public class ExpenseDTO implements Serializable {
         return new ExpenseDTO(
                 expense.getExpenseId(),
                 trip == null ? null : trip.getTripId(),
+                payer == null ? null : payer.getUserId(),
                 payer == null ? null : payer.getFullName(),
                 expense.getDescription(),
                 expense.getAmount(),
@@ -97,6 +106,14 @@ public class ExpenseDTO implements Serializable {
 
     public void setTripId(Long tripId) {
         this.tripId = tripId;
+    }
+
+    public Long getPaidById() {
+        return paidById;
+    }
+
+    public void setPaidById(Long paidById) {
+        this.paidById = paidById;
     }
 
     public String getPaidByName() {

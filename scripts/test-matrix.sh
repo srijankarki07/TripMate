@@ -168,11 +168,10 @@ record 3 "Create a trip" "$([[ -n "${NEW_TRIP}" && "${ADMIN_ROWS}" == "1" ]] && 
 "${PROJECT_ROOT}/scripts/glassfish-jms.sh" > /dev/null 2>&1 || true
 DETAIL="${BASE}/trips/detail.xhtml?tripId=${NEW_TRIP}"
 ${CURL} -s -b "${WORK}/alice.jar" -c "${WORK}/alice.jar" -o "${WORK}/td.html" "${DETAIL}"
-INVITE_FORM=$(grep -oE 'name="[^"]*:newMember_input"' "${WORK}/td.html" | head -1 | sed -E 's/name="([^"]*):newMember_input"/\1/')
+INVITE_FORM=$(grep -oE 'name="[^"]*:inviteEmail"' "${WORK}/td.html" | head -1 | sed -E 's/name="([^"]*):inviteEmail"/\1/')
 post "${WORK}/alice.jar" "${DETAIL}" "${WORK}/td2.html" \
     --data-urlencode "${INVITE_FORM}=${INVITE_FORM}" \
-    --data-urlencode "${INVITE_FORM}:newMember_input=2" \
-    --data-urlencode "${INVITE_FORM}:newMember_filter=" \
+    --data-urlencode "${INVITE_FORM}:inviteEmail=bob@tripmate.test" \
     --data-urlencode "$(button "${WORK}/td.html" 'Add to trip')=Add to trip" \
     --data-urlencode "jakarta.faces.ViewState=$(field "${WORK}/td.html" 'jakarta.faces.ViewState')"
 MEMBER_ROWS=$(sql "SELECT count(*) FROM trip_members WHERE trip_id = ${NEW_TRIP} AND user_id = 2;")
@@ -180,36 +179,44 @@ record 4 "Add a member to a trip" "$([[ "${MEMBER_ROWS}" == "1" ]] && echo 1 || 
     "membership row created (${MEMBER_ROWS})"
 
 # ---------------------------------------------------------------------------
-# 5. Add a duplicate member
+# 5. Invite the same person twice
 #
-# The picker only offers people who are not already on the trip, so a duplicate
-# cannot be selected through the form at all. That is the first line of defence
-# and this test checks it. The business rule behind it is exercised directly by
-# the diagnostics suite, which calls addMember and expects it to refuse; the
-# form never reaches that code path, which is the point.
+# The form takes an exact email address, and the rule that refuses a duplicate
+# is in the service rather than in the form's options, so unlike the picker it
+# replaced this path is reachable and worth asserting on. The count is compared
+# before and after: a refusal that quietly created a second row would still show
+# "one member" if the check only looked at the row.
 ${CURL} -s -b "${WORK}/alice.jar" -c "${WORK}/alice.jar" -o "${WORK}/td3.html" "${DETAIL}"
-SELECTABLE=$(python3 - "${WORK}/td3.html" <<'INNER'
-import re, sys
-html = open(sys.argv[1]).read()
-i = html.find("newMember_input")
-chunk = html[max(0, i - 3000):i + 3000]
-offered = []
-for m in re.finditer(r'<option[^>]*value="([^"]*)"[^>]*>(.*?)</option>', chunk, re.S):
-    label = re.sub(r'<[^>]*>', '', m.group(2)).strip()
-    if label and label != "Choose someone":
-        offered.append(label)
-print(len(offered))
-INNER
-)
 MEMBERS_BEFORE=$(sql "SELECT count(*) FROM trip_members WHERE trip_id = ${NEW_TRIP};")
-# SELECTABLE must be a number: an empty value used to compare as zero and pass.
-if [[ "${SELECTABLE}" =~ ^[0-9]+$ && "${MEMBERS_BEFORE}" == "2" && "${SELECTABLE}" -lt 5 ]]; then
-    record 5 "Add a duplicate member" 1 \
-        "${SELECTABLE} of 5 users selectable, ${MEMBERS_BEFORE} memberships, none duplicated"
+post "${WORK}/alice.jar" "${DETAIL}" "${WORK}/td4.html" \
+    --data-urlencode "${INVITE_FORM}=${INVITE_FORM}" \
+    --data-urlencode "${INVITE_FORM}:inviteEmail=bob@tripmate.test" \
+    --data-urlencode "$(button "${WORK}/td3.html" 'Add to trip')=Add to trip" \
+    --data-urlencode "jakarta.faces.ViewState=$(field "${WORK}/td3.html" 'jakarta.faces.ViewState')"
+MEMBERS_AFTER=$(sql "SELECT count(*) FROM trip_members WHERE trip_id = ${NEW_TRIP};")
+REFUSED=$(says "${WORK}/td4.html" "already a member")
+if [[ "${REFUSED}" == "1" && "${MEMBERS_BEFORE}" == "${MEMBERS_AFTER}" ]]; then
+    record 5 "Invite the same person twice" 1 \
+        "refused, and the membership count is unchanged at ${MEMBERS_AFTER}"
 else
-    record 5 "Add a duplicate member" 0 \
-        "could not read the picker (selectable='${SELECTABLE}', members='${MEMBERS_BEFORE}')"
+    record 5 "Invite the same person twice" 0 \
+        "not refused (message='${REFUSED}', before=${MEMBERS_BEFORE}, after=${MEMBERS_AFTER})"
 fi
+
+# ---------------------------------------------------------------------------
+# 5b. An address with no account is refused
+#
+# The check that the invite form is not a way to probe the directory one
+# address at a time by watching what happens.
+${CURL} -s -b "${WORK}/alice.jar" -c "${WORK}/alice.jar" -o "${WORK}/td5.html" "${DETAIL}"
+post "${WORK}/alice.jar" "${DETAIL}" "${WORK}/td6.html" \
+    --data-urlencode "${INVITE_FORM}=${INVITE_FORM}" \
+    --data-urlencode "${INVITE_FORM}:inviteEmail=nobody-${RANDOM}@tripmate.test" \
+    --data-urlencode "$(button "${WORK}/td5.html" 'Add to trip')=Add to trip" \
+    --data-urlencode "jakarta.faces.ViewState=$(field "${WORK}/td5.html" 'jakarta.faces.ViewState')"
+NOBODY=$(says "${WORK}/td6.html" "No TripMate account uses")
+record 5b "Invite an unknown address" "$([[ "${NOBODY}" == "1" ]] && echo 1 || echo 0)" \
+    "refused with a message that says no account uses that address"
 
 # 6. Add an itinerary item
 # ---------------------------------------------------------------------------
@@ -420,7 +427,7 @@ echo "  16. Cold deploy on a clean database"
 if "${PROJECT_ROOT}/database/load.sh" > "${WORK}/load.log" 2>&1; then
     TABLES=$(sql "SELECT count(*) FROM pg_tables WHERE schemaname = 'public';")
     record 16 "Cold deploy on a clean database" \
-        "$([[ "${TABLES}" == "7" ]] && echo 1 || echo 0)" \
+        "$([[ "${TABLES}" == "8" ]] && echo 1 || echo 0)" \
         "schema, sample data and integrity checks all pass from empty (${TABLES} tables)"
 else
     record 16 "Cold deploy on a clean database" 0 "load.sh failed"

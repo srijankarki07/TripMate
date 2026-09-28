@@ -14,6 +14,7 @@
 -- (including other schemas and roles) is left alone.
 -- ============================================================================
 
+DROP TABLE IF EXISTS password_resets CASCADE;
 DROP TABLE IF EXISTS expense_splits  CASCADE;
 DROP TABLE IF EXISTS settlements     CASCADE;
 DROP TABLE IF EXISTS expenses        CASCADE;

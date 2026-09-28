@@ -106,10 +106,16 @@
                             <h:outputText value="NPR #{p.outstanding}"/>
                         </span>
                     </p:column>
-                    <p:column headerText="Meaning">
-                        <h:outputText value="still pays" rendered="#{p.debtor}"/>
-                        <h:outputText value="still owed" rendered="#{p.creditor}"/>
-                        <h:outputText value="square" rendered="#{p.square}"/>
+                    <p:column headerText="Position">
+                        <h:outputText value="still pays"
+                                      styleClass="tm-status tm-status-debit"
+                                      rendered="#{p.debtor}"/>
+                        <h:outputText value="still owed"
+                                      styleClass="tm-status tm-status-credit"
+                                      rendered="#{p.creditor}"/>
+                        <h:outputText value="square"
+                                      styleClass="tm-status tm-status-square"
+                                      rendered="#{p.square}"/>
                     </p:column>
                 </p:dataTable>
 
@@ -130,7 +136,59 @@
 
             </section>
 
-            <section class="tm-card" rendered="#{balancesBean.hasSuggestions}">
+<h:panelGroup layout="block" styleClass="tm-card" rendered="#{balancesBean.hasPositionBar}">
+                <div class="tm-toolbar">
+                    <h2 class="tm-display-sm">At a glance</h2>
+                </div>
+                <p class="tm-body-sm tm-text-muted">
+                    Each member's position, measured from the centre line. Bars to the
+                    right are money they are owed back; bars to the left are money they
+                    still have to pay. Every bar is drawn against the largest position
+                    on the trip, so the lengths are comparable with each other.
+                </p>
+
+                <div class="tm-diverging">
+                    <div class="tm-diverging-axis" aria-hidden="true">
+                        <span class="tm-diverging-axis-track">
+                            <span class="tm-diverging-axis-label tm-diverging-axis-label-pay">still pays</span>
+                            <span class="tm-diverging-axis-label tm-diverging-axis-label-receive">still owed</span>
+                        </span>
+                    </div>
+
+                    <ul class="tm-diverging-list">
+                        <ui:repeat value="#{balancesBean.positions}" var="row">
+                            <li class="tm-diverging-row">
+                                <span class="tm-diverging-name">
+                                    <span class="tm-avatar tm-avatar-sm" aria-hidden="true">
+                                        <h:outputText value="#{row.initials}"/>
+                                    </span>
+                                    <h:outputText value="#{row.fullName}"/>
+                                </span>
+
+                                <span class="tm-diverging-track"
+                                      role="img"
+                                      aria-label="#{row.fullName} #{row.debtor ? 'still pays' : (row.creditor ? 'is still owed' : 'is square')} NPR #{row.outstandingMagnitude}">
+                                    <span class="tm-diverging-half tm-diverging-half-pay">
+                                        <span class="tm-diverging-bar tm-diverging-bar-pay"
+                                              style="width:#{row.debtor ? balancesBean.barWidth(row) : 0}%"></span>
+                                    </span>
+                                    <span class="tm-diverging-half tm-diverging-half-receive">
+                                        <span class="tm-diverging-bar tm-diverging-bar-receive"
+                                              style="width:#{row.creditor ? balancesBean.barWidth(row) : 0}%"></span>
+                                    </span>
+                                </span>
+
+                                <span class="tm-diverging-value">
+                                    <h:outputText value="NPR #{row.outstandingMagnitude}"
+                                                  styleClass="#{row.debtor ? 'tm-text-danger' : (row.creditor ? 'tm-text-success' : 'tm-text-muted')}"/>
+                                </span>
+                            </li>
+                        </ui:repeat>
+                    </ul>
+                </div>
+</h:panelGroup>
+
+<h:panelGroup layout="block" styleClass="tm-card" rendered="#{balancesBean.hasSuggestions}">
                 <h2 class="tm-display-sm">What would settle it</h2>
                 <p class="tm-body-sm tm-text-muted">
                     A short set of payments that would clear the trip. Nothing is
@@ -148,9 +206,9 @@
                         <h:outputText value="NPR #{t.amount}"/>
                     </p:column>
                 </p:dataTable>
-            </section>
+</h:panelGroup>
 
-            <section class="tm-card" rendered="#{balancesBean.hasSettlements}">
+<h:panelGroup layout="block" styleClass="tm-card" rendered="#{balancesBean.hasSettlements}">
                 <h2 class="tm-display-sm">Repayments already recorded</h2>
                 <p:dataTable reflow="true" rowHover="true" value="#{balancesBean.settlements}" var="s" emptyMessage="">
                     <p:column headerText="When" sortBy="#{s.settledAt}">
@@ -169,7 +227,7 @@
                         <h:outputText value="#{s.note}"/>
                     </p:column>
                 </p:dataTable>
-            </section>
+</h:panelGroup>
 
         </ui:fragment>
 

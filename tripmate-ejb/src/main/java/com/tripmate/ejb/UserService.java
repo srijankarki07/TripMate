@@ -5,9 +5,12 @@ import java.util.List;
 import com.tripmate.dto.UserDTO;
 import com.tripmate.exception.ValidationException;
 import com.tripmate.entity.User;
+import com.tripmate.mail.MailService;
+import com.tripmate.mail.Templates;
 import com.tripmate.remote.UserServiceRemote;
 import com.tripmate.security.PasswordHasher;
 
+import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
@@ -27,6 +30,14 @@ public class UserService implements UserServiceRemote {
 
     @PersistenceContext(unitName = "tripmatePU")
     private EntityManager em;
+
+    /**
+     * Injected through its no-interface view, which is local to this module, so
+     * no remote interface is needed or wanted: mail is an internal concern of
+     * the business tier and nothing outside it should be able to send.
+     */
+    @EJB
+    private MailService mailService;
 
     @Override
     public UserDTO register(UserDTO user, String plainPassword) {
@@ -53,7 +64,31 @@ public class UserService implements UserServiceRemote {
 
         em.persist(entity);
         em.flush(); // so the generated id and created_at are populated
+
+        // Raised here rather than in the web tier, because registering is the
+        // event and this is where it happens. The call is asynchronous and does
+        // not throw, so a mail server that is down cannot turn a successful
+        // registration into an error page.
+        mailService.send(Templates.welcome(
+                entity.getEmail(), entity.getFullName(), signInUrl()));
+
         return UserDTO.from(entity);
+    }
+
+    /**
+     * The absolute URL of the sign-in page.
+     *
+     * <p>Built from the base URL the container holds, which
+     * {@code scripts/glassfish-mail.sh} sets from {@code TM_APP_BASE_URL}. It
+     * cannot be derived from the request: mail is composed on another thread,
+     * after the request that caused it has been answered, so there is no request
+     * to read a host from.
+     *
+     * @return the absolute URL, with no double slash if the base ends in one
+     */
+    private String signInUrl() {
+        String base = mailService.getBaseUrl();
+        return base.endsWith("/") ? base + "login.xhtml" : base + "/login.xhtml";
     }
 
     @Override
@@ -134,13 +169,32 @@ public class UserService implements UserServiceRemote {
     }
 
     @Override
-    public void changePassword(Long userId, String newPlainPassword) {
+    public void changePassword(Long userId, String currentPassword,
+                               String newPlainPassword, Long actedBy) {
         require(userId, "userId");
         require(newPlainPassword, "password");
+
+        // Two checks that were missing, and each of them mattered on its own.
+        //
+        // The actor check is the important one: without it any signed-in user
+        // could set any other user's password by id, because the method took a
+        // bare user id and never asked who was calling. The web tier only ever
+        // passed the signed-in user's own id, so it was not reachable from the
+        // interface, but the service was open.
+        //
+        // The current-password check makes the change deliberate rather than
+        // something a hijacked session can do quietly.
+        if (actedBy == null || !actedBy.equals(userId)) {
+            throw new ValidationException(
+                    "a password can only be changed by the person it belongs to");
+        }
 
         User entity = em.find(User.class, userId);
         if (entity == null) {
             throw new ValidationException("no such user: " + userId);
+        }
+        if (!PasswordHasher.verify(currentPassword, entity.getPasswordHash())) {
+            throw new ValidationException("that is not your current password");
         }
         entity.setPasswordHash(PasswordHasher.hash(newPlainPassword));
         em.flush();

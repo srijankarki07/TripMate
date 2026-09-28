@@ -96,6 +96,39 @@ export TM_JMS_FACTORY="${TM_JMS_FACTORY:-jms/ExpenseQueueFactory}"
 export TM_JMS_PHYSICAL="${TM_JMS_PHYSICAL:-jms_ExpenseQueue}"
 
 # ---------------------------------------------------------------------------
+# Email
+# ---------------------------------------------------------------------------
+# Created by scripts/glassfish-mail.sh. The JNDI name is looked up by
+# MailService, so changing it here means changing it there too.
+#
+# TM_MAIL_HOST is the one setting that decides whether mail is actually sent.
+# Left empty, which is the default, the JavaMail resource is still created so
+# the application deploys, but MailService renders each message and writes it to
+# the server log instead of handing it to an SMTP server. That is deliberate: a
+# fresh checkout with no credentials should run and be demonstrable, and the
+# alternative is either a deployment that fails or mail that silently vanishes.
+#
+# To send for real, export these before deploying:
+#
+#   TM_MAIL_HOST=smtp.example.com
+#   TM_MAIL_PORT=587
+#   TM_MAIL_USER=apikey
+#   TM_MAIL_PASSWORD=...
+#   TM_MAIL_FROM="TripMate <no-reply@example.com>"
+#
+# TM_APP_BASE_URL is what links in the emails are built from. It cannot be
+# derived at send time: mail is composed outside a request, so there is no
+# incoming request to read a host from.
+export TM_MAIL_JNDI="${TM_MAIL_JNDI:-mail/TripMate}"
+export TM_MAIL_HOST="${TM_MAIL_HOST:-}"
+export TM_MAIL_PORT="${TM_MAIL_PORT:-587}"
+export TM_MAIL_USER="${TM_MAIL_USER:-}"
+export TM_MAIL_PASSWORD="${TM_MAIL_PASSWORD:-}"
+export TM_MAIL_FROM="${TM_MAIL_FROM:-TripMate <no-reply@tripmate.test>}"
+export TM_MAIL_STARTTLS="${TM_MAIL_STARTTLS:-true}"
+export TM_APP_BASE_URL="${TM_APP_BASE_URL:-http://localhost:8080/tripmate}"
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 

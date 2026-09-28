@@ -11,7 +11,6 @@ import com.tripmate.dto.MemberBalanceDTO;
 import com.tripmate.dto.SettlementDTO;
 import com.tripmate.dto.TripDTO;
 import com.tripmate.dto.TripMemberDTO;
-import com.tripmate.dto.UserDTO;
 import com.tripmate.entity.TripRole;
 import com.tripmate.entity.TripStatus;
 import com.tripmate.remote.ExpenseServiceRemote;
@@ -72,7 +71,9 @@ public class TripDetailBean implements Serializable {
     private List<MemberBalanceDTO> balances = new ArrayList<>();
     private List<SettlementDTO> settlements = new ArrayList<>();
 
-    private Long newMemberId;
+    private String newMemberEmail;
+    /** What the reader typed into the delete confirmation, checked against the name. */
+    private String deleteConfirmName;
     private boolean member;
     private boolean admin;
     /** Loads everything the page shows. Called after the view parameter is set. */
@@ -105,7 +106,7 @@ public class TripDetailBean implements Serializable {
         members = new ArrayList<>(tripService.getTripMembers(tripId));
         itinerary = new ArrayList<>(itineraryService.getItineraryForTrip(tripId));
         expenses = new ArrayList<>(expenseService.getExpensesForTrip(tripId));
-        balances = new ArrayList<>(reportService.getMemberBalances(tripId));
+        balances = new ArrayList<>(reportService.getMemberBalances(tripId, currentUser.getUserId()));
         settlements = new ArrayList<>(expenseService.getSettlementsForTrip(tripId));
     }
 
@@ -127,8 +128,17 @@ public class TripDetailBean implements Serializable {
 
     /** @return a redirect to the trip list once the trip is gone */
     public String delete() {
+        // Checked again here as well as by the button's own disabled state. The
+        // disabled attribute is a convenience for the reader, not a guard: it is
+        // rendered on the client, and a request can be sent without it.
+        if (!isDeleteConfirmed()) {
+            Toasts.error("Type the trip's name to confirm deleting it.");
+            return null;
+        }
+
         try {
             tripService.deleteTrip(tripId, currentUser.getUserId());
+            Toasts.success("Trip deleted.");
             return "/trips/list.xhtml?faces-redirect=true";
         } catch (RuntimeException ex) {
             Toasts.error(Messages.describe(ex));
@@ -136,22 +146,50 @@ public class TripDetailBean implements Serializable {
         }
     }
 
+    /**
+     * Whether the typed confirmation matches the trip's name.
+     *
+     * <p>A dialog with a Yes button is enough for reversible mistakes and is not
+     * enough for this one. Deleting a trip destroys the itinerary, every expense
+     * and every recorded repayment, and there is no undo. Making the reader
+     * type the name means they have to look at which trip they are about to
+     * destroy and reproduce it, which is the difference between confirming an
+     * action and dismissing a box.
+     *
+     * <p>Compared case-insensitively and trimmed, because the point is that the
+     * reader read the name rather than that they matched its capitalisation.
+     */
+    public boolean isDeleteConfirmed() {
+        if (trip == null || trip.getTripName() == null || deleteConfirmName == null) {
+            return false;
+        }
+        return trip.getTripName().trim().equalsIgnoreCase(deleteConfirmName.trim());
+    }
+
     // ------------------------------------------------------------------
     // Membership
     // ------------------------------------------------------------------
 
-    public void addMember() {
-        if (newMemberId == null) {
-            Toasts.error("Choose someone to add.");
+    /**
+     * Adds someone by their exact email address.
+     *
+     * <p>Replaces a picker that listed every account on the platform. The
+     * address has to match exactly: a partial search would be the same
+     * directory again, one letter at a time.
+     */
+    public void inviteMember() {
+        if (newMemberEmail == null || newMemberEmail.isBlank()) {
+            Toasts.error("Enter the email address of the person you want to add.");
             return;
         }
         try {
-            UserDTO user = userService.getUser(newMemberId);
-            tripService.addMember(tripId, newMemberId, TripRole.MEMBER, currentUser.getUserId());
-            Toasts.success((user == null ? "Member" : user.getFullName()) + " joined the trip.");
-            newMemberId = null;
+            TripMemberDTO added = tripService.addMemberByEmail(
+                    tripId, newMemberEmail.trim(), TripRole.MEMBER, currentUser.getUserId());
+            Toasts.success(added.getFullName() + " joined the trip.");
+            newMemberEmail = null;
             members = new ArrayList<>(tripService.getTripMembers(tripId));
             trip = tripService.getTrip(tripId);
+            balances = new ArrayList<>(reportService.getMemberBalances(tripId, currentUser.getUserId()));
         } catch (RuntimeException ex) {
             Toasts.error(Messages.describe(ex));
         }
@@ -163,23 +201,66 @@ public class TripDetailBean implements Serializable {
             Toasts.success("Member removed.");
             members = new ArrayList<>(tripService.getTripMembers(tripId));
             trip = tripService.getTrip(tripId);
-            balances = new ArrayList<>(reportService.getMemberBalances(tripId));
+            balances = new ArrayList<>(reportService.getMemberBalances(tripId, currentUser.getUserId()));
         } catch (RuntimeException ex) {
             Toasts.error(Messages.describe(ex));
         }
     }
 
     /**
-     * Users who could still be added: everyone not already on the trip.
+     * Makes a member an administrator.
      *
-     * <p>Filtered here rather than in the query so the picker cannot offer a
-     * choice that the service would then reject.
+     * <p>Needed because {@code removeMember} refuses to remove a trip's last
+     * administrator and tells the caller to promote someone else first. Until
+     * this existed there was no way to do that from the application at all.
      */
-    public List<UserDTO> getAddableUsers() {
-        List<Long> currentIds = members.stream().map(TripMemberDTO::getUserId).toList();
-        return userService.getAllUsers().stream()
-                .filter(u -> !currentIds.contains(u.getUserId()))
-                .toList();
+    public void promoteMember(Long userId) {
+        changeRole(userId, TripRole.ADMIN, "is now an administrator.");
+    }
+
+    /** Takes administrator rights away, refusing to leave the trip unmanaged. */
+    public void demoteMember(Long userId) {
+        changeRole(userId, TripRole.MEMBER, "is now an ordinary member.");
+    }
+
+    private void changeRole(Long userId, TripRole role, String outcome) {
+        try {
+            TripMemberDTO updated =
+                    tripService.updateMemberRole(tripId, userId, role, currentUser.getUserId());
+            Toasts.success(updated.getFullName() + " " + outcome);
+            members = new ArrayList<>(tripService.getTripMembers(tripId));
+        } catch (RuntimeException ex) {
+            Toasts.error(Messages.describe(ex));
+        }
+    }
+
+    /**
+     * Emails every member the trip's closing summary.
+     *
+     * <p>Administrators only, enforced in the service as well as by the
+     * button's visibility: it sends mail to everybody on the trip, which is not
+     * something a page should be the only guard on.
+     */
+    public void emailSummary() {
+        try {
+            int sent = tripService.emailTripSummary(tripId, currentUser.getUserId());
+            Toasts.success("Summary sent to " + sent
+                    + (sent == 1 ? " person." : " people."));
+        } catch (RuntimeException ex) {
+            Toasts.error(Messages.describe(ex));
+        }
+    }
+
+    /** Removes the signed-in user from the trip of their own accord. */
+    public String leaveTrip() {
+        try {
+            tripService.leaveTrip(tripId, currentUser.getUserId());
+            Toasts.success("You left the trip.");
+            return "/trips/list.xhtml?faces-redirect=true";
+        } catch (RuntimeException ex) {
+            Toasts.error(Messages.describe(ex));
+            return null;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -334,6 +415,22 @@ public class TripDetailBean implements Serializable {
         return member;
     }
 
+    public String getNewMemberEmail() {
+        return newMemberEmail;
+    }
+
+    public String getDeleteConfirmName() {
+        return deleteConfirmName;
+    }
+
+    public void setDeleteConfirmName(String deleteConfirmName) {
+        this.deleteConfirmName = deleteConfirmName;
+    }
+
+    public void setNewMemberEmail(String newMemberEmail) {
+        this.newMemberEmail = newMemberEmail;
+    }
+
     public boolean isAdmin() {
         return admin;
     }
@@ -342,13 +439,7 @@ public class TripDetailBean implements Serializable {
         return trip != null;
     }
 
-    public Long getNewMemberId() {
-        return newMemberId;
-    }
 
-    public void setNewMemberId(Long newMemberId) {
-        this.newMemberId = newMemberId;
-    }
 
     
 

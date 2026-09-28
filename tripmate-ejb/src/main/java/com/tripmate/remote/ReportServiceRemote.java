@@ -4,7 +4,10 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import com.tripmate.dto.CategorySpendingDTO;
+import com.tripmate.dto.CategoryTotalDTO;
+import com.tripmate.dto.DailyTotalDTO;
 import com.tripmate.dto.MemberBalanceDTO;
+import com.tripmate.dto.TripTotalDTO;
 
 import jakarta.ejb.Remote;
 
@@ -37,7 +40,7 @@ public interface ReportServiceRemote {
      *
      * @return one row per member, ordered by name; empty if the trip has none
      */
-    List<MemberBalanceDTO> getMemberBalances(Long tripId);
+    List<MemberBalanceDTO> getMemberBalances(Long tripId, Long actedBy);
 
     /**
      * Query 5 (ROADMAP section 9.5): how much a user has spent in each
@@ -52,21 +55,42 @@ public interface ReportServiceRemote {
      * @return one row per category, largest total first; empty if the user has
      *         no expenses
      */
-    List<CategorySpendingDTO> getCategorySpendingForUser(Long userId);
+    List<CategorySpendingDTO> getCategorySpendingForUser(Long userId, Long actedBy);
 
     // ------------------------------------------------------------------
     // Simple aggregates
     // ------------------------------------------------------------------
 
     /** @return the sum of a trip's expenses, zero if it has none */
-    BigDecimal getTotalSpentForTrip(Long tripId);
+    BigDecimal getTotalSpentForTrip(Long tripId, Long actedBy);
 
     /** @return everything the user has paid out across all their trips */
-    BigDecimal getTotalPaidByUser(Long userId);
+    BigDecimal getTotalPaidByUser(Long userId, Long actedBy);
 
     /** @return everything the user owes across all their trips */
-    BigDecimal getTotalOwedByUser(Long userId);
+    BigDecimal getTotalOwedByUser(Long userId, Long actedBy);
 
     /** @return how many trips the user belongs to */
-    long getTripCountForUser(Long userId);
+    long getTripCountForUser(Long userId, Long actedBy);
+
+    /**
+     * What a trip spent in each category, largest first.
+     *
+     * @param actedBy the user asking, who must be a member of the trip
+     */
+    List<CategoryTotalDTO> getCategoryTotalsForTrip(Long tripId, Long actedBy);
+
+    /**
+     * What a trip spent on each day it spent anything, oldest first.
+     *
+     * @param actedBy the user asking, who must be a member of the trip
+     */
+    List<DailyTotalDTO> getDailyTotalsForTrip(Long tripId, Long actedBy);
+
+    /**
+     * Every trip a user belongs to, with what it cost and what that is per
+     * head, for comparing them against each other.
+     */
+    List<TripTotalDTO> getTripTotalsForUser(Long userId);
+
 }

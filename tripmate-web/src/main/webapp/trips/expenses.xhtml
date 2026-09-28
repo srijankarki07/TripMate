@@ -115,16 +115,24 @@
 
                     <p:dataTable reflow="true" rowHover="true" id="splitTable" value="#{expenseBean.splits}" var="row"
                                  styleClass="tm-table" emptyMessage="">
-                        <p:column headerText="Included">
+                        <p:column headerText="Included" styleClass="tm-col-narrow" width="8rem">
                             <p:selectBooleanCheckbox value="#{row.included}"/>
                         </p:column>
                         <p:column headerText="Person">
-                            <h:outputText value="#{row.name}"/>
+                            <span class="tm-split-person">
+                                <span class="tm-avatar tm-avatar-sm" aria-hidden="true">
+                                    <h:outputText value="#{row.initials}"/>
+                                </span>
+                                <h:outputText value="#{row.name}"/>
+                            </span>
                         </p:column>
-                        <p:column headerText="Share (NPR)">
+                        <p:column headerText="Share (NPR)" width="12rem">
                             <p:inputText value="#{row.amount}"
                                          rendered="#{row.included}"
                                          styleClass="tm-input-narrow"/>
+                            <h:outputText value="Not sharing"
+                                          styleClass="tm-text-muted tm-body-sm"
+                                          rendered="#{not row.included}"/>
                         </p:column>
                     </p:dataTable>
 
@@ -140,14 +148,58 @@
                                          ajax="true"/>
                     </div>
 
-                    <p class="tm-body-sm">
-                        <span class="tm-text-muted">Shares add up to </span>
-                        <span class="tm-positive">NPR #{expenseBean.splitTotal}</span>
-                        <h:panelGroup layout="block" rendered="#{expenseBean.showRemainder}"
-                                      styleClass="tm-text-error">
-                            <h:outputText value="Still to assign: NPR #{expenseBean.unassigned}"/>
-                        </h:panelGroup>
-                    </p>
+                    <!-- ================================================
+                         The meter
+
+                         The figure was already here as a sentence, and a
+                         sentence is not what this needs: what a reader is
+                         checking is whether the bar is full. The bar is the
+                         answer at a glance, the sentence is the answer to the
+                         nearest rupee, and the state colour is the same three
+                         tones used everywhere else so "still to assign" reads
+                         as a warning rather than as a number to interpret.
+                         ================================================ -->
+                    <div class="tm-meter">
+                        <div class="tm-meter-head">
+                            <span class="tm-meter-label">
+                                <h:outputText value="Shares"
+                                              rendered="#{not expenseBean.amountEntered}"/>
+                                <h:outputText value="Still to assign"
+                                              rendered="#{expenseBean.amountEntered and expenseBean.showRemainder}"/>
+                                <h:outputText value="Assigned"
+                                              rendered="#{expenseBean.amountEntered and not expenseBean.showRemainder}"/>
+                            </span>
+                            <span class="tm-meter-value">
+                                <h:outputText value="NPR #{expenseBean.splitTotal} of NPR #{expenseBean.amountOrZero}"
+                                              rendered="#{expenseBean.showRemainder}"/>
+                                <h:outputText value="NPR #{expenseBean.splitTotal}"
+                                              styleClass="#{expenseBean.amountEntered ? 'tm-text-success' : 'tm-text-muted'}"
+                                              rendered="#{not expenseBean.showRemainder}"/>
+                            </span>
+                        </div>
+
+                        <div class="tm-meter-track"
+                             role="progressbar"
+                             aria-valuemin="0"
+                             aria-valuemax="100"
+                             aria-valuenow="#{expenseBean.assignedPercent}"
+                             aria-label="Share of the amount assigned">
+                            <span class="tm-meter-fill #{expenseBean.showRemainder ? 'tm-meter-fill-warning' : 'tm-meter-fill-success'}"
+                                  style="width:#{expenseBean.assignedPercent}%"></span>
+                        </div>
+
+                        <p class="tm-meter-note">
+                            <h:outputText value="Enter an amount above, then divide it between the people sharing the cost."
+                                          styleClass="tm-text-muted"
+                                          rendered="#{not expenseBean.amountEntered}"/>
+                            <h:outputText value="NPR #{expenseBean.unassigned} is not yet assigned to anybody."
+                                          styleClass="tm-text-warning"
+                                          rendered="#{expenseBean.amountEntered and expenseBean.showRemainder}"/>
+                            <h:outputText value="The shares add up to the amount."
+                                          styleClass="tm-text-success"
+                                          rendered="#{expenseBean.amountEntered and not expenseBean.showRemainder}"/>
+                        </p>
+                    </div>
 
                     <div class="tm-actions">
                         <p:commandButton value="Save expense"
@@ -199,10 +251,10 @@
                     </p:dataTable>
                 </h:form>
 
-                <h:panelGroup layout="block" styleClass="tm-empty"
-                              rendered="#{not expenseBean.hasExpenses}">
-                    Nothing logged yet.
-                </h:panelGroup>
+                <tm:empty icon="pi-receipt"
+                          title="Nothing logged yet"
+                          text="Log the first expense above. Everyone who shares it gets a split, and the balances update as soon as it is saved."
+                          rendered="#{not expenseBean.hasExpenses}"/>
             </section>
 
         </ui:fragment>

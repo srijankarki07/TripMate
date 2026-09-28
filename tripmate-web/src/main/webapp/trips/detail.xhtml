@@ -132,10 +132,18 @@
                             </p:column>
                         </p:dataTable>
 
-                        <h:panelGroup layout="block" styleClass="tm-empty"
-                                      rendered="#{not tripDetailBean.hasItinerary}">
-                            Nothing planned yet.
-                        </h:panelGroup>
+                        <tm:empty icon="pi-calendar"
+                                  title="Nothing planned yet"
+                                  text="Add the first item and it appears here for everyone on the trip, in date order."
+                                  rendered="#{not tripDetailBean.hasItinerary}">
+                            <f:facet name="action">
+                                <p:button outcome="/trips/itinerary.xhtml"
+                                          value="Plan something"
+                                          styleClass="ui-button-secondary">
+                                    <f:param name="tripId" value="#{tripDetailBean.tripId}"/>
+                                </p:button>
+                            </f:facet>
+                        </tm:empty>
                         </h:form>
                     </p:tab>
 
@@ -166,17 +174,78 @@
                             <p:column headerText="Paid by">
                                 <h:outputText value="#{expense.paidByName}"/>
                             </p:column>
+                            <!-- The names and figures rather than a count. "Split
+                                 four ways" tells a reader nothing they need; who owes
+                                 what is the whole question an expense breakdown answers. -->
                             <p:column headerText="Split between">
-                                <h:outputText value="#{expense.splits.size()}"/>
+                                <ul class="tm-split-list">
+                                    <ui:repeat value="#{expense.splits}" var="split">
+                                        <li>
+                                            <span class="tm-split-name">
+                                                <h:outputText value="#{split.userName}"/>
+                                            </span>
+                                            <span class="tm-split-amount">
+                                                <h:outputText value="NPR #{split.amountOwed}"/>
+                                            </span>
+                                        </li>
+                                    </ui:repeat>
+                                </ul>
                             </p:column>
                             <p:column headerText="Amount" sortBy="#{expense.amount}">
                                 <h:outputText value="NPR #{expense.amount}"/>
                             </p:column>
                         </p:dataTable>
 
-                        <h:panelGroup layout="block" styleClass="tm-empty"
-                                      rendered="#{not tripDetailBean.hasExpenses}">
-                            No expenses recorded yet.
+                        <tm:empty icon="pi-receipt"
+                                  title="No expenses recorded yet"
+                                  text="Once somebody logs what they paid, this tab shows the expense and exactly who owes what for it."
+                                  rendered="#{not tripDetailBean.hasExpenses}">
+                            <f:facet name="action">
+                                <p:button outcome="/trips/expenses.xhtml"
+                                          value="Log an expense"
+                                          styleClass="ui-button-secondary">
+                                    <f:param name="tripId" value="#{tripDetailBean.tripId}"/>
+                                </p:button>
+                            </f:facet>
+                        </tm:empty>
+
+                        <h:panelGroup layout="block" rendered="#{tripDetailBean.hasExpenses}">
+                            <h3 class="tm-display-sm tm-section-heading">Who has spent what</h3>
+                            <p class="tm-body-sm tm-text-muted">
+                                What each person has put in, against what their share of
+                                the trip comes to. A positive difference means they are
+                                owed it back.
+                            </p>
+
+                            <p:dataTable reflow="true" rowHover="true"
+                                         value="#{tripDetailBean.balances}" var="b"
+                                         sortMode="single" emptyMessage="">
+                                <p:column headerText="Person" sortBy="#{b.fullName}">
+                                    <h:outputText value="#{b.fullName}"/>
+                                </p:column>
+                                <p:column headerText="Paid" sortBy="#{b.totalPaid}">
+                                    <h:outputText value="NPR #{b.totalPaid}"/>
+                                </p:column>
+                                <p:column headerText="Their share" sortBy="#{b.totalOwed}">
+                                    <h:outputText value="NPR #{b.totalOwed}"/>
+                                </p:column>
+                                <p:column headerText="Difference" sortBy="#{b.netBalance}">
+                                    <span class="#{b.netBalance.signum() >= 0 ? 'tm-positive' : 'tm-negative'}">
+                                        <h:outputText value="NPR #{b.netBalance}"/>
+                                    </span>
+                                </p:column>
+                                <p:column headerText="Position">
+                                    <h:outputText value="is owed back"
+                                                  styleClass="tm-status tm-status-credit"
+                                                  rendered="#{b.creditor}"/>
+                                    <h:outputText value="owes in"
+                                                  styleClass="tm-status tm-status-debit"
+                                                  rendered="#{b.debtor}"/>
+                                    <h:outputText value="square"
+                                                  styleClass="tm-status tm-status-square"
+                                                  rendered="#{not b.creditor and not b.debtor}"/>
+                                </p:column>
+                            </p:dataTable>
                         </h:panelGroup>
                         </h:form>
                     </p:tab>
@@ -209,12 +278,19 @@
                                     <h:outputText value="NPR #{balance.netBalance}"/>
                                 </span>
                             </p:column>
-                            <p:column headerText="">
+                            <!-- Chips rather than words, in the same three tones the
+                                 balances page uses, so a direction reads the same
+                                 wherever it appears. `rendered` needs a component,
+                                 so these are outputText rather than bare spans. -->
+                            <p:column headerText="Position">
                                 <h:outputText value="is owed"
+                                              styleClass="tm-status tm-status-credit"
                                               rendered="#{balance.creditor}"/>
                                 <h:outputText value="owes"
+                                              styleClass="tm-status tm-status-debit"
                                               rendered="#{balance.debtor}"/>
                                 <h:outputText value="square"
+                                              styleClass="tm-status tm-status-square"
                                               rendered="#{not balance.creditor and not balance.debtor}"/>
                             </p:column>
                         </p:dataTable>
@@ -253,28 +329,27 @@
                     <p:tab title="Members">
 
                         <h:panelGroup layout="block" rendered="#{tripDetailBean.admin}">
-                            <div class="tm-toolbar">
-                                <h3 class="tm-display-sm">Invite someone</h3>
-                            </div>
-                            <h:form>
-                                <div class="tm-form-grid">
+                            <h3 class="tm-display-sm">Invite someone</h3>
+                            <p class="tm-body-sm tm-text-muted">
+                                Enter the full email address of someone who already has a
+                                TripMate account. There is no list of users to browse, on
+                                purpose: who else has an account here is not something a
+                                trip organiser needs to know.
+                            </p>
+                            <h:form id="inviteForm">
+                                <div class="tm-form-grid tm-form-grid-2">
                                     <div class="tm-field">
-                                        <label class="tm-field-label" for="newMember">Person</label>
-                                        <p:selectOneMenu id="newMember"
-                                                         styleClass="tm-input-full"
-                                                         value="#{tripDetailBean.newMemberId}"
-                                                         filter="true">
-                                            <f:selectItem itemLabel="Choose someone" itemValue="#{null}"/>
-                                            <f:selectItems value="#{tripDetailBean.addableUsers}"
-                                                           var="u"
-                                                           itemLabel="#{u.fullName}"
-                                                           itemValue="#{u.userId}"/>
-                                        </p:selectOneMenu>
+                                        <label class="tm-field-label" for="inviteEmail">Their email address</label>
+                                        <p:inputText id="inviteEmail"
+                                                     styleClass="tm-input-full"
+                                                     type="email"
+                                                     autocomplete="off"
+                                                     value="#{tripDetailBean.newMemberEmail}"/>
                                     </div>
                                 </div>
                                 <div class="tm-actions">
                                     <p:commandButton value="Add to trip"
-                                                     action="#{tripDetailBean.addMember}"
+                                                     action="#{tripDetailBean.inviteMember}"
                                                      update="@form"
                                                      ajax="false"/>
                                 </div>
@@ -282,38 +357,118 @@
                         </h:panelGroup>
 
                         <h3 class="tm-display-sm">On this trip</h3>
-                        <!-- Own form: the Remove button needs a UIForm ancestor. -->
+                        <h:panelGroup layout="block" styleClass="tm-body-sm tm-text-muted"
+                                      rendered="#{tripDetailBean.admin}">
+                            An administrator can invite and remove people and change the
+                            trip's details. A trip needs at least one, so the last one
+                            cannot be removed or step down.
+                        </h:panelGroup>
+
+                        <!-- Own form: the row buttons are commands and need a UIForm
+                             ancestor, and their updates are scoped to this table so a
+                             sort or a role change does not rebuild the other tabs. -->
                         <h:form id="memberListForm">
-                        <p:dataTable reflow="true" rowHover="true" value="#{tripDetailBean.members}" var="m" emptyMessage="">
+                        <p:dataTable reflow="true" rowHover="true"
+                                     value="#{tripDetailBean.members}" var="m"
+                                     sortMode="single" emptyMessage=""
+                                     widgetVar="membersTable">
                             <p:column headerText="Member" sortBy="#{m.fullName}">
                                 <h:outputText value="#{m.fullName}"/>
                             </p:column>
                             <p:column headerText="Role" sortBy="#{m.role}">
-                                <span class="tm-status">
+                                <span class="tm-status tm-status-#{m.role.name().toLowerCase()}">
                                     <h:outputText value="#{m.role}"/>
                                 </span>
                             </p:column>
                             <p:column headerText="Joined" sortBy="#{m.joinedAt}">
                                 <h:outputText value="#{m.joinedAt}"/>
                             </p:column>
-                            <p:column headerText="" rendered="#{tripDetailBean.admin}">
-                                <p:commandButton value="Remove"
-                                                 styleClass="ui-button-secondary"
-                                                 rendered="#{m.role.name() ne 'ADMIN' or tripDetailBean.members.size() gt 1}"
-                                                 action="#{tripDetailBean.removeMember(m.userId)}"
-                                                 ajax="false"/>
+                            <p:column headerText="Actions" rendered="#{tripDetailBean.admin}">
+                                <div class="tm-row-actions">
+                                    <!-- Promote first: it is the action an administrator
+                                         reaches for when the remove button has just
+                                         refused them. -->
+                                    <p:commandButton value="Make admin"
+                                                     styleClass="ui-button-secondary"
+                                                     rendered="#{m.role.name() ne 'ADMIN'}"
+                                                     action="#{tripDetailBean.promoteMember(m.userId)}"
+                                                     update="@form"
+                                                     ajax="false"/>
+
+                                    <p:commandButton value="Make member"
+                                                     styleClass="ui-button-secondary"
+                                                     rendered="#{m.role.name() eq 'ADMIN'}"
+                                                     action="#{tripDetailBean.demoteMember(m.userId)}"
+                                                     update="@form"
+                                                     ajax="false"/>
+
+                                    <p:commandButton value="Remove"
+                                                     styleClass="ui-button-secondary"
+                                                     rendered="#{m.role.name() ne 'ADMIN' or tripDetailBean.members.size() gt 1}"
+                                                     action="#{tripDetailBean.removeMember(m.userId)}"
+                                                     update="@form"
+                                                     ajax="false">
+                                        <p:confirm header="Remove this person?"
+                                                   message="They lose access to the trip's itinerary, expenses and balances. Their expenses and shares stay on the trip, because the money did not change hands."/>
+                                    </p:commandButton>
+                                </div>
                             </p:column>
                         </p:dataTable>
                         </h:form>
+
+                        <!-- Leaving is a member's own action, so it is offered to
+                             everyone including administrators, and refused by the
+                             service only when it would leave the trip unmanaged. -->
+                        <h:panelGroup layout="block" styleClass="tm-danger-zone"
+                                      rendered="#{tripDetailBean.member}">
+                            <div>
+                                <h3 class="tm-display-sm">Leave this trip</h3>
+                                <p class="tm-body-sm tm-text-muted">
+                                    You stop seeing it, and it stops appearing in your
+                                    balances. Your expenses stay on the trip.
+                                </p>
+                            </div>
+                            <h:form>
+                                <p:commandButton value="Leave trip"
+                                                 styleClass="ui-button-secondary"
+                                                 action="#{tripDetailBean.leaveTrip}"
+                                                 ajax="false">
+                                    <p:confirm header="Leave this trip?"
+                                               message="You will no longer see it in your trips or your balances. Your expenses stay on the trip, because the money did not change hands."/>
+                                </p:commandButton>
+                            </h:form>
+                        </h:panelGroup>
                     </p:tab>
 
                 </p:tabView>
             </section>
 
             <!-- ============================================================
-                 Editing the trip itself, admins only
+                 The closing summary, admins only
                  ============================================================ -->
             <section class="tm-card" rendered="#{tripDetailBean.admin}">
+                <div class="tm-toolbar">
+                    <h2 class="tm-display-sm">Send everyone the summary</h2>
+                </div>
+                <p class="tm-body-sm tm-text-muted">
+                    Emails each person on the trip what it cost, what their own share
+                    came to, and whether they are owed money back or still owe some.
+                    Useful once the trip is over and somebody asks.
+                </p>
+                <h:form>
+                    <div class="tm-actions">
+                        <p:commandButton value="Email the summary"
+                                         action="#{tripDetailBean.emailSummary}"
+                                         ajax="false"/>
+                    </div>
+                </h:form>
+            </section>
+
+            <!-- ============================================================
+                 Editing the trip itself, admins only
+                 ============================================================ -->
+            <h:panelGroup layout="block" styleClass="tm-card"
+                          rendered="#{tripDetailBean.admin}">
                 <h2 class="tm-display-sm">Trip settings</h2>
 
                 <h:form>
@@ -370,18 +525,64 @@
                             recorded repayments. The people themselves are not deleted.
                         </p>
                     </div>
-                    <h:form>
-                        <p:commandButton value="Delete trip"
-                                         styleClass="ui-button-secondary"
+                    <h:form id="deleteTripForm">
+                        <!--
+                            A typed confirmation rather than only a dialog. Every
+                            other destructive action here is recoverable by
+                            re-entering the data; this one is not, and an
+                            administrator can arrive at this page without having
+                            looked at which trip it is. Typing the name forces
+                            that look.
+
+                            The button stays enabled and the check is the
+                            server's. Disabling it until the name matched was
+                            the first version and it was worse twice over: a
+                            disabled button gives the reader no way to find out
+                            what it is waiting for, and JSF does not decode a
+                            disabled button at all, so the server-side guard
+                            behind it could never be reached or tested.
+                        -->
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="deleteConfirm">
+                                Type <strong>#{tripDetailBean.trip.tripName}</strong> to confirm
+                            </label>
+                            <p:inputText id="deleteConfirm"
+                                         styleClass="tm-input-full"
+                                         autocomplete="off"
+                                         value="#{tripDetailBean.deleteConfirmName}">
+                                <!--
+                                    Fires on blur rather than on every keystroke:
+                                    one request per field visit, and blur is when
+                                    a reader who has finished typing looks for
+                                    the button.
+                                -->
+                                <p:ajax event="blur" update="deleteGuard"/>
+                            </p:inputText>
+
+                            <h:panelGroup layout="block" id="deleteGuard">
+                                <h:outputText value="The trip is not deleted until the name matches."
+                                              styleClass="tm-field-hint"
+                                              rendered="#{empty tripDetailBean.deleteConfirmName}"/>
+                                <h:outputText value="That does not match this trip's name. Check the name above and try again."
+                                              styleClass="tm-field-error"
+                                              rendered="#{not empty tripDetailBean.deleteConfirmName and not tripDetailBean.deleteConfirmed}"/>
+                                <h:outputText value="The name matches. Deleting asks once more before it goes."
+                                              styleClass="tm-field-hint tm-text-success"
+                                              rendered="#{tripDetailBean.deleteConfirmed}"/>
+                            </h:panelGroup>
+                        </div>
+
+                        <p:commandButton id="deleteTripButton"
+                                         value="Delete trip"
+                                         styleClass="tm-button-danger"
                                          action="#{tripDetailBean.delete}"
-                                         ajax="false"
-                                         >
+                                         ajax="false">
                             <p:confirm header="Delete this trip?"
                                        message="This removes the itinerary, every expense and split, and all recorded repayments. It cannot be undone. The people themselves are not deleted."/>
                         </p:commandButton>
                     </h:form>
                 </div>
-            </section>
+            </h:panelGroup>
 
         </ui:fragment>
 

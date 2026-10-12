@@ -1,0 +1,11 @@
+{
+  // TripMate is a Jakarta EE 10 / Maven multi-module project.
+  // These extensions give VS Code Java language support, XML tooling for the
+  // XHTML views and deployment descriptors, and Maven project wiring.
+  "recommendations": [
+    "vscjava.vscode-java-pack",
+    "vscjava.vscode-maven",
+    "redhat.vscode-xml",
+    "ms-azuretools.vscode-docker"
+  ]
+}

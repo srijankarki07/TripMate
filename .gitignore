@@ -1,0 +1,61 @@
+# ---------------------------------------------------------------------------
+# Build output
+# ---------------------------------------------------------------------------
+target/
+build/
+out/
+
+# Maven release plugin scratch files
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+
+# ---------------------------------------------------------------------------
+# IDEs
+# ---------------------------------------------------------------------------
+# VS Code (workspace-local files; shared settings are committed explicitly)
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse / NetBeans
+.classpath
+.project
+.settings/
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# ---------------------------------------------------------------------------
+# Application server local state
+# ---------------------------------------------------------------------------
+glassfish/domains/*/logs/
+glassfish/domains/*/generated/
+glassfish/domains/*/osgi-cache/
+*.ear.deployed
+.glassfish/
+
+# ---------------------------------------------------------------------------
+# Database / logs / OS
+# ---------------------------------------------------------------------------
+*.log
+*.log.*
+.DS_Store
+Thumbs.db
+*~
+
+# Local overrides read by scripts/env.sh
+.env
+.agents

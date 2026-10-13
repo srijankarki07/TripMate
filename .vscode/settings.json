@@ -1,0 +1,35 @@
+{
+  // ---------------------------------------------------------------------------
+  // Java
+  // ---------------------------------------------------------------------------
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.compile.nullAnalysis.mode": "automatic",
+  "java.jdt.ls.lombokSupport.enabled": false,
+  "java.format.settings.profile": "GoogleStyle",
+
+  // The Jakarta EE platform API is `provided` scope, so it is not in the local
+  // repository until Maven resolves it. Point the language server at the
+  // GlassFish runtime so XHTML/Faces classes resolve without a full build.
+  "java.import.maven.enabled": true,
+
+  // ---------------------------------------------------------------------------
+  // Editor / files
+  // ---------------------------------------------------------------------------
+  "files.exclude": {
+    "**/target": true,
+    "**/.git": true
+  },
+  "files.associations": {
+    "*.xhtml": "html"
+  },
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "editor.tabSize": 4,
+  "editor.rulers": [100],
+
+  // ---------------------------------------------------------------------------
+  // XML -- XHTML views and deployment descriptors
+  // ---------------------------------------------------------------------------
+  "xml.format.splitAttributes": true,
+  "xml.preferences.quoteStyle": "double"
+}

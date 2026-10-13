@@ -17,10 +17,10 @@
         tier, PostgreSQL data tier, JMS message-driven expense processing.
     </description>
 
-    <!--
-        Modules are declared here as each tier is implemented.
-        Phase 0 adds: tripmate-ejb, tripmate-web, tripmate-ear
-    -->
+    <!-- Modules are declared here as each tier is implemented. -->
+    <modules>
+        <module>tripmate-ejb</module>
+    </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

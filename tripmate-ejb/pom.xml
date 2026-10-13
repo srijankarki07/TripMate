@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.tripmate</groupId>
+        <artifactId>tripmate-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>tripmate-ejb</artifactId>
+    <packaging>ejb</packaging>
+
+    <name>TripMate :: EJB</name>
+    <description>
+        Business tier. JPA entities, DTOs, @Remote service interfaces, stateless
+        session bean implementations, and the expense message-driven bean.
+    </description>
+
+    <dependencies>
+        <!--
+            Full Jakarta EE 10 platform API. Version and `provided` scope are
+            inherited from the parent's dependencyManagement; GlassFish supplies
+            these classes at runtime.
+        -->
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

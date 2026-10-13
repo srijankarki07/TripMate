@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.tripmate</groupId>
+        <artifactId>tripmate-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>tripmate-web</artifactId>
+    <packaging>war</packaging>
+
+    <name>TripMate :: Web</name>
+    <description>
+        Presentation tier. Jakarta Faces views (XHTML), CDI backing beans, and
+        web resources.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+        </dependency>
+
+        <!--
+            Business tier. Scope `provided`: the interfaces and DTOs are needed
+            to compile against, but they must NOT be copied into the WAR. At
+            runtime the classes come from the EJB jar sitting alongside this WAR
+            inside the EAR, which is why the two modules must agree on exactly
+            one copy of every shared class.
+        -->
+        <dependency>
+            <groupId>com.tripmate</groupId>
+            <artifactId>tripmate-ejb</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+</project>

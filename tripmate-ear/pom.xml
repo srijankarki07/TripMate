@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.tripmate</groupId>
+        <artifactId>tripmate-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>tripmate-ear</artifactId>
+    <packaging>ear</packaging>
+
+    <name>TripMate :: EAR</name>
+    <description>
+        Assembles the EJB jar and the web WAR into a single deployable Jakarta EE
+        application. This is the artifact that ships to GlassFish.
+    </description>
+
+    <dependencies>
+        <!--
+            Both modules are pulled in so the EAR plugin has something to
+            assemble. Their transitive dependencies are not bundled: the
+            Jakarta EE platform API is `provided` in each, and tripmate-web
+            depends on tripmate-ejb as `provided` so the EJB classes exist in
+            exactly one place inside the archive.
+        -->
+        <dependency>
+            <groupId>com.tripmate</groupId>
+            <artifactId>tripmate-ejb</artifactId>
+            <version>${project.version}</version>
+            <type>ejb</type>
+        </dependency>
+        <dependency>
+            <groupId>com.tripmate</groupId>
+            <artifactId>tripmate-web</artifactId>
+            <version>${project.version}</version>
+            <type>war</type>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-ear-plugin</artifactId>
+                <configuration>
+                    <!-- Jakarta EE 10 application descriptor level -->
+                    <version>10</version>
+
+                    <!-- Drop the version from bundled filenames so the deployed
+                         URLs and JNDI names stay stable across rebuilds. This is
+                         the modern equivalent of the old `no-version` mapping,
+                         which EAR plugin 3.x removed. -->
+                    <outputFileNameMapping>${artifactId}.${extension}</outputFileNameMapping>
+
+                    <!--
+                        Generated application.xml pins the context root. Without
+                        this the WAR deploys under its artifact id
+                        (/tripmate-web-1.0.0-SNAPSHOT) and every documented URL
+                        would be wrong.
+                    -->
+                    <generateApplicationXml>true</generateApplicationXml>
+                    <modules>
+                        <ejbModule>
+                            <groupId>com.tripmate</groupId>
+                            <artifactId>tripmate-ejb</artifactId>
+                            <bundleFileName>tripmate-ejb.jar</bundleFileName>
+                        </ejbModule>
+                        <webModule>
+                            <groupId>com.tripmate</groupId>
+                            <artifactId>tripmate-web</artifactId>
+                            <bundleFileName>tripmate-web.war</bundleFileName>
+                            <contextRoot>/tripmate</contextRoot>
+                        </webModule>
+                    </modules>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

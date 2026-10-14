@@ -1,0 +1,386 @@
+/* ==========================================================================
+   TripMate — design tokens
+   ==========================================================================
+
+   Translation of DESIGN.md into CSS custom properties, plus the type scale
+   expressed as utility classes.
+
+   DESIGN.md is the Airbnb design system, written for a React + Tailwind stack.
+   TripMate is Jakarta Faces + Bootstrap 5, so the translation is:
+
+     DESIGN.md token group   ->  CSS custom property prefix
+     ----------------------      ---------------------------
+     colors.*                    --tm-color-*
+     typography.*                .tm-<token> utility classes
+     rounded.*                   --tm-radius-*
+     spacing.*                   --tm-space-*
+     (elevation)                 --tm-elevation-*
+
+   Bootstrap 5 arrives in phase 6 and layers on top of this file; these
+   variables are the single source of truth for anything visual, so Bootstrap
+   defaults are overridden by reference rather than by re-declaring values.
+
+   Two properties of the source system are load-bearing and easy to break:
+
+     1. One accent colour. Rausch (#ff385c) carries every primary CTA, the
+        search orb, and the save state — and nothing else. There is no second
+        accent in mainline surfaces.
+     2. One shadow tier. Surfaces are either flat or carrying the single
+        --tm-elevation-card definition. There are no progressive depth levels.
+   ========================================================================== */
+
+:root {
+    /* ---------------------------------------------------------------------
+       Colour — brand & accent
+       --------------------------------------------------------------------- */
+    --tm-color-primary: #ff385c;             /* Rausch — the single accent */
+    --tm-color-primary-active: #e00b41;      /* pointer-down */
+    --tm-color-primary-disabled: #ffd1da;    /* pale tint on disabled CTAs */
+
+    /* Sub-brand accents. Scoped to Luxe / Plus surfaces only; never used in
+       mainline marketing or product chrome. */
+    --tm-color-luxe: #460479;
+    --tm-color-plus: #92174d;
+
+    /* ---------------------------------------------------------------------
+       Colour — surface
+       --------------------------------------------------------------------- */
+    --tm-color-canvas: #ffffff;              /* page floor; no public dark mode */
+    --tm-color-surface-soft: #f7f7f7;        /* disabled fields, hover bands */
+    --tm-color-surface-card: #ffffff;
+    --tm-color-surface-strong: #f2f2f2;      /* circular icon-button surface */
+
+    /* ---------------------------------------------------------------------
+       Colour — hairlines & borders
+       --------------------------------------------------------------------- */
+    --tm-color-hairline: #dddddd;            /* default 1px border tone */
+    --tm-color-hairline-soft: #ebebeb;       /* lighter editorial divider */
+    --tm-color-border-strong: #c1c1c1;       /* disabled outlines, focused inputs */
+
+    /* ---------------------------------------------------------------------
+       Colour — text
+       --------------------------------------------------------------------- */
+    --tm-color-ink: #222222;                 /* dominant text; never pure black */
+    --tm-color-body: #3f3f3f;                /* long-form running text */
+    --tm-color-muted: #6a6a6a;               /* sub-titles, inactive tabs */
+    --tm-color-muted-soft: #929292;          /* disabled link text */
+    --tm-color-on-primary: #ffffff;          /* text on Rausch */
+    --tm-color-on-dark: #ffffff;
+
+    /* Ratings render in ink, not gold — a deliberate choice in the source
+       system; yellow stars read as cheap in a travel context. */
+    --tm-color-star-rating: #222222;
+
+    /* ---------------------------------------------------------------------
+       Colour — semantic
+       --------------------------------------------------------------------- */
+    --tm-color-error: #c13515;               /* distinct from Rausch */
+    --tm-color-error-hover: #b32505;
+    --tm-color-legal-link: #428bff;          /* legal sub-band only */
+
+    /* ---------------------------------------------------------------------
+       Colour — scrim
+       --------------------------------------------------------------------- */
+    /* Base hex; opacity is applied at render time on the modal backdrop. */
+    --tm-color-scrim: #000000;
+    --tm-scrim-opacity: 0.5;
+
+    /* ---------------------------------------------------------------------
+       Typography
+       ---------------------------------------------------------------------
+
+       The source system runs Airbnb Cereal VF, a proprietary variable font,
+       with Circular as the historic in-house fallback. Neither is licensed for
+       this project. DESIGN.md names Inter as the closest open-source
+       substitute, so Inter is slotted in after Circular and before the system
+       stack — if Inter is installed locally it is used, otherwise the system UI
+       font takes over. Nothing is fetched from a CDN, so the app renders
+       correctly offline.
+
+       To pin the intended face exactly, self-host Inter and add an @font-face
+       rule ahead of this block.
+
+       Display weights stay modest (500-600). The system trusts photography for
+       visual weight, not typographic muscle — resist raising them. */
+    --tm-font-sans: 'Airbnb Cereal VF', Circular, Inter, -apple-system, system-ui,
+                    Roboto, 'Helvetica Neue', sans-serif;
+
+    /* ---------------------------------------------------------------------
+       Radii — soft shape language, no hard corners
+       --------------------------------------------------------------------- */
+    --tm-radius-none: 0;
+    --tm-radius-xs: 4px;
+    --tm-radius-sm: 8px;      /* buttons, text inputs */
+    --tm-radius-md: 14px;     /* cards — property, experience, host, reservation */
+    --tm-radius-lg: 20px;
+    --tm-radius-xl: 32px;     /* category strip */
+    --tm-radius-full: 9999px; /* search bar, orbs, hearts, badges */
+
+    /* ---------------------------------------------------------------------
+       Spacing — 4px base unit with a 2px micro-step
+       --------------------------------------------------------------------- */
+    --tm-space-xxs: 2px;
+    --tm-space-xs: 4px;
+    --tm-space-sm: 8px;
+    --tm-space-md: 12px;
+    --tm-space-base: 16px;
+    --tm-space-lg: 24px;
+    --tm-space-xl: 32px;
+    --tm-space-xxl: 48px;
+    --tm-space-section: 64px; /* major page bands; deliberately tighter than
+                                 typical SaaS marketing so marketplace pages
+                                 keep card density per scroll */
+
+    /* ---------------------------------------------------------------------
+       Elevation — exactly one tier
+       --------------------------------------------------------------------- */
+    --tm-elevation-card: rgba(0, 0, 0, 0.02) 0 0 0 1px,
+                         rgba(0, 0, 0, 0.04) 0 2px 6px 0,
+                         rgba(0, 0, 0, 0.1) 0 4px 8px 0;
+
+    /* ---------------------------------------------------------------------
+       Layout
+       --------------------------------------------------------------------- */
+    --tm-container-max: 1280px; /* editorial and homepage */
+    --tm-container-narrow: 1080px; /* listing detail */
+    --tm-container-wide: 1440px; /* search results cap */
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-ink);
+    font-family: var(--tm-font-sans);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   Type scale
+
+   One class per typography token in DESIGN.md. Use these rather than setting
+   font properties inline, so a token change propagates everywhere.
+   ========================================================================== */
+
+.tm-rating-display { font-size: 64px; font-weight: 700; line-height: 1.1;  letter-spacing: -1px; }
+.tm-display-xl     { font-size: 28px; font-weight: 700; line-height: 1.43; letter-spacing: 0; }
+.tm-display-lg     { font-size: 22px; font-weight: 500; line-height: 1.18; letter-spacing: -0.44px; }
+.tm-display-md     { font-size: 21px; font-weight: 700; line-height: 1.43; letter-spacing: 0; }
+.tm-display-sm     { font-size: 20px; font-weight: 600; line-height: 1.20; letter-spacing: -0.18px; }
+.tm-title-md       { font-size: 16px; font-weight: 600; line-height: 1.25; letter-spacing: 0; }
+.tm-title-sm       { font-size: 16px; font-weight: 500; line-height: 1.25; letter-spacing: 0; }
+.tm-body-md        { font-size: 16px; font-weight: 400; line-height: 1.5;  letter-spacing: 0; }
+.tm-body-sm        { font-size: 14px; font-weight: 400; line-height: 1.43; letter-spacing: 0; }
+.tm-caption        { font-size: 14px; font-weight: 500; line-height: 1.29; letter-spacing: 0; }
+.tm-caption-sm     { font-size: 13px; font-weight: 400; line-height: 1.23; letter-spacing: 0; }
+.tm-badge          { font-size: 11px; font-weight: 600; line-height: 1.18; letter-spacing: 0; }
+.tm-micro-label    { font-size: 12px; font-weight: 700; line-height: 1.33; letter-spacing: 0; }
+.tm-uppercase-tag  { font-size: 8px;  font-weight: 700; line-height: 1.25; letter-spacing: 0.32px;
+                     text-transform: uppercase; }
+.tm-button-md      { font-size: 16px; font-weight: 500; line-height: 1.25; letter-spacing: 0; }
+.tm-button-sm      { font-size: 14px; font-weight: 500; line-height: 1.29; letter-spacing: 0; }
+.tm-link           { font-size: 14px; font-weight: 400; line-height: 1.43; letter-spacing: 0; }
+.tm-nav-link       { font-size: 16px; font-weight: 600; line-height: 1.25; letter-spacing: 0; }
+
+/* Colour helpers for text roles. */
+.tm-text-muted       { color: var(--tm-color-muted); }
+.tm-text-body        { color: var(--tm-color-body); }
+.tm-text-error       { color: var(--tm-color-error); }
+.tm-text-on-primary  { color: var(--tm-color-on-primary); }
+
+/* ==========================================================================
+   Components
+
+   Only the components the phase 0 deployment-check page needs. The full set
+   (search bar, property cards, reservation rail, date picker, footer) lands
+   with the pages that use them in phases 6-8.
+   ========================================================================== */
+
+/* --- button-primary -------------------------------------------------------
+   Rausch fill, white text, 8px radius, 14x24 padding, 48px height.
+   The most common CTA in the system: Reserve, Continue, Search. */
+.tm-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 14px 24px;
+    border: none;
+    border-radius: var(--tm-radius-sm);
+    background-color: var(--tm-color-primary);
+    color: var(--tm-color-on-primary);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.25;
+    cursor: pointer;
+    /* No transition on colour: press is a hard state flip, not an animation. */
+}
+
+.tm-button:hover {
+    background-color: var(--tm-color-primary-active);
+}
+
+.tm-button:disabled {
+    background-color: var(--tm-color-primary-disabled);
+    cursor: not-allowed;
+}
+
+/* --- button-secondary -----------------------------------------------------
+   White fill, ink text, 1px ink outline. 48px height like its primary pair. */
+.tm-button-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 13px 23px; /* 1px less than primary to absorb the border */
+    border: 1px solid var(--tm-color-ink);
+    border-radius: var(--tm-radius-sm);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-ink);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.25;
+    cursor: pointer;
+}
+
+/* --- text-input -----------------------------------------------------------
+   White surface, 1px hairline, 8px radius, 56px height. On focus the border
+   thickens to 2px ink — no glow, no ring. */
+.tm-input {
+    width: 100%;
+    min-height: 56px;
+    padding: 14px 12px;
+    border: 1px solid var(--tm-color-hairline);
+    border-radius: var(--tm-radius-sm);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-ink);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.tm-input::placeholder {
+    color: var(--tm-color-muted);
+}
+
+.tm-input:focus {
+    outline: none;
+    border: 2px solid var(--tm-color-ink);
+    /* Compensate for the extra border width so the field does not shift. */
+    padding: 13px 11px;
+}
+
+/* --- card -----------------------------------------------------------------
+   14px radius, 24px padding, the single elevation tier. */
+.tm-card {
+    padding: var(--tm-space-lg);
+    border-radius: var(--tm-radius-md);
+    background-color: var(--tm-color-surface-card);
+    box-shadow: var(--tm-elevation-card);
+}
+
+.tm-label {
+    display: block;
+    margin-bottom: var(--tm-space-sm);
+    color: var(--tm-color-muted);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.29;
+}
+
+/* ==========================================================================
+   Page shell
+
+   Bootstrap 5 replaces this scaffolding in phase 6; it exists so the phase 0
+   page is not unstyled and so the tokens have something exercising them.
+   ========================================================================== */
+
+.tm-page {
+    max-width: var(--tm-container-max);
+    margin: 0 auto;
+    padding: var(--tm-space-section) var(--tm-space-lg);
+}
+
+.tm-hero {
+    margin-bottom: var(--tm-space-xl);
+}
+
+.tm-eyebrow {
+    margin: 0 0 var(--tm-space-sm);
+    color: var(--tm-color-muted);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.33;
+    letter-spacing: 0.32px;
+    text-transform: uppercase;
+}
+
+.tm-title {
+    margin: 0 0 var(--tm-space-md);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.43;
+}
+
+.tm-lede {
+    max-width: 60ch;
+    margin: 0;
+    color: var(--tm-color-body);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.tm-field {
+    display: flex;
+    gap: var(--tm-space-md);
+    align-items: flex-end;
+    margin-bottom: var(--tm-space-lg);
+}
+
+.tm-field .tm-input {
+    flex: 1 1 auto;
+}
+
+.tm-greeting {
+    margin: 0 0 var(--tm-space-sm);
+    color: var(--tm-color-ink);
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.18;
+    letter-spacing: -0.44px;
+}
+
+.tm-meta {
+    margin: 0;
+    color: var(--tm-color-muted);
+    font-size: 14px;
+    line-height: 1.43;
+}
+
+.tm-footer {
+    margin-top: var(--tm-space-section);
+    padding-top: var(--tm-space-lg);
+    border-top: 1px solid var(--tm-color-hairline-soft);
+    color: var(--tm-color-muted);
+    font-size: 13px;
+    line-height: 1.23;
+}

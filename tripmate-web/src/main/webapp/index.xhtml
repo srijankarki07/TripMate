@@ -6,6 +6,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>TripMate</title>
+    <h:outputStylesheet library="css" name="tripmate.css"/>
 </h:head>
 
 <h:body>
@@ -23,14 +24,16 @@
 
         <section class="tm-card">
             <h:form>
-                <label class="tm-label" for="name">Your name</label>
-                <h:inputText id="name"
-                             styleClass="tm-input"
-                             value="#{helloBean.name}"
-                             autocomplete="off"/>
-                <h:commandButton styleClass="tm-button"
-                                 value="Call the EJB tier"
-                                 action="#{helloBean.refresh}"/>
+                <h:outputLabel styleClass="tm-label" for="name" value="Your name"/>
+                <div class="tm-field">
+                    <h:inputText id="name"
+                                 styleClass="tm-input"
+                                 value="#{helloBean.name}"
+                                 autocomplete="off"/>
+                    <h:commandButton styleClass="tm-button"
+                                     value="Call the EJB tier"
+                                     action="#{helloBean.refresh}"/>
+                </div>
             </h:form>
 
             <p class="tm-greeting">

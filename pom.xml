@@ -21,6 +21,7 @@
     <modules>
         <module>tripmate-ejb</module>
         <module>tripmate-web</module>
+        <module>tripmate-ear</module>
     </modules>
 
     <properties>

@@ -65,6 +65,20 @@ export APP_URL="http://localhost:8080/tripmate/"
 export ADMIN_URL="http://localhost:4848"
 
 # ---------------------------------------------------------------------------
+# Database
+# ---------------------------------------------------------------------------
+# Local development credentials created by database/bootstrap.sql. Override any
+# of these by exporting the variable before running a script. The JDBC resource
+# and connection pool are configured on GlassFish in phase 2 and must use the
+# same values.
+export TM_DB_NAME="${TM_DB_NAME:-tripmate}"
+export TM_DB_USER="${TM_DB_USER:-tripmate}"
+export TM_DB_PASSWORD="${TM_DB_PASSWORD:-tripmate_dev_pw}"
+export TM_DB_HOST="${TM_DB_HOST:-localhost}"
+export TM_DB_PORT="${TM_DB_PORT:-5432}"
+export TM_DB_URL="jdbc:postgresql://${TM_DB_HOST}:${TM_DB_PORT}/${TM_DB_NAME}"
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence
+                                 https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
+             version="3.0">
+
+    <!--
+        TripMate persistence unit.
+
+        transaction-type="JTA": transactions are demarcated by the EJB
+        container, not by the application. Every session bean is stateless and
+        container-managed, so a business method either commits as a whole or
+        rolls back as a whole without any begin/commit in the code. This is the
+        reason TripService can create a trip and its admin membership in one
+        method and be certain both or neither are written.
+    -->
+    <persistence-unit name="tripmatePU" transaction-type="JTA">
+
+        <description>TripMate — group trip planning and expense tracking</description>
+
+        <!--
+            Container-managed datasource, created by scripts/glassfish-setup.sh.
+            The pool behind it holds the PostgreSQL connection details, so no
+            credentials appear in this file.
+        -->
+        <jta-data-source>jdbc/tripmate</jta-data-source>
+
+        <!--
+            Classes are listed rather than discovered. With a dozen-odd entity
+            classes an explicit list is cheap, and it makes the persistence
+            unit's contents reviewable at a glance instead of depending on
+            classpath scanning order.
+        -->
+        <class>com.tripmate.entity.User</class>
+        <class>com.tripmate.entity.Trip</class>
+        <class>com.tripmate.entity.TripMember</class>
+        <class>com.tripmate.entity.ItineraryItem</class>
+        <class>com.tripmate.entity.Expense</class>
+        <class>com.tripmate.entity.ExpenseSplit</class>
+        <class>com.tripmate.entity.Settlement</class>
+
+        <exclude-unlisted-classes>true</exclude-unlisted-classes>
+
+        <properties>
+
+            <!--
+                CRITICAL: the schema is owned by database/schema.sql, not by JPA.
+
+                Leaving DDL generation at its default would let the provider
+                create or alter tables at deploy time. That is a silent
+                disaster here: the schema carries CHECK constraints, partial
+                referential actions and nine deliberate indexes that no
+                generated DDL would reproduce, and a generated schema would
+                quietly diverge from the one the report documents.
+
+                `none` means the provider only ever maps to what already
+                exists. If a mapping disagrees with a column, the failure is a
+                loud error rather than a silent table alteration.
+            -->
+            <property name="eclipselink.ddl-generation" value="none"/>
+
+            <!-- Log SQL with bound parameters. Development setting: it is what
+                 makes the ORM's behaviour visible in the server log during the
+                 demo, and it should be turned down before any real deployment
+                 because the parameters include user data. -->
+            <property name="eclipselink.logging.level" value="FINE"/>
+            <property name="eclipselink.logging.level.sql" value="FINE"/>
+            <property name="eclipselink.logging.parameters" value="true"/>
+
+            <!-- Drop the EclipseLink connection from the pool between
+                 transactions so a long-idle pool entry cannot go stale. -->
+            <property name="eclipselink.transaction.join-existing" value="false"/>
+
+        </properties>
+    </persistence-unit>
+
+</persistence>

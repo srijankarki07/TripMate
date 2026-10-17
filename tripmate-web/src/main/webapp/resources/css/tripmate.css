@@ -384,3 +384,61 @@ body {
     font-size: 13px;
     line-height: 1.23;
 }
+
+/* ==========================================================================
+   Development diagnostics
+
+   Used only by the temporary deployment-check pages, not by product surfaces.
+   Failures use {colors.primary-error-text}, the system's own error tone, rather
+   than a green/red pair invented for the occasion — DESIGN.md defines no
+   success colour, and adding one would put a second accent into a system built
+   around a single one. Passing checks are therefore ink/muted and only failures
+   carry colour.
+   ========================================================================== */
+
+.tm-check-summary {
+    display: block;
+    margin: var(--tm-space-lg) 0 var(--tm-space-md);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.tm-check-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--tm-color-hairline-soft);
+}
+
+.tm-check-list li {
+    padding: var(--tm-space-sm) 0;
+    border-bottom: 1px solid var(--tm-color-hairline-soft);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.tm-check-ok {
+    color: var(--tm-color-muted);
+}
+
+.tm-check-bad {
+    color: var(--tm-color-error);
+    font-weight: 600;
+}
+
+.tm-error {
+    margin: var(--tm-space-base) 0 0;
+    padding: var(--tm-space-md);
+    border-radius: var(--tm-radius-sm);
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-error);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.43;
+}
+
+.tm-footer-links {
+    margin-left: var(--tm-space-md);
+}

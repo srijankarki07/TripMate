@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="jakarta.faces.facelets"
+      lang="en">
+<h:head>
+    <meta charset="UTF-8"/>
+</h:head>
+<h:body>
+
+<ui:composition template="/WEB-INF/templates/layout.xhtml">
+
+    <f:metadata>
+        <f:viewParam name="tripId" value="#{balancesBean.tripId}"/>
+        <f:viewAction action="#{balancesBean.load}"/>
+    </f:metadata>
+
+    <ui:define name="title">Balances · #{balancesBean.trip.tripName}</ui:define>
+
+    <ui:define name="content">
+
+        <h:panelGroup layout="block" styleClass="tm-error"
+                      rendered="#{not empty balancesBean.error}">
+            <h:outputText value="#{balancesBean.error}"/>
+        </h:panelGroup>
+
+        <ui:fragment rendered="#{balancesBean.loaded}">
+
+            <header class="tm-hero">
+                <p class="tm-eyebrow">
+                    <h:link outcome="/trips/detail.xhtml" value="#{balancesBean.trip.tripName}">
+                        <f:param name="tripId" value="#{balancesBean.tripId}"/>
+                    </h:link>
+                </p>
+                <h1 class="tm-title">Balances</h1>
+                <p class="tm-lede">
+                    Who has paid more than their share, and who has paid less.
+                </p>
+            </header>
+
+            <section class="tm-stats">
+                <div class="tm-stat">
+                    <p class="tm-stat-label">Owed in total</p>
+                    <p class="tm-stat-value">NPR #{balancesBean.totalOwed}</p>
+                    <p class="tm-stat-note">
+                        across #{balancesBean.creditorCount} people
+                    </p>
+                </div>
+                <div class="tm-stat">
+                    <p class="tm-stat-label">Already repaid</p>
+                    <p class="tm-stat-value">NPR #{balancesBean.totalRepaid}</p>
+                    <p class="tm-stat-note">
+                        #{balancesBean.settlements.size()} repayments recorded
+                    </p>
+                </div>
+                <div class="tm-stat">
+                    <p class="tm-stat-label">State</p>
+                    <p class="tm-stat-value">
+                        #{balancesBean.settled ? 'Square' : 'Open'}
+                    </p>
+                    <p class="tm-stat-note">everyone even, or not yet</p>
+                </div>
+            </section>
+
+            <section class="tm-card">
+                <div class="tm-toolbar">
+                    <h2 class="tm-display-sm">Position by member</h2>
+                    <p:button outcome="/trips/settle.xhtml"
+                              value="Record a repayment"
+                              styleClass="ui-button-secondary">
+                        <f:param name="tripId" value="#{balancesBean.tripId}"/>
+                    </p:button>
+                </div>
+
+                <p:dataTable value="#{balancesBean.balances}" var="b" emptyMessage="">
+                    <p:column headerText="Member" sortBy="#{b.fullName}">
+                        <h:outputText value="#{b.fullName}"/>
+                    </p:column>
+                    <p:column headerText="Paid" sortBy="#{b.totalPaid}">
+                        <h:outputText value="NPR #{b.totalPaid}"/>
+                    </p:column>
+                    <p:column headerText="Their share" sortBy="#{b.totalOwed}">
+                        <h:outputText value="NPR #{b.totalOwed}"/>
+                    </p:column>
+                    <p:column headerText="Net" sortBy="#{b.netBalance}">
+                        <span class="#{b.netBalance.signum() >= 0 ? 'tm-positive' : 'tm-negative'}">
+                            <h:outputText value="NPR #{b.netBalance}"/>
+                        </span>
+                    </p:column>
+                    <p:column headerText="Meaning">
+                        <h:outputText value="is owed" rendered="#{b.creditor}"/>
+                        <h:outputText value="owes" rendered="#{b.debtor}"/>
+                        <h:outputText value="even" rendered="#{not b.creditor and not b.debtor}"/>
+                    </p:column>
+                </p:dataTable>
+
+                <p class="tm-caption-sm tm-text-muted">
+                    These are gross positions: every split counts whether or not it has
+                    been repaid, and repayments recorded below are not netted off. The
+                    figure answers "who is up and who is down", not "what is still
+                    outstanding".
+                </p>
+            </section>
+
+            <section class="tm-card" rendered="#{balancesBean.hasSuggestions}">
+                <h2 class="tm-display-sm">What would settle it</h2>
+                <p class="tm-body-sm tm-text-muted">
+                    A short set of payments that would clear the trip. Nothing is
+                    recorded until you enter it on the settle page.
+                </p>
+
+                <p:dataTable value="#{balancesBean.suggested}" var="t" emptyMessage="">
+                    <p:column headerText="Who pays">
+                        <h:outputText value="#{t.from}"/>
+                    </p:column>
+                    <p:column headerText="To whom">
+                        <h:outputText value="#{t.to}"/>
+                    </p:column>
+                    <p:column headerText="How much">
+                        <h:outputText value="NPR #{t.amount}"/>
+                    </p:column>
+                </p:dataTable>
+            </section>
+
+            <section class="tm-card" rendered="#{balancesBean.hasSettlements}">
+                <h2 class="tm-display-sm">Repayments already recorded</h2>
+                <p:dataTable value="#{balancesBean.settlements}" var="s" emptyMessage="">
+                    <p:column headerText="When" sortBy="#{s.settledAt}">
+                        <h:outputText value="#{s.settledAt}"/>
+                    </p:column>
+                    <p:column headerText="From">
+                        <h:outputText value="#{s.payerName}"/>
+                    </p:column>
+                    <p:column headerText="To">
+                        <h:outputText value="#{s.receiverName}"/>
+                    </p:column>
+                    <p:column headerText="Amount" sortBy="#{s.amount}">
+                        <h:outputText value="NPR #{s.amount}"/>
+                    </p:column>
+                    <p:column headerText="Note">
+                        <h:outputText value="#{s.note}"/>
+                    </p:column>
+                </p:dataTable>
+            </section>
+
+        </ui:fragment>
+
+    </ui:define>
+</ui:composition>
+
+</h:body>
+</html>

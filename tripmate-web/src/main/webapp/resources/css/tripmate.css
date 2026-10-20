@@ -897,6 +897,27 @@ body .tm-input-full.ui-password {
     width: 100%;
 }
 
+/* A field with a button beside it, e.g. an amount and a "use what they owe". */
+.tm-inline {
+    display: flex;
+    gap: var(--tm-space-sm);
+    align-items: center;
+}
+
+.tm-inline .ui-button {
+    min-height: 48px;
+    white-space: nowrap;
+}
+
+/* A money field inside a table cell does not need the full column width. */
+body .tm-input-narrow,
+body .tm-input-narrow.ui-inputfield {
+    width: 140px;
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
 /* ==========================================================================
    Summary tiles and status pills
 
@@ -1001,6 +1022,21 @@ body .tm-input-full.ui-password {
 .tm-danger-zone p {
     margin: 0;
     max-width: 60ch;
+}
+
+/* Checkboxes and radios take ink when checked. The theme uses its blue, which
+   is a second accent the system does not have. */
+body .ui-chkbox .ui-chkbox-box.ui-state-active,
+body .ui-radiobutton .ui-radiobutton-box.ui-state-active {
+    border-color: var(--tm-color-ink);
+    background-color: var(--tm-color-ink);
+    color: var(--tm-color-on-dark);
+}
+
+body .ui-chkbox .ui-chkbox-box,
+body .ui-radiobutton .ui-radiobutton-box {
+    border: 1px solid var(--tm-color-border-strong);
+    background-color: var(--tm-color-canvas);
 }
 
 /* ==========================================================================

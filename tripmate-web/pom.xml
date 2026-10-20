@@ -26,6 +26,15 @@
             <artifactId>jakarta.jakartaee-api</artifactId>
         </dependency>
 
+        <!-- JSF component library. Version and the jakarta classifier come from
+             the parent's dependencyManagement. Bundled in the WAR, because a
+             component library is application code rather than platform code. -->
+        <dependency>
+            <groupId>org.primefaces</groupId>
+            <artifactId>primefaces</artifactId>
+            <classifier>jakarta</classifier>
+        </dependency>
+
         <!--
             Business tier. Scope `provided`: the interfaces and DTOs are needed
             to compile against, but they must NOT be copied into the WAR. At

@@ -1,22 +1,135 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
     <meta charset="UTF-8"/>
-</head>
+</h:head>
 <h:body>
 
 <ui:composition template="/WEB-INF/templates/layout.xhtml">
-    <ui:define name="title">Settle up · TripMate</ui:define>
+
+    <f:metadata>
+        <f:viewParam name="tripId" value="#{settleBean.tripId}"/>
+        <f:viewAction action="#{settleBean.load}"/>
+    </f:metadata>
+
+    <ui:define name="title">Settle up · #{settleBean.trip.tripName}</ui:define>
 
     <ui:define name="content">
-        <header class="tm-hero">
-            <p class="tm-eyebrow">Trip</p>
-            <h1 class="tm-title">Settle up</h1>
-            <p class="tm-lede">Record a repayment between two members.</p>
-        </header>
+
+        <h:panelGroup layout="block" styleClass="tm-error"
+                      rendered="#{not empty settleBean.error}">
+            <h:outputText value="#{settleBean.error}"/>
+        </h:panelGroup>
+
+        <ui:fragment rendered="#{settleBean.loaded}">
+
+            <header class="tm-hero">
+                <p class="tm-eyebrow">
+                    <h:link outcome="/trips/balances.xhtml" value="#{settleBean.trip.tripName}">
+                        <f:param name="tripId" value="#{settleBean.tripId}"/>
+                    </h:link>
+                </p>
+                <h1 class="tm-title">Settle up</h1>
+                <p class="tm-lede">
+                    Record money that has changed hands. This is a note of what
+                    happened, not a calculation.
+                </p>
+            </header>
+
+            <h:panelGroup layout="block" styleClass="tm-notice"
+                          rendered="#{not empty settleBean.message}">
+                <h:outputText value="#{settleBean.message}"/>
+            </h:panelGroup>
+
+            <section class="tm-card">
+                <h2 class="tm-display-sm">Record a repayment</h2>
+
+                <h:form id="settleForm">
+                    <div class="tm-form-grid">
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="payer">Who paid</label>
+                            <p:selectOneMenu id="payer" styleClass="tm-input-full"
+                                             value="#{settleBean.payerId}">
+                                <f:selectItems value="#{settleBean.members}" var="m"
+                                               itemLabel="#{m.fullName}" itemValue="#{m.userId}"/>
+                            </p:selectOneMenu>
+                        </div>
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="receiver">Who received it</label>
+                            <p:selectOneMenu id="receiver" styleClass="tm-input-full"
+                                             value="#{settleBean.receiverId}">
+                                <f:selectItem itemLabel="Choose someone" itemValue="#{null}"/>
+                                <f:selectItems value="#{settleBean.members}" var="m"
+                                               itemLabel="#{m.fullName}" itemValue="#{m.userId}"/>
+                            </p:selectOneMenu>
+                        </div>
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="settleAmount">Amount (NPR)</label>
+                            <div class="tm-inline">
+                                <p:inputText id="settleAmount" styleClass="tm-input-full"
+                                             value="#{settleBean.amount}"/>
+                                <p:commandButton value="Use what they owe"
+                                                 styleClass="ui-button-secondary"
+                                                 action="#{settleBean.suggestAmount}"
+                                                 update="@form"
+                                                 ajax="true"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tm-field">
+                        <label class="tm-field-label" for="note">Note (optional)</label>
+                        <p:inputText id="note" styleClass="tm-input-full"
+                                     value="#{settleBean.note}"/>
+                    </div>
+
+                    <div class="tm-actions">
+                        <p:commandButton value="Record repayment"
+                                         action="#{settleBean.save}"
+                                         update="@form"
+                                         ajax="false"/>
+                    </div>
+                </h:form>
+            </section>
+
+            <section class="tm-card" rendered="#{settleBean.hasSettlements}">
+                <h2 class="tm-display-sm">Recorded so far</h2>
+
+                <h:form id="settlementListForm">
+                    <p:dataTable value="#{settleBean.settlements}" var="s" emptyMessage="">
+                        <p:column headerText="When" sortBy="#{s.settledAt}">
+                            <h:outputText value="#{s.settledAt}"/>
+                        </p:column>
+                        <p:column headerText="From">
+                            <h:outputText value="#{s.payerName}"/>
+                        </p:column>
+                        <p:column headerText="To">
+                            <h:outputText value="#{s.receiverName}"/>
+                        </p:column>
+                        <p:column headerText="Amount" sortBy="#{s.amount}">
+                            <h:outputText value="NPR #{s.amount}"/>
+                        </p:column>
+                        <p:column headerText="Note">
+                            <h:outputText value="#{s.note}"/>
+                        </p:column>
+                        <p:column headerText="">
+                            <p:commandButton value="Delete"
+                                             styleClass="ui-button-secondary"
+                                             action="#{settleBean.delete(s.settlementId)}"
+                                             ajax="false"
+                                             onclick="return confirm('Remove this repayment?');"/>
+                        </p:column>
+                    </p:dataTable>
+                </h:form>
+            </section>
+
+        </ui:fragment>
+
     </ui:define>
 </ui:composition>
 

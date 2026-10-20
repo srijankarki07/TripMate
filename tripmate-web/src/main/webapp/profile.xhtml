@@ -1,24 +1,133 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
     <meta charset="UTF-8"/>
-</head>
+</h:head>
 <h:body>
 
 <ui:composition template="/WEB-INF/templates/layout.xhtml">
     <ui:define name="title">Profile · TripMate</ui:define>
 
     <ui:define name="content">
+
         <header class="tm-hero">
             <p class="tm-eyebrow">Account</p>
-            <h1 class="tm-title">Your profile</h1>
+            <h1 class="tm-title">#{profileBean.fullName}</h1>
             <p class="tm-lede">
-                Your name, email and password.
+                Your details, and the password you sign in with.
             </p>
         </header>
+
+        <section class="tm-stats">
+            <div class="tm-stat">
+                <p class="tm-stat-label">Trips</p>
+                <p class="tm-stat-value">#{profileBean.tripCount}</p>
+                <p class="tm-stat-note">you belong to</p>
+            </div>
+            <div class="tm-stat">
+                <p class="tm-stat-label">You have paid</p>
+                <p class="tm-stat-value">NPR #{profileBean.totalPaid}</p>
+                <p class="tm-stat-note">across every trip</p>
+            </div>
+            <div class="tm-stat">
+                <p class="tm-stat-label">Your share</p>
+                <p class="tm-stat-value">NPR #{profileBean.totalOwed}</p>
+                <p class="tm-stat-note">what your splits come to</p>
+            </div>
+        </section>
+
+        <section class="tm-card">
+            <h2 class="tm-display-sm">Your details</h2>
+
+            <h:form id="profileForm">
+                <div class="tm-form-grid">
+                    <div class="tm-field">
+                        <label class="tm-field-label" for="profileName">Full name</label>
+                        <p:inputText id="profileName" styleClass="tm-input-full"
+                                     value="#{profileBean.fullName}"/>
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-field-label" for="profileEmail">Email</label>
+                        <p:inputText id="profileEmail" styleClass="tm-input-full"
+                                     value="#{profileBean.email}"/>
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-field-label" for="profilePhone">Phone</label>
+                        <p:inputText id="profilePhone" styleClass="tm-input-full"
+                                     value="#{profileBean.phone}"/>
+                    </div>
+                </div>
+
+                <h:panelGroup layout="block" styleClass="tm-error"
+                              rendered="#{not empty profileBean.error}">
+                    <h:outputText value="#{profileBean.error}"/>
+                </h:panelGroup>
+                <h:panelGroup layout="block" styleClass="tm-notice"
+                              rendered="#{not empty profileBean.message}">
+                    <h:outputText value="#{profileBean.message}"/>
+                </h:panelGroup>
+
+                <div class="tm-actions">
+                    <p:commandButton value="Save details"
+                                     action="#{profileBean.saveProfile}"
+                                     update="@form"
+                                     ajax="false"/>
+                </div>
+            </h:form>
+        </section>
+
+        <section class="tm-card">
+            <h2 class="tm-display-sm">Change your password</h2>
+            <p class="tm-body-sm tm-text-muted">
+                Your current password is asked for even though you are already
+                signed in, because a session can be left open on a shared machine.
+            </p>
+
+            <h:form id="passwordForm">
+                <div class="tm-form-grid">
+                    <div class="tm-field">
+                        <label class="tm-field-label" for="currentPassword">Current password</label>
+                        <p:password id="currentPassword" styleClass="tm-input-full"
+                                    feedback="false"
+                                    value="#{profileBean.currentPassword}"/>
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-field-label" for="newPassword">New password</label>
+                        <p:password id="newPassword" styleClass="tm-input-full"
+                                    feedback="false"
+                                    value="#{profileBean.newPassword}"/>
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-field-label" for="confirmNewPassword">Confirm new password</label>
+                        <p:password id="confirmNewPassword" styleClass="tm-input-full"
+                                    feedback="false"
+                                    value="#{profileBean.confirmPassword}"/>
+                    </div>
+                </div>
+
+                <h:panelGroup layout="block" styleClass="tm-error"
+                              rendered="#{not empty profileBean.passwordError}">
+                    <h:outputText value="#{profileBean.passwordError}"/>
+                </h:panelGroup>
+                <h:panelGroup layout="block" styleClass="tm-notice"
+                              rendered="#{not empty profileBean.passwordMessage}">
+                    <h:outputText value="#{profileBean.passwordMessage}"/>
+                </h:panelGroup>
+
+                <div class="tm-actions">
+                    <p:commandButton value="Change password"
+                                     action="#{profileBean.changePassword}"
+                                     update="@form"
+                                     ajax="false"/>
+                </div>
+            </h:form>
+        </section>
+
     </ui:define>
 </ui:composition>
 

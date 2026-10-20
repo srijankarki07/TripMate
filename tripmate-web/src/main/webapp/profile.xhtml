@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:ui="jakarta.faces.facelets"
+      lang="en">
+<h:head>
+    <meta charset="UTF-8"/>
+</head>
+<h:body>
+
+<ui:composition template="/WEB-INF/templates/layout.xhtml">
+    <ui:define name="title">Profile · TripMate</ui:define>
+
+    <ui:define name="content">
+        <header class="tm-hero">
+            <p class="tm-eyebrow">Account</p>
+            <h1 class="tm-title">Your profile</h1>
+            <p class="tm-lede">
+                Your name, email and password.
+            </p>
+        </header>
+    </ui:define>
+</ui:composition>
+
+</h:body>
+</html>

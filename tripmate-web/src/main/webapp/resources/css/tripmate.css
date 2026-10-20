@@ -968,6 +968,97 @@ body .tm-input-full.ui-password {
     color: var(--tm-color-error);
 }
 
+/* Success and status notices. Ink on the soft surface rather than a green,
+   since the system has no success colour and inventing one would put a second
+   accent into a palette built around a single one. */
+.tm-notice {
+    margin-bottom: var(--tm-space-lg);
+    padding: var(--tm-space-md) var(--tm-space-base);
+    border-left: 2px solid var(--tm-color-ink);
+    border-radius: var(--tm-radius-xs);
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+    font-size: 14px;
+    line-height: 1.43;
+}
+
+/* Destructive actions sit apart from the rest of the form, below a rule. */
+.tm-danger-zone {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--tm-space-base);
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--tm-space-xl);
+    padding-top: var(--tm-space-lg);
+    border-top: 1px solid var(--tm-color-hairline);
+}
+
+.tm-danger-zone h3 {
+    margin: 0 0 var(--tm-space-xs);
+}
+
+.tm-danger-zone p {
+    margin: 0;
+    max-width: 60ch;
+}
+
+/* ==========================================================================
+   Tabs
+
+   The theme marks the selected tab with its blue. The system has one accent
+   and reserves it for actions, so the active tab is marked the way the top nav
+   marks the active section: ink and an ink rule. One convention in two places.
+   ========================================================================== */
+
+body .ui-tabs .ui-tabs-nav {
+    padding: 0;
+    border: none;
+    border-bottom: 1px solid var(--tm-color-hairline);
+    background-color: transparent;
+}
+
+body .ui-tabs .ui-tabs-nav li.ui-tabs-header {
+    margin: 0 var(--tm-space-lg) 0 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+}
+
+body .ui-tabs .ui-tabs-nav li.ui-tabs-header > a {
+    padding: var(--tm-space-md) 0;
+    color: var(--tm-color-muted);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+body .ui-tabs .ui-tabs-nav li.ui-tabs-header.ui-state-hover > a {
+    color: var(--tm-color-ink);
+}
+
+body .ui-tabs .ui-tabs-nav li.ui-tabs-header.ui-state-active {
+    border-bottom: 2px solid var(--tm-color-ink);
+    background-color: transparent;
+}
+
+body .ui-tabs .ui-tabs-nav li.ui-tabs-header.ui-state-active > a,
+body .ui-tabs .ui-tabs-nav li.ui-tabs-header.ui-state-active .ui-icon {
+    color: var(--tm-color-ink);
+}
+
+body .ui-tabs .ui-tabs-panels {
+    border: none;
+    background-color: transparent;
+}
+
+body .ui-tabs .ui-tabs-panel {
+    padding: var(--tm-space-lg) 0 0;
+    background-color: transparent;
+}
+
 /* ==========================================================================
    Development diagnostics
 

@@ -1,24 +1,78 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
     <meta charset="UTF-8"/>
-</head>
+</h:head>
 <h:body>
 
 <ui:composition template="/WEB-INF/templates/layout.xhtml">
-    <ui:define name="title">Trips · TripMate</ui:define>
+    <ui:define name="title">Your trips · TripMate</ui:define>
 
     <ui:define name="content">
+
         <header class="tm-hero">
             <p class="tm-eyebrow">Trips</p>
             <h1 class="tm-title">Your trips</h1>
             <p class="tm-lede">
-                Every trip you belong to, with its itinerary, expenses and balances.
+                #{tripListBean.trips.size()} trips,
+                #{tripListBean.upcomingCount} of them planned or under way.
             </p>
         </header>
+
+        <section class="tm-card">
+            <div class="tm-toolbar">
+                <h2 class="tm-display-sm">All trips</h2>
+                <p:button outcome="/trips/create.xhtml" value="New trip" styleClass="ui-button-secondary"/>
+            </div>
+
+            <p:dataTable value="#{tripListBean.trips}"
+                         var="trip"
+                         rendered="#{tripListBean.hasTrips}"
+                         emptyMessage="">
+
+                <p:column headerText="Trip">
+                    <h:link outcome="/trips/detail.xhtml" value="#{trip.tripName}">
+                        <f:param name="tripId" value="#{trip.tripId}"/>
+                    </h:link>
+                </p:column>
+
+                <p:column headerText="Where">
+                    <h:outputText value="#{trip.destination}"/>
+                </p:column>
+
+                <p:column headerText="Dates">
+                    <h:outputText value="#{trip.startDate}"/>
+                    <h:outputText value=" to "/>
+                    <h:outputText value="#{trip.endDate}"/>
+                </p:column>
+
+                <p:column headerText="State">
+                    <span class="tm-status tm-status-#{trip.status.name().toLowerCase()}">
+                        <h:outputText value="#{trip.status}"/>
+                    </span>
+                </p:column>
+
+                <p:column headerText="Admin">
+                    <h:outputText value="#{trip.adminName}"/>
+                </p:column>
+
+                <p:column headerText="Members">
+                    <h:outputText value="#{trip.memberCount}"/>
+                </p:column>
+            </p:dataTable>
+
+            <h:panelGroup layout="block" styleClass="tm-empty"
+                          rendered="#{not tripListBean.hasTrips}">
+                You are not part of any trip yet. Create one, and you become its
+                administrator.
+            </h:panelGroup>
+        </section>
+
     </ui:define>
 </ui:composition>
 

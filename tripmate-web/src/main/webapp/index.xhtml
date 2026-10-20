@@ -26,18 +26,18 @@
                     Signed in as <strong>#{currentUser.fullName}</strong>.
                 </p>
                 <div class="tm-actions">
-                    <p:button outcome="dashboard" value="Go to the dashboard"
+                    <p:button outcome="/dashboard.xhtml" value="Go to the dashboard"
                               styleClass="tm-button-block"/>
                 </div>
             </h:panelGroup>
 
             <h:panelGroup layout="block" rendered="#{not currentUser.loggedIn}">
                 <div class="tm-actions">
-                    <p:button outcome="login" value="Sign in" styleClass="tm-button-block"/>
+                    <p:button outcome="/login.xhtml" value="Sign in" styleClass="tm-button-block"/>
                 </div>
                 <p class="tm-body-sm tm-text-muted tm-auth-alt">
                     No account yet?
-                    <h:link outcome="register" value="Create one"/>
+                    <h:link outcome="/register.xhtml" value="Create one"/>
                 </p>
             </h:panelGroup>
         </div>

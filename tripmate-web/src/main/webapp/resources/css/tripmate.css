@@ -898,6 +898,77 @@ body .tm-input-full.ui-password {
 }
 
 /* ==========================================================================
+   Summary tiles and status pills
+
+   DESIGN.md has no stat-tile component, so this follows its rules rather than
+   inventing a new vocabulary: kanban-flat white surfaces on the one elevation
+   tier, a muted micro-label, and the value set in ink at the display size.
+   ========================================================================== */
+
+.tm-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--tm-space-base);
+    margin-bottom: var(--tm-space-xl);
+}
+
+.tm-stat {
+    padding: var(--tm-space-lg);
+    border-radius: var(--tm-radius-md);
+    background-color: var(--tm-color-surface-card);
+    box-shadow: var(--tm-elevation-card);
+}
+
+.tm-stat-label {
+    margin: 0 0 var(--tm-space-sm);
+    color: var(--tm-color-muted);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.33;
+    letter-spacing: 0.32px;
+    text-transform: uppercase;
+}
+
+.tm-stat-value {
+    margin: 0;
+    color: var(--tm-color-ink);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.tm-stat-note {
+    margin: var(--tm-space-xs) 0 0;
+    color: var(--tm-color-muted);
+    font-size: 13px;
+    line-height: 1.23;
+}
+
+/* Trip lifecycle state. Only CANCELLED takes colour, so Rausch stays reserved
+   for actions; the rest are distinguished by weight and rule rather than hue. */
+.tm-status {
+    display: inline-block;
+    padding: 2px 10px;
+    border: 1px solid var(--tm-color-hairline);
+    border-radius: var(--tm-radius-full);
+    color: var(--tm-color-muted);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.18;
+    white-space: nowrap;
+}
+
+.tm-status-ongoing {
+    border-color: var(--tm-color-ink);
+    color: var(--tm-color-ink);
+}
+
+.tm-status-cancelled {
+    border-color: var(--tm-color-error);
+    color: var(--tm-color-error);
+}
+
+/* ==========================================================================
    Development diagnostics
 
    Used only by the temporary deployment-check pages, not by product surfaces.

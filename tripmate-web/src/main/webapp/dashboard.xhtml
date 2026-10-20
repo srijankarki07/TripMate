@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
@@ -12,16 +14,124 @@
     <ui:define name="title">Dashboard · TripMate</ui:define>
 
     <ui:define name="content">
+
         <header class="tm-hero">
             <p class="tm-eyebrow">Dashboard</p>
             <h1 class="tm-title">Hello, #{currentUser.fullName}</h1>
         </header>
 
-        <section class="tm-card">
-            <p class="tm-body-md">
-                Your trips, recent activity and totals appear here.
-            </p>
+        <section class="tm-stats">
+            <div class="tm-stat">
+                <p class="tm-stat-label">Trips</p>
+                <p class="tm-stat-value">#{dashboardBean.tripCount}</p>
+                <p class="tm-stat-note">
+                    #{dashboardBean.activeTripCount} still to come or under way
+                </p>
+            </div>
+            <div class="tm-stat">
+                <p class="tm-stat-label">You have paid</p>
+                <p class="tm-stat-value">NPR #{dashboardBean.totalPaid}</p>
+                <p class="tm-stat-note">across every trip</p>
+            </div>
+            <div class="tm-stat">
+                <p class="tm-stat-label">Your share</p>
+                <p class="tm-stat-value">NPR #{dashboardBean.totalOwed}</p>
+                <p class="tm-stat-note">what your splits come to</p>
+            </div>
+            <div class="tm-stat">
+                <p class="tm-stat-label">#{dashboardBean.netLabel}</p>
+                <p class="tm-stat-value #{dashboardBean.inCredit ? 'tm-positive' : 'tm-negative'}">
+                    NPR #{dashboardBean.netMagnitude}
+                </p>
+                <p class="tm-stat-note">before recorded repayments</p>
+            </div>
         </section>
+
+        <section class="tm-card">
+            <div class="tm-toolbar">
+                <h2 class="tm-display-sm">My trips</h2>
+                <p:button outcome="trips/create" value="New trip" styleClass="ui-button-secondary"/>
+            </div>
+
+            <p:dataTable value="#{dashboardBean.trips}"
+                         var="trip"
+                         rendered="#{dashboardBean.hasTrips}"
+                         styleClass="tm-table"
+                         emptyMessage=""
+                         rows="10"
+                         paginator="false">
+
+                <p:column headerText="Trip">
+                    <h:link outcome="trips/detail" value="#{trip.tripName}">
+                        <f:param name="tripId" value="#{trip.tripId}"/>
+                    </h:link>
+                </p:column>
+
+                <p:column headerText="Where">
+                    <h:outputText value="#{trip.destination}"/>
+                </p:column>
+
+                <p:column headerText="Dates">
+                    <h:outputText value="#{trip.startDate}"/>
+                    <h:outputText value=" to "/>
+                    <h:outputText value="#{trip.endDate}"/>
+                </p:column>
+
+                <p:column headerText="State">
+                    <span class="tm-status tm-status-#{trip.status.name().toLowerCase()}">
+                        <h:outputText value="#{trip.status}"/>
+                    </span>
+                </p:column>
+
+                <p:column headerText="Members">
+                    <h:outputText value="#{trip.memberCount}"/>
+                </p:column>
+            </p:dataTable>
+
+            <!-- h:panelGroup, not a plain <p>: `rendered` is a Faces attribute
+                 and is ignored on non-components, so a bare element would show
+                 this message even when there are trips. -->
+            <h:panelGroup layout="block" styleClass="tm-empty"
+                          rendered="#{not dashboardBean.hasTrips}">
+                You are not part of any trip yet.
+            </h:panelGroup>
+        </section>
+
+        <section class="tm-card">
+            <h2 class="tm-display-sm">Recent spending</h2>
+
+            <p:dataTable value="#{dashboardBean.recentExpenses}"
+                         var="expense"
+                         rendered="#{dashboardBean.hasRecentExpenses}"
+                         emptyMessage="">
+
+                <p:column headerText="Date">
+                    <h:outputText value="#{expense.date}"/>
+                </p:column>
+
+                <p:column headerText="Trip">
+                    <h:outputText value="#{expense.tripName}"/>
+                </p:column>
+
+                <p:column headerText="What">
+                    <h:outputText value="#{expense.description}"/>
+                </p:column>
+
+                <p:column headerText="Paid by">
+                    <h:outputText value="#{expense.paidByName}"/>
+                </p:column>
+
+                <p:column headerText="Amount">
+                    <h:outputText value="NPR #{expense.amount}"/>
+                </p:column>
+            </p:dataTable>
+
+            <h:panelGroup layout="block" styleClass="tm-empty"
+                          rendered="#{not dashboardBean.hasRecentExpenses}">
+                No expenses recorded on your trips yet.
+            </h:panelGroup>
+        </section>
+
     </ui:define>
 </ui:composition>
 

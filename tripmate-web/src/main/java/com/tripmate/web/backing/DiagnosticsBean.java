@@ -14,6 +14,7 @@ import com.tripmate.dto.TripDTO;
 import com.tripmate.dto.UserDTO;
 import com.tripmate.ejb.DtoMappingSmokeTest;
 import com.tripmate.ejb.PersistenceSmokeTest;
+import com.tripmate.ejb.QueryVerificationSmokeTest;
 import com.tripmate.ejb.SessionBeanSmokeTest;
 import com.tripmate.entity.TripRole;
 import com.tripmate.remote.ExpenseServiceRemote;
@@ -56,6 +57,9 @@ public class DiagnosticsBean implements Serializable {
     private SessionBeanSmokeTest sessionBeanTest;
 
     @EJB
+    private QueryVerificationSmokeTest queryVerificationTest;
+
+    @EJB
     private UserServiceRemote userService;
 
     @EJB
@@ -76,6 +80,7 @@ public class DiagnosticsBean implements Serializable {
         runSuite("Persistence: entity round-trip", persistenceTest::runRoundTrip);
         runSuite("DTO mapping", dtoMappingTest::runMappingChecks);
         runSuite("Session bean CRUD", sessionBeanTest::runCrudChecks);
+        runSuite("The five required queries", queryVerificationTest::runQueryChecks);
         runSuite("Session bean rejections", this::runRejectionChecks);
     }
 

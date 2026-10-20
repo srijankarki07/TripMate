@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:ui="jakarta.faces.facelets"
+      lang="en">
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>TripMate: diagnostics</title>
+    <h:outputStylesheet library="css" name="tripmate.css"/>
+</h:head>
+
+<h:body>
+    <main class="tm-page">
+
+        <header class="tm-hero">
+            <p class="tm-eyebrow">Diagnostics</p>
+            <h1 class="tm-title">Integration checks</h1>
+            <p class="tm-lede">
+                Runs every check the project has: entity round-trip against PostgreSQL,
+                entity to DTO mapping, CRUD through all five session beans, and the
+                rules that must reject bad input. The first three run inside one
+                transaction each, so they are atomic and leave nothing behind; the
+                rejections run one call per transaction, which is what makes a
+                deliberate failure testable at all.
+            </p>
+        </header>
+
+        <section class="tm-card">
+            <h:form>
+                <h:commandButton styleClass="tm-button"
+                                 value="Run all checks"
+                                 action="#{diagnosticsBean.runAll}"/>
+            </h:form>
+
+            <ui:fragment rendered="#{diagnosticsBean.hasRun}">
+
+                <h:outputText rendered="#{diagnosticsBean.allPassed}"
+                              styleClass="tm-check-summary tm-check-ok"
+                              value="All checks passed."/>
+                <h:outputText rendered="#{not diagnosticsBean.allPassed}"
+                              styleClass="tm-check-summary tm-check-bad"
+                              value="Some checks failed, see below."/>
+
+                <p class="tm-meta">
+                    <h:outputText value="#{diagnosticsBean.passCount}"/>
+                    <h:outputText value=" passed, "/>
+                    <h:outputText value="#{diagnosticsBean.failCount}"/>
+                    <h:outputText value=" failed."/>
+                </p>
+
+                <h:panelGroup layout="block"
+                              styleClass="tm-error"
+                              rendered="#{not empty diagnosticsBean.error}">
+                    <h:outputText value="#{diagnosticsBean.error}"/>
+                </h:panelGroup>
+
+                <ul class="tm-check-list">
+                    <ui:repeat value="#{diagnosticsBean.report}" var="line">
+                        <li class="#{line.startsWith('FAIL') ? 'tm-check-bad'
+                                      : (line.startsWith('SECTION') ? 'tm-check-section'
+                                      : (line.startsWith('SUMMARY') ? 'tm-check-summary' : 'tm-check-ok'))}">
+                            <h:outputText value="#{line}"/>
+                        </li>
+                    </ui:repeat>
+                </ul>
+
+            </ui:fragment>
+        </section>
+
+        <footer class="tm-footer">
+            Jakarta EE 10 · GlassFish 7 · PostgreSQL
+            <span class="tm-footer-links">
+                <h:link outcome="index" value="Home"/>
+            </span>
+        </footer>
+
+    </main>
+</h:body>
+</html>

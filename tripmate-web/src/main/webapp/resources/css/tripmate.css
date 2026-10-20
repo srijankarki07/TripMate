@@ -428,6 +428,14 @@ body {
     font-weight: 600;
 }
 
+/* Section heading inside the check list: ink rather than muted, so the eye can
+   find the boundaries between suites at a glance. */
+.tm-check-section {
+    margin-top: var(--tm-space-base);
+    color: var(--tm-color-ink);
+    font-weight: 700;
+}
+
 .tm-error {
     margin: var(--tm-space-base) 0 0;
     padding: var(--tm-space-md);

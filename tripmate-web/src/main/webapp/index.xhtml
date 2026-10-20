@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
       lang="en">
 <h:head>
     <meta charset="UTF-8"/>
@@ -30,11 +31,11 @@
                 <li class="tm-check-ok">Phase 2: seven JPA entities mapped and round-tripping</li>
                 <li class="tm-check-ok">Phase 3: nine DTOs as the remote boundary contract</li>
                 <li class="tm-check-ok">Phase 4: five session beans with remote interfaces, full CRUD</li>
+                <li class="tm-check-ok">Phase 5: the five required queries verified against raw SQL</li>
+                <li class="tm-check-ok">Phase 6: the browser interface</li>
             </ul>
             <p class="tm-meta">
-                The sign-in flow and the trip pages arrive in Phase 6. Until then,
-                <h:link outcome="diagnostics" value="the diagnostics page"/>
-                exercises the business tier end to end.
+                <p:button outcome="diagnostics" value="Run the integration checks"/>
             </p>
         </section>
 

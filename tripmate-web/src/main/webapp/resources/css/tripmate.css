@@ -386,6 +386,367 @@ body {
 }
 
 /* ==========================================================================
+   PrimeFaces integration
+
+   PrimeFaces supplies behaviour and structure; DESIGN.md supplies the
+   appearance. The `saga` theme is fully parameterised, so part of the mapping
+   is done by pointing its own custom properties at the tokens above rather
+   than by fighting its rules with specificity.
+
+   WHY EVERY SELECTOR BELOW STARTS WITH `body`
+
+   The theme does not use the plain class names. Its rules are written as
+   `body .ui-button`, `body .ui-inputfield` and so on, which gives them a
+   specificity of one element plus one class. A bare `.ui-button` loses to that
+   no matter which stylesheet the browser sees last, and the override silently
+   does nothing. The `body ` prefix matches it, and our stylesheet follows the
+   theme's in the page head, so ours wins on order.
+
+   Note also that overriding the theme's `--primary-color` variable is not
+   enough on its own: the button rule hardcodes the blue literal and never
+   reads the variable.
+
+   Do not remove the `body ` prefixes. The symptom is not an error, it is a
+   wrong colour that looks like the override was never written.
+   ========================================================================== */
+
+:root {
+    /* Brand. One accent, as DESIGN.md requires. */
+    --primary-color: var(--tm-color-primary);
+    --primary-color-text: var(--tm-color-on-primary);
+
+    /* Type and surfaces. */
+    --font-family: var(--tm-font-sans);
+    --text-color: var(--tm-color-ink);
+    --text-color-secondary: var(--tm-color-muted);
+    --surface-a: var(--tm-color-canvas);
+    --surface-card: var(--tm-color-surface-card);
+    --surface-overlay: var(--tm-color-canvas);
+    --surface-section: var(--tm-color-canvas);
+    --surface-ground: var(--tm-color-canvas);
+    --surface-b: var(--tm-color-surface-soft);
+    --surface-c: var(--tm-color-surface-strong);
+    --surface-hover: var(--tm-color-surface-soft);
+    --surface-border: var(--tm-color-hairline);
+
+    /* 8px, matching the button and input radius token, rather than the theme's
+       4px which reads as sharper than the system allows. */
+    --border-radius: var(--tm-radius-sm);
+
+    /* DESIGN.md asks for a thickened ink border on focus, with no glow. A hard
+       two-pixel ink ring is the closest the theme's single hook allows, and it
+       keeps focus visible, which matters more than matching the letter of the
+       spec here. */
+    --focus-ring: 0 0 0 2px var(--tm-color-ink);
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+
+   The theme defines --primary-color but does not use it here: the .ui-button
+   rule hardcodes the blue literal. Overriding the variable alone leaves every
+   button the wrong colour, so the background is set explicitly.
+
+   Default .ui-button is the primary Rausch CTA. The outlined and secondary
+   variants get the ink outline the system uses for its secondary button.
+   -------------------------------------------------------------------------- */
+
+body .ui-button {
+    min-height: 48px;
+    padding: 14px 24px;
+    border: none;
+    border-radius: var(--tm-radius-sm);
+    background-color: var(--tm-color-primary);
+    color: var(--tm-color-on-primary);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.25;
+    transition: none;
+}
+
+body .ui-button.ui-state-hover,
+body .ui-button:hover {
+    background-color: var(--tm-color-primary-active);
+    border-color: transparent;
+    color: var(--tm-color-on-primary);
+}
+
+body .ui-button.ui-state-active,
+body .ui-button.ui-state-down {
+    background-color: var(--tm-color-primary-active);
+    border-color: transparent;
+    color: var(--tm-color-on-primary);
+}
+
+/* Secondary and outlined variants get the ink outline the system uses. */
+body .ui-button.ui-button-outlined,
+body .ui-button.ui-button-secondary {
+    border: 1px solid var(--tm-color-ink);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-ink);
+}
+
+body .ui-button.ui-button-outlined.ui-state-hover,
+body .ui-button.ui-button-secondary.ui-state-hover {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+body .ui-button.ui-button-text-only .ui-button-text {
+    padding: 0;
+}
+
+body .ui-button.ui-state-disabled {
+    background-color: var(--tm-color-primary-disabled);
+    color: var(--tm-color-on-primary);
+    opacity: 1;
+}
+
+/* Icon-only buttons: the system's circular icon button, on the strong surface
+   rather than on Rausch, since they are navigation rather than actions. */
+body .ui-button.ui-button-icon-only {
+    width: 40px;
+    min-height: 40px;
+    padding: 0;
+    border: 1px solid var(--tm-color-hairline);
+    border-radius: var(--tm-radius-full);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-ink);
+}
+
+body .ui-button.ui-button-icon-only.ui-state-hover {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+/* --------------------------------------------------------------------------
+   Inputs
+   -------------------------------------------------------------------------- */
+
+body .ui-inputfield,
+body .ui-inputtext,
+body .ui-selectonemenu,
+body .ui-spinner-input {
+    border: 1px solid var(--tm-color-hairline);
+    border-radius: var(--tm-radius-sm);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-ink);
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+body .ui-inputfield,
+body .ui-inputtext {
+    min-height: 56px;
+    padding: 14px 12px;
+}
+
+body .ui-selectonemenu {
+    min-height: 56px;
+}
+
+body .ui-selectonemenu .ui-selectonemenu-label {
+    padding: 14px 12px;
+    font-family: inherit;
+    font-size: 16px;
+}
+
+body .ui-inputfield.ui-state-focus,
+body .ui-inputtext:focus,
+body .ui-selectonemenu.ui-state-focus {
+    border: 2px solid var(--tm-color-ink);
+    /* Compensate for the extra border width so the field does not shift. */
+    padding: 13px 11px;
+    outline: none;
+}
+
+/* --------------------------------------------------------------------------
+   Data tables
+
+   Flat and hairline-ruled, matching the editorial tone of the rest of the
+   system. The theme's zebra striping and cell borders are removed; rows are
+   separated by a single hairline and the header sits on the canvas.
+   -------------------------------------------------------------------------- */
+
+body .ui-datatable .ui-datatable-header,
+body .ui-datatable .ui-datatable-footer {
+    padding: var(--tm-space-base) 0;
+    border: none;
+    background-color: transparent;
+}
+
+body .ui-datatable table {
+    border-collapse: collapse;
+}
+
+body .ui-datatable thead th,
+body .ui-datatable .ui-datatable-thead > tr > th {
+    padding: var(--tm-space-md) var(--tm-space-base);
+    border: none;
+    border-bottom: 1px solid var(--tm-color-hairline);
+    background-color: transparent;
+    color: var(--tm-color-muted);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.29;
+    text-align: left;
+}
+
+body .ui-datatable tbody td,
+body .ui-datatable .ui-datatable-tbody > tr > td {
+    padding: var(--tm-space-md) var(--tm-space-base);
+    border: none;
+    border-bottom: 1px solid var(--tm-color-hairline-soft);
+    background-color: transparent;
+    color: var(--tm-color-ink);
+    font-size: 14px;
+    line-height: 1.43;
+}
+
+/* The theme colours every other row. The system has no zebra. */
+body .ui-datatable .ui-datatable-data > tr,
+body .ui-datatable .ui-datatable-data > tr.ui-widget-content,
+body .ui-datatable .ui-datatable-tbody > tr {
+    background-color: transparent;
+}
+
+body .ui-datatable .ui-datatable-data > tr:hover,
+body .ui-datatable .ui-datatable-tbody > tr:hover {
+    background-color: var(--tm-color-surface-soft);
+}
+
+body .ui-datatable .ui-datatable-data > tr.ui-state-highlight,
+body .ui-datatable .ui-datatable-tbody > tr.ui-state-highlight {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+/* --------------------------------------------------------------------------
+   Panels and cards
+   -------------------------------------------------------------------------- */
+
+body .ui-card,
+body .ui-panel {
+    border: none;
+    border-radius: var(--tm-radius-md);
+    background-color: var(--tm-color-surface-card);
+    box-shadow: var(--tm-elevation-card);
+}
+
+body .ui-card .ui-card-body,
+body .ui-panel .ui-panel-content {
+    padding: var(--tm-space-lg);
+}
+
+body .ui-panel .ui-panel-titlebar {
+    padding: var(--tm-space-base) var(--tm-space-lg);
+    border: none;
+    border-bottom: 1px solid var(--tm-color-hairline-soft);
+    background-color: transparent;
+    color: var(--tm-color-ink);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Messages
+   -------------------------------------------------------------------------- */
+
+body .ui-growl,
+body .ui-messages {
+    font-family: inherit;
+    font-size: 14px;
+}
+
+body .ui-messages-error,
+body .ui-message-error {
+    color: var(--tm-color-error);
+}
+
+/* Field-level validation text under an input. */
+body .ui-message-error-detail,
+.tm-field-error {
+    display: block;
+    margin-top: var(--tm-space-xs);
+    color: var(--tm-color-error);
+    font-size: 14px;
+    line-height: 1.43;
+}
+
+/* --------------------------------------------------------------------------
+   Charts
+
+   The theme draws its own axes and legend; these keep the type and rule weight
+   consistent with everything else. Colours are set per series in the page,
+   taken from the token palette, because a chart is the one place the system
+   needs more than a single accent.
+   -------------------------------------------------------------------------- */
+
+body .ui-chart {
+    font-family: inherit;
+}
+
+/* --------------------------------------------------------------------------
+   Layout helpers used by the pages
+   -------------------------------------------------------------------------- */
+
+.tm-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--tm-space-md);
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--tm-space-lg);
+}
+
+.tm-field {
+    display: block;
+    margin-bottom: var(--tm-space-base);
+}
+
+.tm-field-label {
+    display: block;
+    margin-bottom: var(--tm-space-sm);
+    color: var(--tm-color-muted);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.29;
+}
+
+.tm-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--tm-space-base);
+}
+
+.tm-actions {
+    display: flex;
+    gap: var(--tm-space-md);
+    align-items: center;
+    margin-top: var(--tm-space-lg);
+}
+
+.tm-empty {
+    padding: var(--tm-space-xl) 0;
+    color: var(--tm-color-muted);
+    font-size: 16px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.tm-positive {
+    color: var(--tm-color-ink);
+    font-weight: 600;
+}
+
+.tm-negative {
+    color: var(--tm-color-error);
+    font-weight: 600;
+}
+
+/* ==========================================================================
    Development diagnostics
 
    Used only by the temporary deployment-check pages, not by product surfaces.

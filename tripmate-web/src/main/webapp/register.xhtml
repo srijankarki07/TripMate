@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      lang="en">
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Create an account · TripMate</title>
+    <h:outputStylesheet library="css" name="tripmate.css"/>
+</h:head>
+
+<h:body>
+    <main class="tm-auth-page">
+
+        <div class="tm-auth-card">
+            <p class="tm-eyebrow">TripMate</p>
+            <h1 class="tm-display-lg">Create an account</h1>
+            <p class="tm-body-sm tm-text-muted">
+                You can create trips and join ones you are invited to.
+            </p>
+
+            <h:form>
+                <div class="tm-field">
+                    <label class="tm-field-label" for="fullName">Full name</label>
+                    <p:inputText id="fullName"
+                                 styleClass="tm-input-full"
+                                 value="#{registerBean.fullName}"
+                                 autocomplete="name"/>
+                </div>
+
+                <div class="tm-field">
+                    <label class="tm-field-label" for="email">Email</label>
+                    <p:inputText id="email"
+                                 styleClass="tm-input-full"
+                                 value="#{registerBean.email}"
+                                 autocomplete="username"/>
+                </div>
+
+                <div class="tm-field">
+                    <label class="tm-field-label" for="phone">Phone (optional)</label>
+                    <p:inputText id="phone"
+                                 styleClass="tm-input-full"
+                                 value="#{registerBean.phone}"
+                                 autocomplete="tel"/>
+                </div>
+
+                <div class="tm-field">
+                    <label class="tm-field-label" for="password">Password</label>
+                    <p:password id="password"
+                                styleClass="tm-input-full"
+                                value="#{registerBean.password}"
+                                feedback="false"
+                                autocomplete="new-password"/>
+                </div>
+
+                <div class="tm-field">
+                    <label class="tm-field-label" for="confirmPassword">Confirm password</label>
+                    <p:password id="confirmPassword"
+                                styleClass="tm-input-full"
+                                value="#{registerBean.confirmPassword}"
+                                feedback="false"
+                                autocomplete="new-password"/>
+                </div>
+
+                <h:panelGroup layout="block"
+                              styleClass="tm-error"
+                              rendered="#{not empty registerBean.error}">
+                    <h:outputText value="#{registerBean.error}"/>
+                </h:panelGroup>
+
+                <div class="tm-actions">
+                    <p:commandButton value="Create account"
+                                     action="#{registerBean.register}"
+                                     ajax="false"
+                                     styleClass="tm-button-block"/>
+                </div>
+            </h:form>
+
+            <p class="tm-body-sm tm-text-muted tm-auth-alt">
+                Already have an account?
+                <h:link outcome="login" value="Sign in"/>
+            </p>
+        </div>
+
+    </main>
+</h:body>
+</html>

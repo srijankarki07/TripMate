@@ -4,7 +4,9 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.tripmate.dto.MemberBalanceDTO;
 import com.tripmate.dto.SettlementDTO;
@@ -19,13 +21,23 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
 /**
- * Who is up and who is down on a trip.
+ * Who is up and who is down on a trip, and what would settle it.
  *
- * <p>The balances come from query 4, which reports the gross position: every
- * split counts, and recorded repayments are not netted off. That is the figure
- * the balances tab shows. Alongside it this page suggests the smallest set of
- * payments that would settle the trip, which is a different question and is
- * computed here rather than in the database.
+ * <h2>Two different questions, shown separately</h2>
+ *
+ * Query 4 reports the <strong>gross</strong> position: what each member has paid
+ * against what their splits come to, counting every split whether or not it has
+ * been repaid. It does not know about the settlements table.
+ *
+ * <p>That is not the question someone asks before paying somebody. They ask what
+ * is <em>still</em> outstanding, which has to account for the repayments already
+ * made. On the seeded Pokhara trip the difference is not academic: the gross
+ * figures say Carol owes 9,225, and she has already paid Alice 1,000 of it.
+ *
+ * <p>So this page computes both and labels them. The suggestion is built from
+ * the outstanding figures, because suggesting a payment larger than what is
+ * actually left to pay is exactly the mistake the settle-up flow exists to
+ * avoid.
  */
 @Named
 @ViewScoped
@@ -47,7 +59,7 @@ public class BalancesBean implements Serializable {
 
     private Long tripId;
     private TripDTO trip;
-    private List<MemberBalanceDTO> balances = List.of();
+    private List<MemberPosition> positions = List.of();
     private List<SettlementDTO> settlements = List.of();
     private List<Transfer> suggested = List.of();
 
@@ -72,9 +84,55 @@ public class BalancesBean implements Serializable {
             return;
         }
 
-        balances = reportService.getMemberBalances(tripId);
+        List<MemberBalanceDTO> balances = reportService.getMemberBalances(tripId);
         settlements = expenseService.getSettlementsForTrip(tripId);
-        suggested = suggestTransfers(balances);
+        positions = buildPositions(balances, settlements);
+        suggested = suggestTransfers(positions);
+    }
+
+    /**
+     * Combines the query 4 figures with the settlements into one row per member.
+     *
+     * <p>The arithmetic is a cash ledger. For each person:
+     *
+     * <pre>
+     *   net         = paid - share          (negative means they underpaid)
+     *   outstanding = net + repaid out - received
+     * </pre>
+     *
+     * <p>Outstanding is therefore what still has to move for everyone to be
+     * square: negative means they still pay, positive means they are still owed.
+     * The column sums to zero, because every settlement is one person's payment
+     * and another's receipt.
+     */
+    static List<MemberPosition> buildPositions(List<MemberBalanceDTO> balances,
+                                               List<SettlementDTO> settlements) {
+        Map<Long, BigDecimal> repaidOut = new HashMap<>();
+        Map<Long, BigDecimal> received = new HashMap<>();
+        for (SettlementDTO settlement : settlements) {
+            repaidOut.merge(settlement.getPayerId(), settlement.getAmount(), BigDecimal::add);
+            received.merge(settlement.getReceiverId(), settlement.getAmount(), BigDecimal::add);
+        }
+
+        List<MemberPosition> result = new ArrayList<>();
+        for (MemberBalanceDTO balance : balances) {
+            BigDecimal paid = balance.getTotalPaid();
+            BigDecimal share = balance.getTotalOwed();
+            BigDecimal net = paid.subtract(share);
+            BigDecimal out = repaidOut.getOrDefault(balance.getUserId(), BigDecimal.ZERO);
+            BigDecimal in = received.getOrDefault(balance.getUserId(), BigDecimal.ZERO);
+
+            result.add(new MemberPosition(
+                    balance.getUserId(),
+                    balance.getFullName(),
+                    paid,
+                    share,
+                    net,
+                    out,
+                    in,
+                    net.add(out).subtract(in)));
+        }
+        return result;
     }
 
     /**
@@ -83,35 +141,40 @@ public class BalancesBean implements Serializable {
      * <p>Repeatedly matches the largest debtor against the largest creditor and
      * transfers the smaller of the two. That greedy pass does not always give
      * the theoretical minimum number of payments, but it never suggests a
-     * payment larger than someone actually owes, and it settles the trip in at
-     * most one payment fewer than there are people.
+     * payment larger than the person actually has left to pay, which is the
+     * property that matters.
+     *
+     * <p>Built from the outstanding figures, not the gross ones, so a repayment
+     * already made is not asked for twice.
      *
      * <p>This is a suggestion, not a record. Nothing is written until someone
      * submits the settle form, because a repayment is a thing that happened
      * rather than a thing the system decided.
      */
-    static List<Transfer> suggestTransfers(List<MemberBalanceDTO> balances) {
-        List<MemberBalanceDTO> debtors = new ArrayList<>(balances.stream()
-                .filter(MemberBalanceDTO::isDebtor)
+    static List<Transfer> suggestTransfers(List<MemberPosition> positions) {
+        List<MemberPosition> debtors = new ArrayList<>(positions.stream()
+                .filter(MemberPosition::isDebtor)
                 .toList());
-        List<MemberBalanceDTO> creditors = new ArrayList<>(balances.stream()
-                .filter(MemberBalanceDTO::isCreditor)
+        List<MemberPosition> creditors = new ArrayList<>(positions.stream()
+                .filter(MemberPosition::isCreditor)
                 .toList());
 
-        // Largest first, so the biggest imbalances are cleared in one go.
-        debtors.sort(Comparator.comparing(b -> b.getNetBalance().abs(), Comparator.reverseOrder()));
-        creditors.sort(Comparator.comparing(MemberBalanceDTO::getNetBalance, Comparator.reverseOrder()));
+        // Largest first, so the biggest imbalances clear in one go.
+        debtors.sort(Comparator.comparing(MemberPosition::getOutstandingMagnitude,
+                Comparator.reverseOrder()));
+        creditors.sort(Comparator.comparing(MemberPosition::getOutstanding,
+                Comparator.reverseOrder()));
+
+        BigDecimal[] owed = debtors.stream()
+                .map(MemberPosition::getOutstandingMagnitude)
+                .toArray(BigDecimal[]::new);
+        BigDecimal[] due = creditors.stream()
+                .map(MemberPosition::getOutstanding)
+                .toArray(BigDecimal[]::new);
 
         List<Transfer> transfers = new ArrayList<>();
         int d = 0;
         int c = 0;
-        BigDecimal[] owed = debtors.stream()
-                .map(b -> b.getNetBalance().abs())
-                .toArray(BigDecimal[]::new);
-        BigDecimal[] due = creditors.stream()
-                .map(MemberBalanceDTO::getNetBalance)
-                .toArray(BigDecimal[]::new);
-
         while (d < debtors.size() && c < creditors.size()) {
             BigDecimal amount = owed[d].min(due[c]);
             if (amount.signum() > 0) {
@@ -133,11 +196,103 @@ public class BalancesBean implements Serializable {
     }
 
     /**
-     * One suggested payment.
+     * One member's position.
      *
      * <p>A class with getters rather than a record: EL 5 resolves bean
      * properties only, so a record's accessors are not properties.
      */
+    public static final class MemberPosition implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        private final Long userId;
+        private final String fullName;
+        private final BigDecimal paid;
+        private final BigDecimal share;
+        private final BigDecimal net;
+        private final BigDecimal repaidOut;
+        private final BigDecimal received;
+        private final BigDecimal outstanding;
+
+        MemberPosition(Long userId, String fullName, BigDecimal paid, BigDecimal share,
+                       BigDecimal net, BigDecimal repaidOut, BigDecimal received,
+                       BigDecimal outstanding) {
+            this.userId = userId;
+            this.fullName = fullName;
+            // Every amount is normalised to two decimal places here, so a
+            // column of money reads as money: BigDecimal.ZERO has a scale of
+            // zero and would otherwise render as "NPR 0" beside "NPR 1200.00".
+            this.paid = money(paid);
+            this.share = money(share);
+            this.net = money(net);
+            this.repaidOut = money(repaidOut);
+            this.received = money(received);
+            this.outstanding = money(outstanding);
+        }
+
+        private static BigDecimal money(BigDecimal value) {
+            return value == null ? BigDecimal.ZERO.setScale(2)
+                    : value.setScale(2, java.math.RoundingMode.HALF_UP);
+        }
+
+        public Long getUserId() {
+            return userId;
+        }
+
+        public String getFullName() {
+            return fullName;
+        }
+
+        public BigDecimal getPaid() {
+            return paid;
+        }
+
+        /** What their splits come to: the share of the trip they are on the hook for. */
+        public BigDecimal getShare() {
+            return share;
+        }
+
+        /** Paid minus share. Negative means they underpaid. */
+        public BigDecimal getNet() {
+            return net;
+        }
+
+        public BigDecimal getRepaidOut() {
+            return repaidOut;
+        }
+
+        public BigDecimal getReceived() {
+            return received;
+        }
+
+        /** What still has to move. Negative means they still pay. */
+        public BigDecimal getOutstanding() {
+            return outstanding;
+        }
+
+        public BigDecimal getOutstandingMagnitude() {
+            return outstanding.abs();
+        }
+
+        public boolean isDebtor() {
+            return outstanding.signum() < 0;
+        }
+
+        public boolean isCreditor() {
+            return outstanding.signum() > 0;
+        }
+
+        public boolean isSquare() {
+            return outstanding.signum() == 0;
+        }
+
+        /** True when no repayment has touched this member yet. */
+        public boolean isUntouchedBySettlements() {
+            return repaidOut.signum() == 0 && received.signum() == 0;
+        }
+    }
+
+    /** One suggested payment. */
     public static final class Transfer implements Serializable {
 
         private static final long serialVersionUID = 1L;
@@ -169,10 +324,11 @@ public class BalancesBean implements Serializable {
     // Totals for the summary strip
     // ------------------------------------------------------------------
 
-    public BigDecimal getTotalOwed() {
-        return balances.stream()
-                .filter(MemberBalanceDTO::isCreditor)
-                .map(MemberBalanceDTO::getNetBalance)
+    /** Everything still owed to somebody, after the repayments already made. */
+    public BigDecimal getTotalOutstanding() {
+        return positions.stream()
+                .filter(MemberPosition::isCreditor)
+                .map(MemberPosition::getOutstanding)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -182,12 +338,12 @@ public class BalancesBean implements Serializable {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public long getCreditorCount() {
-        return balances.stream().filter(MemberBalanceDTO::isCreditor).count();
+    public long getDebtorCount() {
+        return positions.stream().filter(MemberPosition::isDebtor).count();
     }
 
     public boolean isSettled() {
-        return balances.stream().noneMatch(MemberBalanceDTO::isDebtor);
+        return positions.stream().noneMatch(MemberPosition::isDebtor);
     }
 
     public boolean isHasSuggestions() {
@@ -196,6 +352,11 @@ public class BalancesBean implements Serializable {
 
     public boolean isHasSettlements() {
         return !settlements.isEmpty();
+    }
+
+    /** True when any repayment has been made, so the two figures differ. */
+    public boolean isRepaymentsAffectFigures() {
+        return positions.stream().anyMatch(p -> !p.isUntouchedBySettlements());
     }
 
     // ------------------------------------------------------------------
@@ -214,8 +375,8 @@ public class BalancesBean implements Serializable {
         return trip;
     }
 
-    public List<MemberBalanceDTO> getBalances() {
-        return balances;
+    public List<MemberPosition> getPositions() {
+        return positions;
     }
 
     public List<SettlementDTO> getSettlements() {

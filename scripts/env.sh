@@ -86,6 +86,16 @@ export TM_POOL_NAME="${TM_POOL_NAME:-tripmatePool}"
 export TM_JNDI_NAME="${TM_JNDI_NAME:-jdbc/tripmate}"
 
 # ---------------------------------------------------------------------------
+# Messaging
+# ---------------------------------------------------------------------------
+# Created by scripts/glassfish-jms.sh. The queue name is looked up by
+# ExpenseService when it sends and by ExpenseMessageBean's activation config, so
+# changing it here means changing it in both of those too.
+export TM_JMS_QUEUE="${TM_JMS_QUEUE:-jms/ExpenseQueue}"
+export TM_JMS_FACTORY="${TM_JMS_FACTORY:-jms/ExpenseQueueFactory}"
+export TM_JMS_PHYSICAL="${TM_JMS_PHYSICAL:-jms_ExpenseQueue}"
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 

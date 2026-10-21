@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.tripmate.dto.TripDTO;
 import com.tripmate.dto.TripMemberDTO;
+import com.tripmate.exception.ValidationException;
 import com.tripmate.entity.Trip;
 import com.tripmate.entity.TripMember;
 import com.tripmate.entity.TripRole;
@@ -42,7 +43,7 @@ public class TripService implements TripServiceRemote {
 
         User creator = em.find(User.class, creatorId);
         if (creator == null) {
-            throw new IllegalArgumentException("no such user: " + creatorId);
+            throw new ValidationException("no such user: " + creatorId);
         }
 
         Trip entity = new Trip();
@@ -113,7 +114,7 @@ public class TripService implements TripServiceRemote {
 
         Trip entity = em.find(Trip.class, trip.getTripId());
         if (entity == null) {
-            throw new IllegalArgumentException("no such trip: " + trip.getTripId());
+            throw new ValidationException("no such trip: " + trip.getTripId());
         }
 
         if (trip.getTripName() != null) {
@@ -137,7 +138,7 @@ public class TripService implements TripServiceRemote {
 
         Trip entity = em.find(Trip.class, tripId);
         if (entity == null) {
-            throw new IllegalArgumentException("no such trip: " + tripId);
+            throw new ValidationException("no such trip: " + tripId);
         }
         // The children are removed by ON DELETE CASCADE in the schema rather
         // than by JPA, because Trip's collections deliberately carry no
@@ -173,11 +174,11 @@ public class TripService implements TripServiceRemote {
 
         Trip trip = em.find(Trip.class, tripId);
         if (trip == null) {
-            throw new IllegalArgumentException("no such trip: " + tripId);
+            throw new ValidationException("no such trip: " + tripId);
         }
         User user = em.find(User.class, userId);
         if (user == null) {
-            throw new IllegalArgumentException("no such user: " + userId);
+            throw new ValidationException("no such user: " + userId);
         }
 
         // Business rule ROADMAP section 8.3. Checked here as well as by the
@@ -185,7 +186,7 @@ public class TripService implements TripServiceRemote {
         // constraint violation. The constraint stays the backstop against two
         // concurrent calls both passing this check.
         if (findMembership(tripId, userId) != null) {
-            throw new IllegalArgumentException(
+            throw new ValidationException(
                     user.getFullName() + " is already a member of this trip");
         }
 
@@ -206,7 +207,7 @@ public class TripService implements TripServiceRemote {
 
         TripMember member = findMembership(tripId, userId);
         if (member == null) {
-            throw new IllegalArgumentException("user " + userId
+            throw new ValidationException("user " + userId
                     + " is not a member of trip " + tripId);
         }
 
@@ -301,10 +302,10 @@ public class TripService implements TripServiceRemote {
 
     private static void require(Object value, String name) {
         if (value == null) {
-            throw new IllegalArgumentException(name + " is required");
+            throw new ValidationException(name + " is required");
         }
         if (value instanceof String text && text.isBlank()) {
-            throw new IllegalArgumentException(name + " is required");
+            throw new ValidationException(name + " is required");
         }
     }
 }

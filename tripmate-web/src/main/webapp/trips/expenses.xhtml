@@ -14,6 +14,7 @@
 
     <f:metadata>
         <f:viewParam name="tripId" value="#{expenseBean.tripId}"/>
+        <f:viewParam name="submitted" value="#{expenseBean.submitted}"/>
         <f:viewAction action="#{expenseBean.load}"/>
     </f:metadata>
 
@@ -44,6 +45,15 @@
             <h:panelGroup layout="block" styleClass="tm-notice"
                           rendered="#{not empty expenseBean.message}">
                 <h:outputText value="#{expenseBean.message}"/>
+            </h:panelGroup>
+
+            <!-- The expense is written by a message-driven bean, so it may not
+                 be in the list yet when this page renders. -->
+            <h:panelGroup layout="block" styleClass="tm-notice"
+                          rendered="#{expenseBean.justSubmitted}">
+                <h:outputText value="Your expense is being saved. It is written by a
+                    background consumer, so refresh in a moment and it will be in the
+                    list below."/>
             </h:panelGroup>
 
             <!-- ============================================================

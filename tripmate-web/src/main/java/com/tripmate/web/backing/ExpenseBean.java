@@ -65,8 +65,13 @@ public class ExpenseBean implements Serializable {
     private String error;
     private String message;
 
+    /** Set by the redirect that follows a submission, so the page can say so. */
+    private String submitted;
+    private boolean justSubmitted;
+
     public void load() {
         error = null;
+        justSubmitted = "1".equals(submitted);
         if (tripId == null) {
             error = "No trip was named.";
             return;
@@ -247,12 +252,32 @@ public class ExpenseBean implements Serializable {
         }
 
         try {
-            expenseService.persistExpense(dto);
-            return "/trips/detail.xhtml?faces-redirect=true&tripId=" + tripId;
+            // Asynchronous: the write happens in ExpenseMessageBean, so the
+            // browser is not held while the expense row and one row per
+            // participant are written. The service validates before sending, so
+            // anything that could never be stored is still refused here, while
+            // the user is looking at the form.
+            expenseService.submitExpenseAsync(dto, currentUser.getUserId());
+            return "/trips/expenses.xhtml?faces-redirect=true&tripId=" + tripId
+                    + "&submitted=1";
         } catch (RuntimeException ex) {
             error = rootMessage(ex);
             return null;
         }
+    }
+
+    /**
+     * Reloads the expense list.
+     *
+     * <p>Offered as a button because the expense was submitted asynchronously:
+     * by the time the page renders the consumer may not have written it yet, so
+     * a refresh is the honest way to see it rather than a silent delay.
+     */
+    public void reload() {
+        error = null;
+        message = null;
+        justSubmitted = false;
+        refresh();
     }
 
     public void delete(Long expenseId) {
@@ -404,6 +429,19 @@ public class ExpenseBean implements Serializable {
 
     public String getMessage() {
         return message;
+    }
+
+    public String getSubmitted() {
+        return submitted;
+    }
+
+    public void setSubmitted(String submitted) {
+        this.submitted = submitted;
+    }
+
+    /** True when the page is being shown straight after a submission. */
+    public boolean isJustSubmitted() {
+        return justSubmitted;
     }
 
     /** Money at two decimal places, matching the column's scale. */

@@ -108,7 +108,7 @@ public class TripService implements TripServiceRemote {
     }
 
     @Override
-    public TripDTO updateTrip(TripDTO trip) {
+    public TripDTO updateTrip(TripDTO trip, Long actedBy) {
         require(trip, "trip");
         require(trip.getTripId(), "tripId");
 
@@ -116,6 +116,7 @@ public class TripService implements TripServiceRemote {
         if (entity == null) {
             throw new ValidationException("no such trip: " + trip.getTripId());
         }
+        TripAccess.requireAdmin(em, trip.getTripId(), actedBy, "edit this trip");
 
         if (trip.getTripName() != null) {
             entity.setTripName(trip.getTripName().trim());
@@ -133,13 +134,15 @@ public class TripService implements TripServiceRemote {
     }
 
     @Override
-    public void deleteTrip(Long tripId) {
+    public void deleteTrip(Long tripId, Long actedBy) {
         require(tripId, "tripId");
 
         Trip entity = em.find(Trip.class, tripId);
         if (entity == null) {
             throw new ValidationException("no such trip: " + tripId);
         }
+        TripAccess.requireAdmin(em, tripId, actedBy, "delete this trip");
+
         // The children are removed by ON DELETE CASCADE in the schema rather
         // than by JPA, because Trip's collections deliberately carry no
         // cascade. Two mechanisms for one job would eventually disagree.
@@ -168,7 +171,7 @@ public class TripService implements TripServiceRemote {
     }
 
     @Override
-    public TripMemberDTO addMember(Long tripId, Long userId, TripRole role) {
+    public TripMemberDTO addMember(Long tripId, Long userId, TripRole role, Long actedBy) {
         require(tripId, "tripId");
         require(userId, "userId");
 
@@ -176,6 +179,8 @@ public class TripService implements TripServiceRemote {
         if (trip == null) {
             throw new ValidationException("no such trip: " + tripId);
         }
+        TripAccess.requireAdmin(em, tripId, actedBy, "invite people to this trip");
+
         User user = em.find(User.class, userId);
         if (user == null) {
             throw new ValidationException("no such user: " + userId);
@@ -201,9 +206,11 @@ public class TripService implements TripServiceRemote {
     }
 
     @Override
-    public void removeMember(Long tripId, Long userId) {
+    public void removeMember(Long tripId, Long userId, Long actedBy) {
         require(tripId, "tripId");
         require(userId, "userId");
+
+        TripAccess.requireAdmin(em, tripId, actedBy, "remove members");
 
         TripMember member = findMembership(tripId, userId);
         if (member == null) {
@@ -211,10 +218,16 @@ public class TripService implements TripServiceRemote {
                     + " is not a member of trip " + tripId);
         }
 
-        // Note for Phase 9: the rule that only an admin may remove a member,
-        // and the rule that a trip must keep at least one admin, are not
-        // enforced yet. Both need the caller's identity, which this signature
-        // does not carry.
+        // A trip with no administrator cannot be managed at all: nobody could
+        // invite, remove or edit, and there is no way to appoint a replacement
+        // through the application. So the last one is not allowed to leave.
+        if (member.getRole() == TripRole.ADMIN && TripAccess.countAdmins(em, tripId) <= 1) {
+            throw new ValidationException(
+                    "this is the trip's only administrator, so removing them would "
+                            + "leave nobody able to manage it. Make someone else an "
+                            + "administrator first.");
+        }
+
         em.remove(member);
         em.flush();
     }

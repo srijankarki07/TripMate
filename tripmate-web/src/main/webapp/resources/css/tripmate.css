@@ -665,8 +665,11 @@ body .ui-message-error {
     color: var(--tm-color-error);
 }
 
-/* Field-level validation text under an input. */
+/* Field-level validation text under an input. PrimeFaces renders it as a div
+   with its own classes; the styleClass is applied alongside them, so this only
+   has to set the tone and the spacing. */
 body .ui-message-error-detail,
+body .ui-message-error-summary,
 .tm-field-error {
     display: block;
     margin-top: var(--tm-space-xs);

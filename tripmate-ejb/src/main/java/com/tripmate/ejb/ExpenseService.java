@@ -69,38 +69,33 @@ public class ExpenseService implements ExpenseServiceRemote {
     private Queue expenseQueue;
 
     @Override
-    public ExpenseDTO persistExpense(ExpenseDTO expense) {
-        return write(expense);
+    public ExpenseDTO persistExpense(ExpenseDTO expense, Long actedBy) {
+        return write(expense, actedBy);
     }
 
     @Override
-    public ExpenseDTO submitExpense(ExpenseDTO expense) {
-        return write(expense);
-    }
-
-    @Override
-    public void submitExpenseAsync(ExpenseDTO expense) {
-        submitExpenseAsync(expense, expense == null ? null : expense.getPaidById());
+    public ExpenseDTO submitExpense(ExpenseDTO expense, Long actedBy) {
+        return write(expense, actedBy);
     }
 
     /**
-     * Submits an expense for asynchronous writing, recording who asked for it.
+     * Submits an expense for asynchronous writing.
      *
-     * <p>The caller's identity is a separate argument rather than being read
-     * from the expense, because the payer and the person submitting the form
-     * are not necessarily the same, and a stateless bean has no way to tell.
+     * <p>The caller's identity is an argument rather than being read from the
+     * expense, because the payer and the person submitting the form are not
+     * necessarily the same, and a stateless bean has no way to tell. There is no
+     * overload that guesses: the rule being enforced is about who is asking, and
+     * guessing it would defeat the rule.
      */
     @Override
-    public void submitExpenseAsync(ExpenseDTO expense, Long submittedBy) {
-        require(expense, "expense");
-
+    public void submitExpenseAsync(ExpenseDTO expense, Long actedBy) {
         // Checked here rather than left to the consumer. The point of the
-        // asynchronous path is to move the write, not to move the validation:
-        // rejecting obviously bad input in the caller's own transaction is
-        // cheaper and gives the user an immediate answer.
-        validate(expense);
+        // asynchronous path is to move the write, not to move the rules:
+        // refusing in the caller's own transaction is cheaper and gives the user
+        // an immediate answer.
+        validate(expense, actedBy);
 
-        jmsContext.createProducer().send(expenseQueue, new ExpenseMessage(expense, submittedBy));
+        jmsContext.createProducer().send(expenseQueue, new ExpenseMessage(expense, actedBy));
     }
 
     @Override
@@ -136,7 +131,7 @@ public class ExpenseService implements ExpenseServiceRemote {
     }
 
     @Override
-    public ExpenseDTO updateExpense(ExpenseDTO expense) {
+    public ExpenseDTO updateExpense(ExpenseDTO expense, Long actedBy) {
         require(expense, "expense");
         require(expense.getExpenseId(), "expenseId");
 
@@ -144,6 +139,7 @@ public class ExpenseService implements ExpenseServiceRemote {
         if (entity == null) {
             throw new ValidationException("no such expense: " + expense.getExpenseId());
         }
+        TripAccess.requireMember(em, entity.getTrip().getTripId(), actedBy, "edit this expense");
 
         if (expense.getDescription() != null) {
             entity.setDescription(expense.getDescription().trim());
@@ -180,13 +176,15 @@ public class ExpenseService implements ExpenseServiceRemote {
     }
 
     @Override
-    public void deleteExpense(Long expenseId) {
+    public void deleteExpense(Long expenseId, Long actedBy) {
         require(expenseId, "expenseId");
 
         Expense entity = em.find(Expense.class, expenseId);
         if (entity == null) {
             throw new ValidationException("no such expense: " + expenseId);
         }
+        TripAccess.requireMember(em, entity.getTrip().getTripId(), actedBy, "delete this expense");
+
         // The splits go with it through cascade and orphan removal on
         // Expense.splits, so there is no need to delete them by hand.
         em.remove(entity);
@@ -198,7 +196,7 @@ public class ExpenseService implements ExpenseServiceRemote {
     // ------------------------------------------------------------------
 
     @Override
-    public SettlementDTO recordSettlement(SettlementDTO settlement) {
+    public SettlementDTO recordSettlement(SettlementDTO settlement, Long actedBy) {
         require(settlement, "settlement");
         require(settlement.getTripId(), "tripId");
         require(settlement.getPayerId(), "payerId");
@@ -212,6 +210,9 @@ public class ExpenseService implements ExpenseServiceRemote {
             throw new ValidationException(
                     "a settlement must be between two different people");
         }
+
+        TripAccess.requireMember(em, settlement.getTripId(), actedBy,
+                "record a repayment on this trip");
 
         Trip trip = requireTrip(settlement.getTripId());
         User payer = requireUser(settlement.getPayerId());
@@ -260,13 +261,16 @@ public class ExpenseService implements ExpenseServiceRemote {
     }
 
     @Override
-    public void deleteSettlement(Long settlementId) {
+    public void deleteSettlement(Long settlementId, Long actedBy) {
         require(settlementId, "settlementId");
 
         Settlement entity = em.find(Settlement.class, settlementId);
         if (entity == null) {
             throw new ValidationException("no such settlement: " + settlementId);
         }
+        TripAccess.requireMember(em, entity.getTrip().getTripId(), actedBy,
+                "delete this repayment");
+
         em.remove(entity);
         em.flush();
     }
@@ -301,13 +305,18 @@ public class ExpenseService implements ExpenseServiceRemote {
      * rather than put on a queue to be rejected later by a consumer with no way
      * to tell anyone.
      */
-    private void validate(ExpenseDTO dto) {
+    private void validate(ExpenseDTO dto, Long actedBy) {
         require(dto, "expense");
         require(dto.getTripId(), "tripId");
         require(dto.getDescription(), "description");
         require(dto.getExpenseDate(), "expenseDate");
         require(dto.getAmount(), "amount");
         requirePositive(dto.getAmount(), "amount");
+
+        // Business rule ROADMAP section 8.3: a user may only add expenses to
+        // trips they belong to. Checked before anything else is looked at, so a
+        // non-member learns nothing about the trip's contents.
+        TripAccess.requireMember(em, dto.getTripId(), actedBy, "add expenses to this trip");
 
         if (dto.getSplits().isEmpty()) {
             throw new ValidationException("an expense needs at least one split");
@@ -325,8 +334,8 @@ public class ExpenseService implements ExpenseServiceRemote {
      * <p>Shared by the three submit and persist entry points so they cannot
      * drift apart. Phase 7 will leave only the message-driven bean calling it.
      */
-    private ExpenseDTO write(ExpenseDTO dto) {
-        validate(dto);
+    private ExpenseDTO write(ExpenseDTO dto, Long actedBy) {
+        validate(dto, actedBy);
 
         Trip trip = requireTrip(dto.getTripId());
 

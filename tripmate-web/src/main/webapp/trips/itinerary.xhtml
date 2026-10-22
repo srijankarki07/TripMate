@@ -59,12 +59,18 @@
                         <div class="tm-field">
                             <label class="tm-field-label" for="title">What</label>
                             <p:inputText id="title" styleClass="tm-input-full"
-                                         value="#{itineraryBean.form.title}"/>
+                                         value="#{itineraryBean.form.title}"
+                                         required="true"
+                                         requiredMessage="Give the item a title."/>
+                            <p:message for="title" display="text" styleClass="tm-field-error"/>
                         </div>
                         <div class="tm-field">
                             <label class="tm-field-label" for="itemDate">Day</label>
                             <p:datePicker id="itemDate" pattern="yyyy-MM-dd"
-                                          value="#{itineraryBean.form.itemDate}"/>
+                                          value="#{itineraryBean.form.itemDate}"
+                                          required="true"
+                                          requiredMessage="Choose a day."/>
+                            <p:message for="itemDate" display="text" styleClass="tm-field-error"/>
                         </div>
                         <div class="tm-field">
                             <label class="tm-field-label" for="startTime">Starts</label>
@@ -75,6 +81,7 @@
                                 <f:selectItems value="#{itineraryBean.quarterHours}" var="t"
                                                itemLabel="#{t}" itemValue="#{t}"/>
                             </p:selectOneMenu>
+                            <p:message for="startTime" display="text" styleClass="tm-field-error"/>
                         </div>
                         <div class="tm-field">
                             <label class="tm-field-label" for="endTime">Ends</label>

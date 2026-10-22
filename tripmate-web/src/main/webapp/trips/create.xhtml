@@ -31,7 +31,10 @@
                     <label class="tm-field-label" for="tripName">Trip name</label>
                     <p:inputText id="tripName"
                                  styleClass="tm-input-full"
-                                 value="#{tripCreateBean.tripName}"/>
+                                 value="#{tripCreateBean.tripName}"
+                                 required="true"
+                                 requiredMessage="Give the trip a name."/>
+                    <p:message for="tripName" display="text" styleClass="tm-field-error"/>
                 </div>
 
                 <div class="tm-form-grid">

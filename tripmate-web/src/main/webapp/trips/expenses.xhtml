@@ -68,12 +68,21 @@
                         <div class="tm-field">
                             <label class="tm-field-label" for="description">What</label>
                             <p:inputText id="description" styleClass="tm-input-full"
-                                         value="#{expenseBean.description}"/>
+                                         value="#{expenseBean.description}"
+                                         required="true"
+                                         requiredMessage="Say what the expense was for."/>
+                            <p:message for="description" display="text" styleClass="tm-field-error"/>
                         </div>
                         <div class="tm-field">
                             <label class="tm-field-label" for="amount">Amount (NPR)</label>
                             <p:inputText id="amount" styleClass="tm-input-full"
-                                         value="#{expenseBean.amount}"/>
+                                         value="#{expenseBean.amount}"
+                                         required="true"
+                                         requiredMessage="Enter the amount.">
+                                <f:validateDoubleRange minimum="0.01"
+                                                       message="The amount must be greater than zero."/>
+                            </p:inputText>
+                            <p:message for="amount" display="text" styleClass="tm-field-error"/>
                         </div>
                         <div class="tm-field">
                             <label class="tm-field-label" for="category">Category</label>
@@ -87,7 +96,10 @@
                         <div class="tm-field">
                             <label class="tm-field-label" for="expenseDate">Date</label>
                             <p:datePicker id="expenseDate" pattern="yyyy-MM-dd"
-                                          value="#{expenseBean.expenseDate}"/>
+                                          value="#{expenseBean.expenseDate}"
+                                          required="true"
+                                          requiredMessage="Choose the date."/>
+                            <p:message for="expenseDate" display="text" styleClass="tm-field-error"/>
                         </div>
                         <div class="tm-field">
                             <label class="tm-field-label" for="paidBy">Paid by</label>

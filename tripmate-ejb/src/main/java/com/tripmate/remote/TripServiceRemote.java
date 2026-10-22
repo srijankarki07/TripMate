@@ -57,9 +57,11 @@ public interface TripServiceRemote {
      * {@link #removeMember}. Status is updated through here like any other
      * field.
      *
-     * @throws IllegalArgumentException if the trip does not exist
+     * @param actedBy who is making the change; must administer the trip
+     * @throws ValidationException if the trip does not exist, or the caller does
+     *                             not administer it
      */
-    TripDTO updateTrip(TripDTO trip);
+    TripDTO updateTrip(TripDTO trip, Long actedBy);
 
     /**
      * Deletes a trip and everything belonging to it.
@@ -68,9 +70,11 @@ public interface TripServiceRemote {
      * settlements all go, because the schema cascades from {@code trips}. The
      * users themselves are untouched.
      *
-     * @throws IllegalArgumentException if the trip does not exist
+     * @param actedBy who is deleting it; must administer the trip
+     * @throws ValidationException if the trip does not exist, or the caller does
+     *                             not administer it
      */
-    void deleteTrip(Long tripId);
+    void deleteTrip(Long tripId, Long actedBy);
 
     // ------------------------------------------------------------------
     // Membership
@@ -82,17 +86,29 @@ public interface TripServiceRemote {
     /**
      * Adds a user to a trip.
      *
-     * @throws IllegalArgumentException if the trip or user does not exist, or
-     *                                  the user is already a member
+     * <p>Inviting is an administrator action, per the role table in ROADMAP
+     * section 4.
+     *
+     * @param actedBy who is inviting them; must administer the trip
+     * @throws ValidationException if the trip or user does not exist, the user
+     *                             is already a member, or the caller does not
+     *                             administer the trip
      */
-    TripMemberDTO addMember(Long tripId, Long userId, TripRole role);
+    TripMemberDTO addMember(Long tripId, Long userId, TripRole role, Long actedBy);
 
     /**
      * Removes a user from a trip.
      *
-     * @throws IllegalArgumentException if the user is not a member
+     * <p>Removing is an administrator action, and a trip is not allowed to lose
+     * its last administrator: that would leave nobody able to invite, remove or
+     * edit, with no way to appoint a replacement through the application.
+     *
+     * @param actedBy who is removing them; must administer the trip
+     * @throws ValidationException if the user is not a member, the caller does
+     *                             not administer the trip, or this would leave
+     *                             the trip without an administrator
      */
-    void removeMember(Long tripId, Long userId);
+    void removeMember(Long tripId, Long userId, Long actedBy);
 
     /** @return true if the user belongs to the trip */
     boolean isMember(Long tripId, Long userId);

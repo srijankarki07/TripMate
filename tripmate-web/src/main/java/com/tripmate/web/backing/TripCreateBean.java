@@ -7,6 +7,8 @@ import java.util.List;
 import com.tripmate.dto.TripDTO;
 import com.tripmate.entity.TripStatus;
 import com.tripmate.remote.TripServiceRemote;
+import com.tripmate.web.support.Messages;
+import com.tripmate.web.support.Toasts;
 
 import jakarta.ejb.EJB;
 import jakarta.enterprise.context.RequestScoped;
@@ -37,23 +39,19 @@ public class TripCreateBean implements Serializable {
     private LocalDate startDate;
     private LocalDate endDate;
     private TripStatus status = TripStatus.PLANNING;
-
-    private String error;
-
     /**
      * @return a redirect to the new trip, or null to redisplay the form
      */
     public String create() {
-        error = null;
 
         if (tripName == null || tripName.isBlank()) {
-            error = "Give the trip a name.";
+            Toasts.error("Give the trip a name.");
             return null;
         }
         // Checked here as well as by the database constraint, so the user gets
         // a sentence rather than a constraint violation.
         if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
-            error = "The end date cannot be before the start date.";
+            Toasts.error("The end date cannot be before the start date.");
             return null;
         }
 
@@ -67,7 +65,7 @@ public class TripCreateBean implements Serializable {
             return "/trips/detail.xhtml?faces-redirect=true&tripId=" + created.getTripId();
 
         } catch (RuntimeException ex) {
-            error = rootMessage(ex);
+            Toasts.error(Messages.describe(ex));
             return null;
         }
     }
@@ -76,15 +74,7 @@ public class TripCreateBean implements Serializable {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
-    private static String rootMessage(Throwable thrown) {
-        Throwable cause = thrown;
-        while (cause.getCause() != null && cause.getCause() != cause) {
-            cause = cause.getCause();
-        }
-        String message = cause.getMessage();
-        return message == null ? "Could not create the trip." : message;
-    }
-
+    
     /** Drives the status picker. */
     public List<TripStatus> getStatuses() {
         return List.of(TripStatus.values());
@@ -136,9 +126,5 @@ public class TripCreateBean implements Serializable {
 
     public void setStatus(TripStatus status) {
         this.status = status;
-    }
-
-    public String getError() {
-        return error;
     }
 }

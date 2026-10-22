@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:h="jakarta.faces.html"
+      xmlns:ui="jakarta.faces.facelets">
+<!--
+    The toast stack.
+
+    Built rather than taken from PrimeFaces, for two reasons. The library has no
+    toast component at all in this version, only a growl, and a growl renders
+    every message in the same style with the same lifetime. Here a success
+    leaves on its own after five seconds and an error stays until it is
+    dismissed, which is the difference between a confirmation and something the
+    reader has to act on.
+
+    Rendered server-side rather than fetched, so it works with the redirects
+    most actions perform and needs no round trip to appear. The script that
+    dismisses them is progressive: without JavaScript every toast is simply
+    present and has a working close button, which is a form submit away from
+    being cleared.
+-->
+<cc:interface/>
+<cc:implementation>
+
+    <h:panelGroup layout="block"
+                  styleClass="tm-toast-stack"
+                  rendered="#{toastQueue.hasToasts}"
+                  aria-live="polite">
+
+        <ui:repeat value="#{toastQueue.toasts}" var="toast">
+            <!-- The data attributes carry an explicit value because Facelets
+                 parses this file as XML, where a valueless attribute is not
+                 well formed and fails the whole view. -->
+            <div class="tm-toast tm-toast-#{toast.styleClass}"
+                 role="#{toast.ariaRole}"
+                 data-tm-toast="true"
+                 data-tm-life="#{toast.lifeMillis}">
+
+                <i class="pi #{toast.icon} tm-toast-icon" aria-hidden="true"></i>
+
+                <p class="tm-toast-text">
+                    <h:outputText value="#{toast.text}"/>
+                </p>
+
+                <button type="button"
+                        class="tm-toast-close"
+                        data-tm-toast-close="true"
+                        aria-label="Dismiss this message">
+                    <i class="pi pi-times" aria-hidden="true"></i>
+                </button>
+
+            </div>
+        </ui:repeat>
+
+    </h:panelGroup>
+
+</cc:implementation>
+</html>

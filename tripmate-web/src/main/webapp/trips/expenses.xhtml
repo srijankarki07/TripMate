@@ -3,6 +3,7 @@
       xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
+      xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
@@ -14,18 +15,22 @@
 
     <f:metadata>
         <f:viewParam name="tripId" value="#{expenseBean.tripId}"/>
-        <f:viewParam name="submitted" value="#{expenseBean.submitted}"/>
         <f:viewAction action="#{expenseBean.load}"/>
     </f:metadata>
 
     <ui:define name="title">Expenses · #{expenseBean.trip.tripName}</ui:define>
 
     <ui:define name="content">
+        <tm:error title="This page could not be loaded"
+                  text="#{expenseBean.loadError}"
+                  rendered="#{not empty expenseBean.loadError}">
+            <f:facet name="action">
+                <p:button outcome="/trips/list.xhtml" value="Back to your trips"
+                          styleClass="ui-button-secondary"/>
+            </f:facet>
+        </tm:error>
 
-        <h:panelGroup layout="block" styleClass="tm-error"
-                      rendered="#{not empty expenseBean.error}">
-            <h:outputText value="#{expenseBean.error}"/>
-        </h:panelGroup>
+
 
         <ui:fragment rendered="#{expenseBean.loaded}">
 
@@ -42,19 +47,7 @@
                 </p>
             </header>
 
-            <h:panelGroup layout="block" styleClass="tm-notice"
-                          rendered="#{not empty expenseBean.message}">
-                <h:outputText value="#{expenseBean.message}"/>
-            </h:panelGroup>
 
-            <!-- The expense is written by a message-driven bean, so it may not
-                 be in the list yet when this page renders. -->
-            <h:panelGroup layout="block" styleClass="tm-notice"
-                          rendered="#{expenseBean.justSubmitted}">
-                <h:outputText value="Your expense is being saved. It is written by a
-                    background consumer, so refresh in a moment and it will be in the
-                    list below."/>
-            </h:panelGroup>
 
             <!-- ============================================================
                  Add an expense
@@ -120,7 +113,7 @@
                         type each share. The shares have to add up to the amount.
                     </p>
 
-                    <p:dataTable id="splitTable" value="#{expenseBean.splits}" var="row"
+                    <p:dataTable reflow="true" rowHover="true" id="splitTable" value="#{expenseBean.splits}" var="row"
                                  styleClass="tm-table" emptyMessage="">
                         <p:column headerText="Included">
                             <p:selectBooleanCheckbox value="#{row.included}"/>
@@ -172,7 +165,7 @@
                 <h2 class="tm-display-sm">Logged so far</h2>
 
                 <h:form id="expenseListForm">
-                    <p:dataTable value="#{expenseBean.expenses}" var="expense"
+                    <p:dataTable reflow="true" rowHover="true" value="#{expenseBean.expenses}" var="expense"
                                  rendered="#{expenseBean.hasExpenses}" emptyMessage="">
                         <p:column headerText="Date" sortBy="#{expense.expenseDate}">
                             <h:outputText value="#{expense.expenseDate}"/>
@@ -198,7 +191,10 @@
                                              styleClass="ui-button-secondary"
                                              action="#{expenseBean.delete(expense.expenseId)}"
                                              ajax="false"
-                                             onclick="return confirm('Delete this expense?');"/>
+                                             >
+                            <p:confirm header="Delete this expense?"
+                                       message="The expense and every share of it are removed, and the balances change accordingly. It cannot be undone."/>
+                        </p:commandButton>
                         </p:column>
                     </p:dataTable>
                 </h:form>

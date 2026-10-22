@@ -3,6 +3,7 @@
       xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
+      xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
@@ -17,14 +18,19 @@
         <f:viewAction action="#{tripDetailBean.load}"/>
     </f:metadata>
 
-    <ui:define name="title">#{tripDetailBean.trip.tripName} · TripMate</ui:define>
+    <ui:define name="title">#{tripDetailBean.trip.tripName}</ui:define>
 
     <ui:define name="content">
+        <tm:error title="This page could not be loaded"
+                  text="#{tripDetailBean.loadError}"
+                  rendered="#{not empty tripDetailBean.loadError}">
+            <f:facet name="action">
+                <p:button outcome="/trips/list.xhtml" value="Back to your trips"
+                          styleClass="ui-button-secondary"/>
+            </f:facet>
+        </tm:error>
 
-        <h:panelGroup layout="block" styleClass="tm-error"
-                      rendered="#{not empty tripDetailBean.error}">
-            <h:outputText value="#{tripDetailBean.error}"/>
-        </h:panelGroup>
+
 
         <ui:fragment rendered="#{tripDetailBean.loaded}">
 
@@ -55,10 +61,6 @@
                 </h:panelGroup>
             </header>
 
-            <h:panelGroup layout="block" styleClass="tm-notice"
-                          rendered="#{not empty tripDetailBean.message}">
-                <h:outputText value="#{tripDetailBean.message}"/>
-            </h:panelGroup>
 
             <!-- ============================================================
                  Summary tiles
@@ -98,6 +100,8 @@
 
                     <!-- ================================================ -->
                     <p:tab title="Itinerary">
+                        <h:form>
+
                         <div class="tm-toolbar">
                             <h3 class="tm-display-sm">What is planned</h3>
                             <p:button outcome="/trips/itinerary.xhtml"
@@ -107,7 +111,7 @@
                             </p:button>
                         </div>
 
-                        <p:dataTable value="#{tripDetailBean.itinerary}" var="item"
+                        <p:dataTable reflow="true" rowHover="true" value="#{tripDetailBean.itinerary}" var="item"
                                      rendered="#{tripDetailBean.hasItinerary}" emptyMessage="">
                             <p:column headerText="Day" sortBy="#{item.itemDate}">
                                 <h:outputText value="#{item.itemDate}"/>
@@ -132,10 +136,13 @@
                                       rendered="#{not tripDetailBean.hasItinerary}">
                             Nothing planned yet.
                         </h:panelGroup>
+                        </h:form>
                     </p:tab>
 
                     <!-- ================================================ -->
                     <p:tab title="Expenses">
+                        <h:form>
+
                         <div class="tm-toolbar">
                             <h3 class="tm-display-sm">What was spent</h3>
                             <p:button outcome="/trips/expenses.xhtml"
@@ -145,7 +152,7 @@
                             </p:button>
                         </div>
 
-                        <p:dataTable value="#{tripDetailBean.expenses}" var="expense"
+                        <p:dataTable reflow="true" rowHover="true" value="#{tripDetailBean.expenses}" var="expense"
                                      rendered="#{tripDetailBean.hasExpenses}" emptyMessage="">
                             <p:column headerText="Date" sortBy="#{expense.expenseDate}">
                                 <h:outputText value="#{expense.expenseDate}"/>
@@ -171,10 +178,13 @@
                                       rendered="#{not tripDetailBean.hasExpenses}">
                             No expenses recorded yet.
                         </h:panelGroup>
+                        </h:form>
                     </p:tab>
 
                     <!-- ================================================ -->
                     <p:tab title="Balances">
+                        <h:form>
+
                         <div class="tm-toolbar">
                             <h3 class="tm-display-sm">Who is up and who is down</h3>
                             <p:button outcome="/trips/settle.xhtml"
@@ -184,7 +194,7 @@
                             </p:button>
                         </div>
 
-                        <p:dataTable value="#{tripDetailBean.balances}" var="balance" emptyMessage="">
+                        <p:dataTable reflow="true" rowHover="true" value="#{tripDetailBean.balances}" var="balance" emptyMessage="">
                             <p:column headerText="Member" sortBy="#{balance.fullName}">
                                 <h:outputText value="#{balance.fullName}"/>
                             </p:column>
@@ -218,7 +228,7 @@
 
                         <h:panelGroup layout="block" rendered="#{tripDetailBean.hasSettlements}">
                             <h3 class="tm-display-sm">Repayments recorded</h3>
-                            <p:dataTable value="#{tripDetailBean.settlements}" var="s" emptyMessage="">
+                            <p:dataTable reflow="true" rowHover="true" value="#{tripDetailBean.settlements}" var="s" emptyMessage="">
                                 <p:column headerText="When" sortBy="#{s.settledAt}">
                                     <h:outputText value="#{s.settledAt}"/>
                                 </p:column>
@@ -236,6 +246,7 @@
                                 </p:column>
                             </p:dataTable>
                         </h:panelGroup>
+                        </h:form>
                     </p:tab>
 
                     <!-- ================================================ -->
@@ -273,7 +284,7 @@
                         <h3 class="tm-display-sm">On this trip</h3>
                         <!-- Own form: the Remove button needs a UIForm ancestor. -->
                         <h:form id="memberListForm">
-                        <p:dataTable value="#{tripDetailBean.members}" var="m" emptyMessage="">
+                        <p:dataTable reflow="true" rowHover="true" value="#{tripDetailBean.members}" var="m" emptyMessage="">
                             <p:column headerText="Member" sortBy="#{m.fullName}">
                                 <h:outputText value="#{m.fullName}"/>
                             </p:column>
@@ -306,7 +317,7 @@
                 <h2 class="tm-display-sm">Trip settings</h2>
 
                 <h:form>
-                    <div class="tm-form-grid">
+                    <div class="tm-form-grid tm-form-grid-2">
                         <div class="tm-field">
                             <label class="tm-field-label" for="tripName">Name</label>
                             <p:inputText id="tripName" styleClass="tm-input-full"
@@ -364,7 +375,10 @@
                                          styleClass="ui-button-secondary"
                                          action="#{tripDetailBean.delete}"
                                          ajax="false"
-                                         onclick="return confirm('Delete this trip and everything in it?');"/>
+                                         >
+                            <p:confirm header="Delete this trip?"
+                                       message="This removes the itinerary, every expense and split, and all recorded repayments. It cannot be undone. The people themselves are not deleted."/>
+                        </p:commandButton>
                     </h:form>
                 </div>
             </section>

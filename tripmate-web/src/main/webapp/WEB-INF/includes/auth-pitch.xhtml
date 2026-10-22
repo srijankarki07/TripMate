@@ -1,0 +1,60 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:ui="jakarta.faces.facelets">
+
+
+    <h:link outcome="/login.xhtml" styleClass="tm-wordmark tm-wordmark-inverse">
+        <span class="tm-wordmark-mark" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" focusable="false">
+                <rect width="64" height="64" rx="14" fill="currentColor"/>
+                <path fill="#ffffff" d="M32 14c-6.6 0-12 5.4-12 12 0 8.4 12 24 12 24s12-15.6 12-24c0-6.6-5.4-12-12-12zm0 16.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/>
+            </svg>
+        </span>
+        <span class="tm-wordmark-text">TripMate</span>
+    </h:link>
+
+    <h2 class="tm-auth-pitch-title">
+        Plan the trip. Split the costs. Settle up.
+    </h2>
+
+    <p class="tm-auth-pitch-text">
+        One place for the plan and the money, for a small group of people who
+        are actually travelling together.
+    </p>
+
+    <!--
+        What the product does, in the order someone would meet it. The list is
+        hidden on a narrow screen, where the form matters more than the pitch
+        and a wall of text above it would push the fields below the fold.
+    -->
+    <ul class="tm-auth-features">
+        <li>
+            <i class="pi pi-map" aria-hidden="true"></i>
+            <span class="tm-auth-feature-body">
+                <strong>A shared itinerary</strong>
+                <span>Day by day, with times and places, edited by everyone.</span>
+            </span>
+        </li>
+        <li>
+            <i class="pi pi-receipt" aria-hidden="true"></i>
+            <span class="tm-auth-feature-body">
+                <strong>Expenses that split fairly</strong>
+                <span>Equally, or by exact shares, across any subset of the group.</span>
+            </span>
+        </li>
+        <li>
+            <i class="pi pi-chart-pie" aria-hidden="true"></i>
+            <span class="tm-auth-feature-body">
+                <strong>Who owes whom, always current</strong>
+                <span>Balances settle themselves as expenses and repayments land.</span>
+            </span>
+        </li>
+        <li>
+            <i class="pi pi-envelope" aria-hidden="true"></i>
+            <span class="tm-auth-feature-body">
+                <strong>Nobody has to be chased</strong>
+                <span>Invitations and a summary when the trip ends, by email.</span>
+            </span>
+        </li>
+    </ul>
+</ui:composition>

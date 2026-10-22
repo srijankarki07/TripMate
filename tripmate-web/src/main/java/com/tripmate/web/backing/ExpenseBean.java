@@ -13,6 +13,8 @@ import com.tripmate.dto.TripDTO;
 import com.tripmate.dto.TripMemberDTO;
 import com.tripmate.remote.ExpenseServiceRemote;
 import com.tripmate.remote.TripServiceRemote;
+import com.tripmate.web.support.Messages;
+import com.tripmate.web.support.Toasts;
 
 import jakarta.ejb.EJB;
 import jakarta.faces.view.ViewScoped;
@@ -51,8 +53,8 @@ public class ExpenseBean implements Serializable {
 
     private Long tripId;
     private TripDTO trip;
-    private List<ExpenseDTO> expenses = List.of();
-    private List<TripMemberDTO> members = List.of();
+    private List<ExpenseDTO> expenses = new ArrayList<>();
+    private List<TripMemberDTO> members = new ArrayList<>();
 
     private String description;
     private BigDecimal amount;
@@ -62,28 +64,21 @@ public class ExpenseBean implements Serializable {
     private List<SplitRow> splits = new ArrayList<>();
 
     private boolean member;
-    private String error;
-    private String message;
-
-    /** Set by the redirect that follows a submission, so the page can say so. */
-    private String submitted;
-    private boolean justSubmitted;
 
     public void load() {
-        error = null;
-        justSubmitted = "1".equals(submitted);
+        loadError = null;
         if (tripId == null) {
-            error = "No trip was named.";
+            loadError = "No trip was named.";
             return;
         }
         trip = tripService.getTrip(tripId);
         if (trip == null) {
-            error = "That trip does not exist, or it has been deleted.";
+            loadError = "That trip does not exist, or it has been deleted.";
             return;
         }
         member = tripService.isMember(tripId, currentUser.getUserId());
         if (!member) {
-            error = "You are not a member of this trip.";
+            loadError = "You are not a member of this trip.";
             trip = null;
             return;
         }
@@ -93,8 +88,8 @@ public class ExpenseBean implements Serializable {
     }
 
     private void refresh() {
-        expenses = expenseService.getExpensesForTrip(tripId);
-        members = tripService.getTripMembers(tripId);
+        expenses = new ArrayList<>(expenseService.getExpensesForTrip(tripId));
+        members = new ArrayList<>(tripService.getTripMembers(tripId));
     }
 
     /**
@@ -159,16 +154,14 @@ public class ExpenseBean implements Serializable {
      * slightly less than the amount and the save would be refused.
      */
     public void splitEqually() {
-        error = null;
-        message = null;
 
         List<SplitRow> included = includedRows();
         if (amount == null || amount.signum() <= 0) {
-            error = "Enter the amount before splitting it.";
+            Toasts.error("Enter the amount before splitting it.");
             return;
         }
         if (included.isEmpty()) {
-            error = "Include at least one person in the split.";
+            Toasts.error("Include at least one person in the split.");
             return;
         }
 
@@ -191,39 +184,35 @@ public class ExpenseBean implements Serializable {
         for (SplitRow row : splits) {
             row.setAmount(null);
         }
-        error = null;
-        message = null;
     }
 
     /** @return a redirect back to the trip once saved, or null to stay */
     public String save() {
-        error = null;
-        message = null;
 
         if (description == null || description.isBlank()) {
-            error = "Say what the expense was for.";
+            Toasts.error("Say what the expense was for.");
             return null;
         }
         if (amount == null || amount.signum() <= 0) {
-            error = "The amount must be greater than zero.";
+            Toasts.error("The amount must be greater than zero.");
             return null;
         }
         if (expenseDate == null) {
-            error = "Choose the date the expense was incurred.";
+            Toasts.error("Choose the date the expense was incurred.");
             return null;
         }
         if (paidById == null) {
-            error = "Say who paid.";
+            Toasts.error("Say who paid.");
             return null;
         }
 
         List<SplitRow> included = includedRows();
         if (included.isEmpty()) {
-            error = "Include at least one person in the split.";
+            Toasts.error("Include at least one person in the split.");
             return null;
         }
         if (included.stream().anyMatch(r -> r.getAmount() == null)) {
-            error = "Give every included person a share, or split it equally.";
+            Toasts.error("Give every included person a share, or split it equally.");
             return null;
         }
 
@@ -235,8 +224,8 @@ public class ExpenseBean implements Serializable {
         if (total.compareTo(amount) != 0) {
             // Both figures are shown at two decimal places, because "400" next
             // to "1000.00" reads as a different kind of number.
-            error = "The shares add up to " + money(total) + ", but the expense is "
-                    + money(amount) + ". Adjust them, or use Split equally.";
+            Toasts.error("The shares add up to " + money(total) + ", but the expense is "
+                    + money(amount) + ". Adjust them, or use Split equally.");
             return null;
         }
 
@@ -258,10 +247,16 @@ public class ExpenseBean implements Serializable {
             // anything that could never be stored is still refused here, while
             // the user is looking at the form.
             expenseService.submitExpenseAsync(dto, currentUser.getUserId());
-            return "/trips/expenses.xhtml?faces-redirect=true&tripId=" + tripId
-                    + "&submitted=1";
+
+            // Said before the redirect rather than carried as a ?submitted=1
+            // view parameter. The consumer has not necessarily written the row
+            // yet, so the wording tells the reader that rather than pretending
+            // the list below is already complete.
+            Toasts.success("Expense submitted. It is written in the background, "
+                    + "so give it a moment and refresh the list.");
+            return "/trips/expenses.xhtml?faces-redirect=true&tripId=" + tripId;
         } catch (RuntimeException ex) {
-            error = rootMessage(ex);
+            Toasts.error(Messages.describe(ex));
             return null;
         }
     }
@@ -274,21 +269,16 @@ public class ExpenseBean implements Serializable {
      * a refresh is the honest way to see it rather than a silent delay.
      */
     public void reload() {
-        error = null;
-        message = null;
-        justSubmitted = false;
         refresh();
     }
 
     public void delete(Long expenseId) {
-        error = null;
-        message = null;
         try {
             expenseService.deleteExpense(expenseId, currentUser.getUserId());
-            message = "Expense removed.";
+            Toasts.success("Expense removed.");
             refresh();
         } catch (RuntimeException ex) {
-            error = rootMessage(ex);
+            Toasts.error(Messages.describe(ex));
         }
     }
 
@@ -359,10 +349,42 @@ public class ExpenseBean implements Serializable {
         return trip;
     }
 
+    /**
+     * The list itself, deliberately, and mutable.
+     *
+     * <p>PrimeFaces sorts a table by sorting the collection this returns, in
+     * place, and then reads it again to render. Returning a defensive copy
+     * looks safer and silently breaks sorting: the sort lands on a copy that is
+     * thrown away, and the render reads a fresh unsorted one. Returning one of
+     * the immutable {@code List.of()} defaults instead throws
+     * {@code UnsupportedOperationException} inside the render, which leaves the
+     * table empty with nothing in the log to explain it.
+     *
+     * <p>So the field is a real {@code ArrayList} and is handed over as-is. The
+     * sort mutating it is the intended contract, not an accident.
+     *
+     * @return the rows, which the table is expected to reorder
+     */
     public List<ExpenseDTO> getExpenses() {
         return expenses;
     }
 
+    /**
+     * The list itself, deliberately, and mutable.
+     *
+     * <p>PrimeFaces sorts a table by sorting the collection this returns, in
+     * place, and then reads it again to render. Returning a defensive copy
+     * looks safer and silently breaks sorting: the sort lands on a copy that is
+     * thrown away, and the render reads a fresh unsorted one. Returning one of
+     * the immutable {@code List.of()} defaults instead throws
+     * {@code UnsupportedOperationException} inside the render, which leaves the
+     * table empty with nothing in the log to explain it.
+     *
+     * <p>So the field is a real {@code ArrayList} and is handed over as-is. The
+     * sort mutating it is the intended contract, not an accident.
+     *
+     * @return the rows, which the table is expected to reorder
+     */
     public List<TripMemberDTO> getMembers() {
         return members;
     }
@@ -423,38 +445,26 @@ public class ExpenseBean implements Serializable {
         this.paidById = paidById;
     }
 
-    public String getError() {
-        return error;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public String getSubmitted() {
-        return submitted;
-    }
-
-    public void setSubmitted(String submitted) {
-        this.submitted = submitted;
-    }
-
     /** True when the page is being shown straight after a submission. */
-    public boolean isJustSubmitted() {
-        return justSubmitted;
-    }
 
     /** Money at two decimal places, matching the column's scale. */
     private static String money(BigDecimal value) {
         return value == null ? "0.00" : value.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
-    private static String rootMessage(Throwable thrown) {
-        Throwable cause = thrown;
-        while (cause.getCause() != null && cause.getCause() != cause) {
-            cause = cause.getCause();
-        }
-        String message = cause.getMessage();
-        return message == null ? "Something went wrong." : message;
+    
+
+    /**
+     * Why the page could not be built, if it could not.
+     *
+     * <p>Kept apart from the toasts on purpose. A toast reports what
+     * happened to an action and then leaves; this is a state the reader is
+     * still in, so the page renders it in place with a way out.
+     */
+    private String loadError;
+
+    /** @return the sentence explaining an unbuildable page, or null */
+    public String getLoadError() {
+        return loadError;
     }
 }

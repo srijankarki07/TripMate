@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:h="jakarta.faces.html">
+<!--
+    A failure a whole region could not render.
+
+    Distinct from a toast. A toast reports what happened to an action and then
+    leaves; this is for when the page itself could not be built, which is a
+    state the reader stays in until they do something. So it is a block in the
+    page rather than a floating message, it carries the server's own sentence
+    where one is safe to show, and it offers a way out.
+
+    The retry is a facet because what "try again" means differs: reload the
+    page, go back to the list, or pick something else.
+-->
+<cc:interface>
+    <cc:attribute name="title" default="Something went wrong"/>
+    <cc:attribute name="text" required="true"
+                  shortDescription="The sentence to show; see Messages.describe"/>
+    <cc:facet name="action" required="false"/>
+</cc:interface>
+
+<cc:implementation>
+    <div class="tm-error-state" role="alert">
+
+        <span class="tm-error-icon" aria-hidden="true">
+            <i class="pi pi-exclamation-triangle"></i>
+        </span>
+
+        <div class="tm-error-body">
+            <p class="tm-error-title">#{cc.attrs.title}</p>
+
+            <p class="tm-error-text">
+                <h:outputText value="#{cc.attrs.text}"/>
+            </p>
+
+            <h:panelGroup layout="block" styleClass="tm-error-action"
+                          rendered="#{not empty cc.facets.action}">
+                <cc:renderFacet name="action"/>
+            </h:panelGroup>
+        </div>
+
+    </div>
+</cc:implementation>
+</html>

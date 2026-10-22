@@ -4,6 +4,8 @@ import java.io.Serializable;
 
 import com.tripmate.dto.UserDTO;
 import com.tripmate.remote.UserServiceRemote;
+import com.tripmate.web.support.Messages;
+import com.tripmate.web.support.Toasts;
 
 import jakarta.ejb.EJB;
 import jakarta.enterprise.context.RequestScoped;
@@ -36,25 +38,22 @@ public class RegisterBean implements Serializable {
     private String phone;
     private String password;
     private String confirmPassword;
-    private String error;
-
     /**
      * @return a redirect to the dashboard on success, or null to redisplay the
      *         form with an error
      */
     public String register() {
-        error = null;
 
         if (isBlank(fullName) || isBlank(email) || isBlank(password)) {
-            error = "Name, email and password are all required.";
+            Toasts.error("Name, email and password are all required.");
             return null;
         }
         if (password.length() < MINIMUM_PASSWORD_LENGTH) {
-            error = "Choose a password of at least " + MINIMUM_PASSWORD_LENGTH + " characters.";
+            Toasts.error("Choose a password of at least " + MINIMUM_PASSWORD_LENGTH + " characters.");
             return null;
         }
         if (!password.equals(confirmPassword)) {
-            error = "The two passwords do not match.";
+            Toasts.error("The two passwords do not match.");
             return null;
         }
 
@@ -70,25 +69,10 @@ public class RegisterBean implements Serializable {
             // The service rejects a duplicate address before touching the
             // database, so this is a message worth showing rather than an
             // unexpected failure.
-            error = rootMessage(ex);
+            Toasts.error(Messages.describe(ex));
             return null;
         }
     }
-
-    /**
-     * Unwraps to the cause. The container reports a failure from a session bean
-     * as an EJBException whose own message is null, which would hide the one
-     * line that says what was wrong with the input.
-     */
-    private static String rootMessage(Throwable thrown) {
-        Throwable cause = thrown;
-        while (cause.getCause() != null && cause.getCause() != cause) {
-            cause = cause.getCause();
-        }
-        String message = cause.getMessage();
-        return message == null ? "Could not create the account." : message;
-    }
-
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
@@ -131,9 +115,5 @@ public class RegisterBean implements Serializable {
 
     public void setConfirmPassword(String confirmPassword) {
         this.confirmPassword = confirmPassword;
-    }
-
-    public String getError() {
-        return error;
     }
 }

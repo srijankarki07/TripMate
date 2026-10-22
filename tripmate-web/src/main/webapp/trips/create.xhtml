@@ -11,7 +11,7 @@
 <h:body>
 
 <ui:composition template="/WEB-INF/templates/layout.xhtml">
-    <ui:define name="title">New trip · TripMate</ui:define>
+    <ui:define name="title">New trip</ui:define>
 
     <ui:define name="content">
 
@@ -79,11 +79,6 @@
                                      rows="3"
                                      value="#{tripCreateBean.description}"/>
                 </div>
-
-                <h:panelGroup layout="block" styleClass="tm-error"
-                              rendered="#{not empty tripCreateBean.error}">
-                    <h:outputText value="#{tripCreateBean.error}"/>
-                </h:panelGroup>
 
                 <div class="tm-actions">
                     <p:commandButton value="Create trip"

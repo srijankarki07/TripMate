@@ -3,6 +3,7 @@
       xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
+      xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
@@ -11,7 +12,7 @@
 <h:body>
 
 <ui:composition template="/WEB-INF/templates/layout.xhtml">
-    <ui:define name="title">Your trips · TripMate</ui:define>
+    <ui:define name="title">Your trips</ui:define>
 
     <ui:define name="content">
 
@@ -30,47 +31,58 @@
                 <p:button outcome="/trips/create.xhtml" value="New trip" styleClass="ui-button-secondary"/>
             </div>
 
-            <p:dataTable value="#{tripListBean.trips}"
+            <h:form>
+                <p:dataTable reflow="true" rowHover="true" value="#{tripListBean.trips}"
                          var="trip"
                          rendered="#{tripListBean.hasTrips}"
-                         emptyMessage="">
+                         emptyMessage=""
+                         sortMode="single"
+                         paginator="true"
+                         rows="10"
+                         paginatorAlwaysVisible="false"
+                         paginatorTemplate="{currentPageReport} {firstPageLink} {previousPageLink} {pageLinks} {nextPageLink} {lastPageLink}"
+                         currentPageReportTemplate="{first} to {last} of {totalRecords}">
 
-                <p:column headerText="Trip">
+                <p:column headerText="Trip" sortBy="#{trip.tripName}">
                     <h:link outcome="/trips/detail.xhtml" value="#{trip.tripName}">
                         <f:param name="tripId" value="#{trip.tripId}"/>
                     </h:link>
                 </p:column>
 
-                <p:column headerText="Where">
+                <p:column headerText="Where" sortBy="#{trip.destination}">
                     <h:outputText value="#{trip.destination}"/>
                 </p:column>
 
-                <p:column headerText="Dates">
+                <p:column headerText="Dates" sortBy="#{trip.startDate}">
                     <h:outputText value="#{trip.startDate}"/>
                     <h:outputText value=" to "/>
                     <h:outputText value="#{trip.endDate}"/>
                 </p:column>
 
-                <p:column headerText="State">
+                <p:column headerText="State" sortBy="#{trip.status}">
                     <span class="tm-status tm-status-#{trip.status.name().toLowerCase()}">
                         <h:outputText value="#{trip.status}"/>
                     </span>
                 </p:column>
 
-                <p:column headerText="Admin">
+                <p:column headerText="Admin" sortBy="#{trip.adminName}">
                     <h:outputText value="#{trip.adminName}"/>
                 </p:column>
 
-                <p:column headerText="Members">
+                <p:column headerText="Members" sortBy="#{trip.memberCount}">
                     <h:outputText value="#{trip.memberCount}"/>
                 </p:column>
             </p:dataTable>
+            </h:form>
 
-            <h:panelGroup layout="block" styleClass="tm-empty"
-                          rendered="#{not tripListBean.hasTrips}">
-                You are not part of any trip yet. Create one, and you become its
-                administrator.
-            </h:panelGroup>
+            <tm:empty icon="pi-compass"
+                      title="No trips yet"
+                      text="Create one and you become its administrator. Everyone you add can plan the itinerary and log what they spend."
+                      rendered="#{not tripListBean.hasTrips}">
+                <f:facet name="action">
+                    <p:button outcome="/trips/create.xhtml" value="Create a trip"/>
+                </f:facet>
+            </tm:empty>
         </section>
 
     </ui:define>

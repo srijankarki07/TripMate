@@ -3,6 +3,7 @@
       xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
+      xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
@@ -20,11 +21,16 @@
     <ui:define name="title">Settle up · #{settleBean.trip.tripName}</ui:define>
 
     <ui:define name="content">
+        <tm:error title="This page could not be loaded"
+                  text="#{settleBean.loadError}"
+                  rendered="#{not empty settleBean.loadError}">
+            <f:facet name="action">
+                <p:button outcome="/trips/list.xhtml" value="Back to your trips"
+                          styleClass="ui-button-secondary"/>
+            </f:facet>
+        </tm:error>
 
-        <h:panelGroup layout="block" styleClass="tm-error"
-                      rendered="#{not empty settleBean.error}">
-            <h:outputText value="#{settleBean.error}"/>
-        </h:panelGroup>
+
 
         <ui:fragment rendered="#{settleBean.loaded}">
 
@@ -41,10 +47,6 @@
                 </p>
             </header>
 
-            <h:panelGroup layout="block" styleClass="tm-notice"
-                          rendered="#{not empty settleBean.message}">
-                <h:outputText value="#{settleBean.message}"/>
-            </h:panelGroup>
 
             <section class="tm-card">
                 <h2 class="tm-display-sm">Record a repayment</h2>
@@ -101,7 +103,7 @@
                 <h2 class="tm-display-sm">Recorded so far</h2>
 
                 <h:form id="settlementListForm">
-                    <p:dataTable value="#{settleBean.settlements}" var="s" emptyMessage="">
+                    <p:dataTable reflow="true" rowHover="true" value="#{settleBean.settlements}" var="s" emptyMessage="">
                         <p:column headerText="When" sortBy="#{s.settledAt}">
                             <h:outputText value="#{s.settledAt}"/>
                         </p:column>
@@ -122,7 +124,10 @@
                                              styleClass="ui-button-secondary"
                                              action="#{settleBean.delete(s.settlementId)}"
                                              ajax="false"
-                                             onclick="return confirm('Remove this repayment?');"/>
+                                             >
+                            <p:confirm header="Remove this repayment?"
+                                       message="The repayment is deleted and the two members' outstanding amounts go back to what they were before it was recorded. The expenses themselves are not touched."/>
+                        </p:commandButton>
                         </p:column>
                     </p:dataTable>
                 </h:form>

@@ -5,6 +5,8 @@ import java.io.Serializable;
 import com.tripmate.dto.UserDTO;
 import com.tripmate.remote.UserServiceRemote;
 import com.tripmate.web.filter.AuthenticationFilter;
+import com.tripmate.web.support.Messages;
+import com.tripmate.web.support.Toasts;
 
 import jakarta.ejb.EJB;
 import jakarta.enterprise.context.RequestScoped;
@@ -32,17 +34,14 @@ public class LoginBean implements Serializable {
 
     private String email;
     private String password;
-    private String error;
-
     /**
      * @return a redirect to the dashboard on success, or null to redisplay the
      *         form with an error
      */
     public String login() {
-        error = null;
 
         if (email == null || email.isBlank() || password == null || password.isEmpty()) {
-            error = "Enter your email and password.";
+            Toasts.error("Enter your email and password.");
             return null;
         }
 
@@ -52,7 +51,7 @@ public class LoginBean implements Serializable {
             // password. Saying which was wrong would let anyone test whether an
             // address is registered, which is the same reason the service
             // returns null rather than distinguishing them.
-            error = "That email and password do not match an account.";
+            Toasts.error("That email and password do not match an account.");
             return null;
         }
 
@@ -92,9 +91,5 @@ public class LoginBean implements Serializable {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public String getError() {
-        return error;
     }
 }

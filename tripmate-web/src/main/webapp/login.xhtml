@@ -2,73 +2,97 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
+      xmlns:tm="jakarta.faces.composite/tm"
+      xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Sign in · TripMate</title>
+    <meta name="description" content="Sign in to TripMate to plan a group trip, share the itinerary and settle who owes what."/>
+    <meta name="theme-color" content="#ff385c"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.svg" type="image/svg+xml"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.ico" sizes="16x16 32x32 48x48"/>
+    <link rel="apple-touch-icon" href="#{request.contextPath}/img/apple-touch-icon.png"/>
     <h:outputStylesheet library="css" name="tripmate.css"/>
+    <h:outputScript library="js" name="tripmate.js" target="body"/>
 </h:head>
 
 <h:body>
+    <tm:toast/>
+
+    <!--
+        Two columns: what the product is on the left, the form on the right.
+        The alternative, and what this page used to be, is a lone card centred
+        in a sea of white. That gave a first-time visitor nothing to decide
+        with and no reason to trust the thing they were being asked to sign in
+        to, which is most of what a sign-in page has to do.
+    -->
     <main class="tm-auth-page">
+        <div class="tm-auth-shell">
 
-        <div class="tm-auth-card">
-            <p class="tm-eyebrow">TripMate</p>
-            <h1 class="tm-display-lg">Sign in</h1>
-            <p class="tm-body-sm tm-text-muted">
-                Group trip planning and expense tracking.
-            </p>
+            <section class="tm-auth-pitch">
+                <ui:include src="/WEB-INF/includes/auth-pitch.xhtml"/>
+            </section>
 
-            <h:form>
-                <div class="tm-field">
-                    <label class="tm-field-label" for="email">Email</label>
-                    <p:inputText id="email"
-                                 styleClass="tm-input-full"
-                                 value="#{loginBean.email}"
-                                 required="true"
-                                 requiredMessage="Enter your email address."
-                                 autocomplete="username"/>
-                    <p:message for="email" display="text" styleClass="tm-field-error"/>
+            <section class="tm-auth-panel">
+                <div class="tm-auth-card">
+                    <p class="tm-eyebrow">Welcome back</p>
+                    <h1 class="tm-display-lg">Sign in</h1>
+                    <p class="tm-body-sm tm-text-muted">
+                        Pick up where your group left off.
+                    </p>
+
+                    <h:form>
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="email">Email</label>
+                            <p:inputText id="email"
+                                         styleClass="tm-input-full"
+                                         value="#{loginBean.email}"
+                                         required="true"
+                                         requiredMessage="Enter your email address."
+                                         autocomplete="username"/>
+                            <p:message for="email" display="text" styleClass="tm-field-error"/>
+                        </div>
+
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="password">Password</label>
+                            <p:password id="password"
+                                        styleClass="tm-input-full"
+                                        value="#{loginBean.password}"
+                                        required="true"
+                                        requiredMessage="Enter your password."
+                                        feedback="false"
+                                        autocomplete="current-password"/>
+                            <p:message for="password" display="text" styleClass="tm-field-error"/>
+                        </div>
+
+                        <div class="tm-actions">
+                            <p:commandButton value="Sign in"
+                                             action="#{loginBean.login}"
+                                             ajax="false"
+                                             styleClass="tm-button-block"/>
+                        </div>
+                    </h:form>
+
+                    <p class="tm-body-sm tm-text-muted tm-auth-alt">
+                        No account yet?
+                        <h:link outcome="/register.xhtml" value="Create one"/>
+                    </p>
+
+                    <!--
+                        The sample credentials, kept because this is a marked
+                        project and whoever marks it has to be able to get in.
+                        On a real deployment this block would not exist.
+                    -->
+                    <p class="tm-caption-sm tm-text-muted tm-auth-hint">
+                        The sample data signs in as <strong>alice@tripmate.test</strong>
+                        with the password <strong>tripmate123</strong>.
+                    </p>
                 </div>
+            </section>
 
-                <div class="tm-field">
-                    <label class="tm-field-label" for="password">Password</label>
-                    <p:password id="password"
-                                styleClass="tm-input-full"
-                                value="#{loginBean.password}"
-                                required="true"
-                                requiredMessage="Enter your password."
-                                feedback="false"
-                                autocomplete="current-password"/>
-                    <p:message for="password" display="text" styleClass="tm-field-error"/>
-                </div>
-
-                <h:panelGroup layout="block"
-                              styleClass="tm-error"
-                              rendered="#{not empty loginBean.error}">
-                    <h:outputText value="#{loginBean.error}"/>
-                </h:panelGroup>
-
-                <div class="tm-actions">
-                    <p:commandButton value="Sign in"
-                                     action="#{loginBean.login}"
-                                     ajax="false"
-                                     styleClass="tm-button-block"/>
-                </div>
-            </h:form>
-
-            <p class="tm-body-sm tm-text-muted tm-auth-alt">
-                No account yet?
-                <h:link outcome="/register.xhtml" value="Create one"/>
-            </p>
-
-            <p class="tm-caption-sm tm-text-muted tm-auth-hint">
-                The sample data signs in as <strong>alice@tripmate.test</strong>
-                with the password <strong>tripmate123</strong>.
-            </p>
         </div>
-
     </main>
 </h:body>
 </html>

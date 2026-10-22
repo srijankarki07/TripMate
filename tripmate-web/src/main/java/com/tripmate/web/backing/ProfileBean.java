@@ -6,6 +6,8 @@ import java.math.BigDecimal;
 import com.tripmate.dto.UserDTO;
 import com.tripmate.remote.ReportServiceRemote;
 import com.tripmate.remote.UserServiceRemote;
+import com.tripmate.web.support.Messages;
+import com.tripmate.web.support.Toasts;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.ejb.EJB;
@@ -45,12 +47,6 @@ public class ProfileBean implements Serializable {
     private String currentPassword;
     private String newPassword;
     private String confirmPassword;
-
-    private String error;
-    private String message;
-    private String passwordError;
-    private String passwordMessage;
-
     private BigDecimal totalPaid = BigDecimal.ZERO;
     private BigDecimal totalOwed = BigDecimal.ZERO;
     private long tripCount;
@@ -71,15 +67,13 @@ public class ProfileBean implements Serializable {
     }
 
     public void saveProfile() {
-        error = null;
-        message = null;
 
         if (fullName == null || fullName.isBlank()) {
-            error = "Your name cannot be empty.";
+            Toasts.error("Your name cannot be empty.");
             return;
         }
         if (email == null || email.isBlank()) {
-            error = "Your email cannot be empty. It is how you sign in.";
+            Toasts.error("Your email cannot be empty. It is how you sign in.");
             return;
         }
 
@@ -90,36 +84,34 @@ public class ProfileBean implements Serializable {
             // The session holds a copy, so it has to be told, or the header
             // would keep showing the old name until the next sign-in.
             currentUser.refresh(saved);
-            message = "Profile saved.";
+            Toasts.success("Profile saved.");
         } catch (RuntimeException ex) {
-            error = rootMessage(ex);
+            Toasts.error(Messages.describe(ex));
         }
     }
 
     public void changePassword() {
-        passwordError = null;
-        passwordMessage = null;
 
         UserDTO user = currentUser.getUser();
         if (user == null) {
-            passwordError = "You are not signed in.";
+            Toasts.error("You are not signed in.");
             return;
         }
         if (currentPassword == null || currentPassword.isEmpty()) {
-            passwordError = "Enter your current password.";
+            Toasts.error("Enter your current password.");
             return;
         }
         if (newPassword == null || newPassword.length() < MINIMUM_PASSWORD_LENGTH) {
-            passwordError = "Choose a new password of at least "
-                    + MINIMUM_PASSWORD_LENGTH + " characters.";
+            Toasts.error("Choose a new password of at least "
+                    + MINIMUM_PASSWORD_LENGTH + " characters.");
             return;
         }
         if (!newPassword.equals(confirmPassword)) {
-            passwordError = "The two new passwords do not match.";
+            Toasts.error("The two new passwords do not match.");
             return;
         }
         if (newPassword.equals(currentPassword)) {
-            passwordError = "The new password is the same as the current one.";
+            Toasts.error("The new password is the same as the current one.");
             return;
         }
 
@@ -127,18 +119,18 @@ public class ProfileBean implements Serializable {
         // left open on a shared machine, and changing the password is the one
         // action that could lock the owner out of their own account.
         if (userService.login(user.getEmail(), currentPassword) == null) {
-            passwordError = "That is not your current password.";
+            Toasts.error("That is not your current password.");
             return;
         }
 
         try {
             userService.changePassword(user.getUserId(), newPassword);
-            passwordMessage = "Password changed.";
+            Toasts.success("Password changed.");
             currentPassword = null;
             newPassword = null;
             confirmPassword = null;
         } catch (RuntimeException ex) {
-            passwordError = rootMessage(ex);
+            Toasts.error(Messages.describe(ex));
         }
     }
 
@@ -214,28 +206,5 @@ public class ProfileBean implements Serializable {
         return tripCount;
     }
 
-    public String getError() {
-        return error;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public String getPasswordError() {
-        return passwordError;
-    }
-
-    public String getPasswordMessage() {
-        return passwordMessage;
-    }
-
-    private static String rootMessage(Throwable thrown) {
-        Throwable cause = thrown;
-        while (cause.getCause() != null && cause.getCause() != cause) {
-            cause = cause.getCause();
-        }
-        String message = cause.getMessage();
-        return message == null ? "Something went wrong." : message;
-    }
+    
 }

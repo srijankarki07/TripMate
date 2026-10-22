@@ -39,11 +39,21 @@ import jakarta.servlet.http.HttpSession;
 @WebFilter(urlPatterns = "*.xhtml")
 public class AuthenticationFilter implements Filter {
 
-    /** Reachable without signing in. */
+    /**
+     * Reachable without signing in.
+     *
+     * <p>The bare context root and its empty-path form are here because the
+     * container serves the welcome file for them. Without that, a request to
+     * the root was redirected to sign-in while the same page requested by name
+     * loaded normally, so the landing page was unreachable at the address
+     * people actually type.
+     */
     private static final Set<String> PUBLIC_PATHS = Set.of(
+            "/",
+            "",
+            "/index.xhtml",
             "/login.xhtml",
-            "/register.xhtml",
-            "/index.xhtml");
+            "/register.xhtml");
 
     /**
      * Faces serves every stylesheet, script and image under this prefix, and

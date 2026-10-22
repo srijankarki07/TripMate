@@ -59,9 +59,13 @@
             Wrapped in its own form because the component tree requires a UIForm
             ancestor; without one the development stage logs a warning banner
             across the top of every page.
+
+            globalOnly, because a message tied to a field is rendered beside
+            that field by its own p:message. Showing it here as well would
+            repeat every validation error twice on the page.
         -->
         <h:form>
-            <p:messages showDetail="true" closable="true"/>
+            <p:messages showDetail="true" closable="true" globalOnly="true"/>
         </h:form>
 
         <ui:insert name="content"/>

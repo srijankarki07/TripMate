@@ -115,7 +115,7 @@ public class SettleBean implements Serializable {
         dto.setSettledAt(LocalDateTime.now(ZoneId.systemDefault()));
 
         try {
-            SettlementDTO recorded = expenseService.recordSettlement(dto);
+            SettlementDTO recorded = expenseService.recordSettlement(dto, currentUser.getUserId());
             message = recorded.getPayerName() + " paid " + recorded.getReceiverName()
                     + " NPR " + money(recorded.getAmount()) + ".";
             amount = null;
@@ -130,7 +130,7 @@ public class SettleBean implements Serializable {
         error = null;
         message = null;
         try {
-            expenseService.deleteSettlement(settlementId);
+            expenseService.deleteSettlement(settlementId, currentUser.getUserId());
             message = "Repayment removed.";
             refresh();
         } catch (RuntimeException ex) {

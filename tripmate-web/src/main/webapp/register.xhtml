@@ -26,7 +26,10 @@
                     <p:inputText id="fullName"
                                  styleClass="tm-input-full"
                                  value="#{registerBean.fullName}"
+                                 required="true"
+                                 requiredMessage="Enter your name."
                                  autocomplete="name"/>
+                    <p:message for="fullName" display="text" styleClass="tm-field-error"/>
                 </div>
 
                 <div class="tm-field">
@@ -34,7 +37,10 @@
                     <p:inputText id="email"
                                  styleClass="tm-input-full"
                                  value="#{registerBean.email}"
+                                 required="true"
+                                 requiredMessage="Enter your email address."
                                  autocomplete="username"/>
+                    <p:message for="email" display="text" styleClass="tm-field-error"/>
                 </div>
 
                 <div class="tm-field">
@@ -50,8 +56,11 @@
                     <p:password id="password"
                                 styleClass="tm-input-full"
                                 value="#{registerBean.password}"
+                                required="true"
+                                requiredMessage="Choose a password."
                                 feedback="false"
                                 autocomplete="new-password"/>
+                    <p:message for="password" display="text" styleClass="tm-field-error"/>
                 </div>
 
                 <div class="tm-field">
@@ -59,8 +68,11 @@
                     <p:password id="confirmPassword"
                                 styleClass="tm-input-full"
                                 value="#{registerBean.confirmPassword}"
+                                required="true"
+                                requiredMessage="Repeat the password."
                                 feedback="false"
                                 autocomplete="new-password"/>
+                    <p:message for="confirmPassword" display="text" styleClass="tm-field-error"/>
                 </div>
 
                 <h:panelGroup layout="block"

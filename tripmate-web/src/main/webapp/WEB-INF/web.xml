@@ -44,6 +44,17 @@
         <param-value>server</param-value>
     </context-param>
 
+    <!--
+        A web manifest is only honoured when it is served as
+        application/manifest+json. GlassFish has no default mapping for the
+        extension, so without this the browser fetches the file, sees
+        text/plain or an octet stream, and silently ignores it.
+    -->
+    <mime-mapping>
+        <extension>webmanifest</extension>
+        <mime-type>application/manifest+json</mime-type>
+    </mime-mapping>
+
     <welcome-file-list>
         <welcome-file>index.xhtml</welcome-file>
     </welcome-file-list>

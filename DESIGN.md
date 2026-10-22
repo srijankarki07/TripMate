@@ -611,3 +611,169 @@ There are no progressive elevation tiers — the system either has the one shado
 - **Map view styling:** the search-results map uses Mapbox-tinted tiles with custom Rausch markers; not captured here.
 - **Form input error states:** error text color (`{colors.primary-error-text}`) is documented, but the full input outline + helper-text combination on validation failure was not visible in the captured surfaces.
 - **Sub-brand palettes:** Luxe (`{colors.luxe}`) and Plus (`{colors.plus}`) are documented as tokens, but their full sub-system (typography overrides, surface treatment) lives on separate sub-domains and is not captured here.
+
+---
+
+# Part Two: TripMate Extensions
+
+**Status:** project extension, Phase 13
+**Applies to:** every surface in `tripmate-web`
+**Base:** everything above this line, unchanged
+
+## Why this part exists
+
+The spec above is Airbnb's, extracted from a photography-led consumer marketplace. It is
+imported rather than authored here, and it is written for a React + Tailwind stack. TripMate
+conforms to it, which is why `tripmate.css` reads as a translation.
+
+Conforming exactly does not work for this product, for three reasons the spec itself
+acknowledges:
+
+1. Its **Known Gaps** list names loading and skeleton states, form input error states, and
+   hover behaviour as undocumented. TripMate needs all three.
+2. It defines **no success colour** and forbids a second accent. A notice that says an
+   expense was saved therefore renders grey, indistinguishable from a notice that says
+   nothing happened at all.
+3. Its **one shadow tier** is a marketplace rule (photography carries the weight). In a
+   dense data application, a dropdown, a dialog and a toast sharing one weight with a
+   resting card makes overlays read as flat and leaves the page without hierarchy.
+
+So this part extends the spec rather than replacing it. **Rausch remains the only brand
+accent.** Nothing here introduces a second one; the additions are semantic states, depth,
+motion, and a chart palette, which the base spec has no opinion about because a marketplace
+listing page has no charts.
+
+## 1. Colour: semantic states
+
+The base spec has `{colors.primary-error-text}` and nothing else. TripMate adds four states,
+each as a text/icon tone, a soft surface tint, and a border tone. These are **states, not
+accents**: they never appear on a primary button, a nav item or a link.
+
+| Token | Purpose | Value |
+| --- | --- | --- |
+| `--tm-color-success` | saved, settled, all clear | `#0f7b52` |
+| `--tm-color-success-soft` | surface tint | `#e8f5ef` |
+| `--tm-color-warning` | needs attention, not an error | `#9a6400` |
+| `--tm-color-warning-soft` | surface tint | `#fdf3e2` |
+| `--tm-color-danger` | destructive, failed | `#c13515` (existing `{colors.primary-error-text}`) |
+| `--tm-color-danger-soft` | surface tint | `#fdeceb` |
+| `--tm-color-info` | neutral notice | `#1f5fa8` |
+| `--tm-color-info-soft` | surface tint | `#eaf2fc` |
+
+Each tone clears 4.5:1 against its own soft surface and against `{colors.canvas}`, so the
+tint is a background and the tone is the text, never the reverse.
+
+**Rule:** a state colour carries meaning only alongside an icon and a label. Colour alone
+never distinguishes two states, which is both an accessibility requirement and the reason
+the status pills below keep their text.
+
+## 2. Elevation: three tiers, replacing one
+
+The base spec's single `{elevation.card}` becomes tier 1. Two more sit above it. Depth now
+encodes how far a surface is from the page.
+
+| Tier | Token | Use |
+| --- | --- | --- |
+| 1 | `--tm-elevation-1` | resting surfaces: cards, panels, stat tiles |
+| 2 | `--tm-elevation-2` | raised: interactive card hover, sticky bars, table header on scroll |
+| 3 | `--tm-elevation-3` | overlays: dropdown panels, dialogs, toasts, popovers |
+
+Tier 3 is the only tier permitted to float above content without a border. Tiers 1 and 2 keep
+a hairline, because a shadow alone is not a reliable edge at low contrast.
+
+## 3. Gradients
+
+The base spec has none, and its anti-pattern guidance is right that a gradient on a content
+card reads as decoration. TripMate uses gradients in exactly two places, both of which are
+full-bleed surfaces with no data on them:
+
+| Token | Use |
+| --- | --- |
+| `--tm-gradient-brand` | the authentication shell only (sign in, register, forgot password, reset password) |
+| `--tm-gradient-subtle` | empty states and the trip summary header |
+
+`--tm-gradient-brand` is a low-angle wash from Rausch through the Plus magenta to the Luxe
+purple, the three brand tones the base spec already defines. It is applied at low opacity
+behind content, never as a text background, and every text tone placed on it is verified at
+4.5:1 against the lightest point of the wash.
+
+## 4. Motion
+
+The base spec says press is a hard state flip with no transition. That holds for buttons.
+Every other interactive surface gains motion, because a table row, a dropdown and a toast
+that appear instantly read as a page reload.
+
+| Token | Duration | Use |
+| --- | --- | --- |
+| `--tm-motion-fast` | 120ms | hover, focus, colour changes |
+| `--tm-motion-base` | 180ms | dropdown and popover open, tab change, chip appear |
+| `--tm-motion-slow` | 260ms | dialog and drawer open, toast enter and exit |
+| `--tm-motion-ease` | `cubic-bezier(0.2, 0, 0, 1)` | the single easing curve |
+
+**Rule:** motion conveys a spatial relationship (where a thing came from) or a state change.
+Nothing animates for decoration, nothing exceeds 300ms, and no layout property (width,
+height, top, left) is animated; only `opacity` and `transform`.
+
+**Reduced motion:** under `prefers-reduced-motion: reduce`, all durations collapse to 1ms and
+transforms are removed. The state change still happens, it just does not travel.
+
+## 5. Chart palette
+
+Charts need more than one colour, which the base spec's single-accent rule cannot supply.
+Six categorical slots are defined, brand-anchored, in fixed order. The order is the
+colourblind-safety mechanism: it was chosen by validating candidate orderings, not by eye.
+
+| Slot | Hue | Value |
+| --- | --- | --- |
+| 1 | Rausch (brand) | `#ff385c` |
+| 2 | blue | `#2a78d6` |
+| 3 | green | `#12916a` |
+| 4 | amber | `#c98500` |
+| 5 | violet | `#4a3aa7` |
+| 6 | magenta | `#d55181` |
+| 7 | neutral (reserved for "Other") | `#6a6a6a` |
+
+Validated against a `#ffffff` chart surface: lightness band, chroma floor, adjacent-pair
+CVD separation (worst Delta E 8.7, target 8.0), normal-vision separation (worst 20.2, floor
+15.0), and contrast (all six at or above 3:1). All checks pass with no warnings.
+
+**Rules that follow from validation:**
+
+- Slots are assigned **in fixed order and never cycled**. Colour follows the entity, so
+  filtering a chart never repaints the categories that remain.
+- A seventh category is never a generated hue. Categories past the sixth fold into **Other**
+  in the neutral slot. This matters here because expense category is free text and the seed
+  data already uses seven.
+- Slot 7 is reserved and never used as a series colour.
+- Every chart with two or more series carries a legend, and every chart is paired with a
+  table of the same figures, so identity is never carried by colour alone. This is also the
+  relief the contrast check requires.
+
+## 6. Responsive behaviour for an application
+
+The base spec's breakpoints describe a marketplace: cards that stack, a search pill that
+collapses. TripMate is a data application, so the interesting question at narrow widths is
+what happens to a table.
+
+| Name | Width | Key changes |
+| --- | --- | --- |
+| Mobile | under 744px | top nav collapses to a logo plus a menu button opening an off-canvas panel; tables become stacked cards, one card per row, each labelled by its column headers; multi-column forms become one column; charts drop to a single column and reduce their label density |
+| Tablet | 744 to 1023px | nav shows links but not account actions; tables keep their columns and scroll horizontally inside a wrapper rather than breaking the page; forms use two columns |
+| Desktop | 1024 to 1439px | full nav; two-column page layouts; charts side by side where they compare |
+| Wide | 1440px and above | content caps at `--tm-container-wide`; gutters absorb the rest |
+
+Cross-cutting rules:
+
+- No horizontal page scroll at any width. A wide table scrolls inside its own wrapper.
+- Every interactive target is at least 44 by 44 pixels.
+- Space is reserved for anything that loads asynchronously, so nothing shifts after paint.
+  Charts declare their height, images declare an aspect ratio, and a region that is loading
+  renders a skeleton at its final size.
+
+## 7. What this part does not change
+
+- Rausch is still the only brand accent. The semantic states are not accents.
+- Typography, radii and the spacing scale are unchanged.
+- The `body`-prefixed PrimeFaces override idiom in `tripmate.css` is load-bearing and stays.
+- No dark mode. Tokens are structured so one could be added later, but nothing here defines
+  dark values and no surface is written against a dark assumption.

@@ -2,22 +2,38 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:tm="jakarta.faces.composite/tm"
       lang="en">
 <h:head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Create an account · TripMate</title>
+    <meta name="description" content="Create a TripMate account to plan a group trip, split the costs and settle up."/>
+    <meta name="theme-color" content="#ff385c"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.svg" type="image/svg+xml"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.ico" sizes="16x16 32x32 48x48"/>
+    <link rel="apple-touch-icon" href="#{request.contextPath}/img/apple-touch-icon.png"/>
     <h:outputStylesheet library="css" name="tripmate.css"/>
+    <h:outputScript library="js" name="tripmate.js" target="body"/>
 </h:head>
 
 <h:body>
-    <main class="tm-auth-page">
+    <tm:toast/>
 
-        <div class="tm-auth-card">
-            <p class="tm-eyebrow">TripMate</p>
+    <main class="tm-auth-page">
+        <div class="tm-auth-shell">
+
+            <section class="tm-auth-pitch">
+                <ui:include src="/WEB-INF/includes/auth-pitch.xhtml"/>
+            </section>
+
+            <section class="tm-auth-panel">
+                <div class="tm-auth-card">
+            <p class="tm-eyebrow">Get started</p>
             <h1 class="tm-display-lg">Create an account</h1>
             <p class="tm-body-sm tm-text-muted">
-                You can create trips and join ones you are invited to.
+                Create trips of your own, or join ones you are invited to.
             </p>
 
             <h:form>
@@ -75,11 +91,6 @@
                     <p:message for="confirmPassword" display="text" styleClass="tm-field-error"/>
                 </div>
 
-                <h:panelGroup layout="block"
-                              styleClass="tm-error"
-                              rendered="#{not empty registerBean.error}">
-                    <h:outputText value="#{registerBean.error}"/>
-                </h:panelGroup>
 
                 <div class="tm-actions">
                     <p:commandButton value="Create account"
@@ -93,8 +104,10 @@
                 Already have an account?
                 <h:link outcome="/login.xhtml" value="Sign in"/>
             </p>
-        </div>
+                </div>
+            </section>
 
+        </div>
     </main>
 </h:body>
 </html>

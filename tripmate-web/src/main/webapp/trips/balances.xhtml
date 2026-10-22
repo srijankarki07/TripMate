@@ -3,6 +3,7 @@
       xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
+      xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
@@ -20,11 +21,16 @@
     <ui:define name="title">Balances · #{balancesBean.trip.tripName}</ui:define>
 
     <ui:define name="content">
+        <tm:error title="This page could not be loaded"
+                  text="#{balancesBean.loadError}"
+                  rendered="#{not empty balancesBean.loadError}">
+            <f:facet name="action">
+                <p:button outcome="/trips/list.xhtml" value="Back to your trips"
+                          styleClass="ui-button-secondary"/>
+            </f:facet>
+        </tm:error>
 
-        <h:panelGroup layout="block" styleClass="tm-error"
-                      rendered="#{not empty balancesBean.error}">
-            <h:outputText value="#{balancesBean.error}"/>
-        </h:panelGroup>
+
 
         <ui:fragment rendered="#{balancesBean.loaded}">
 
@@ -74,7 +80,7 @@
                     </p:button>
                 </div>
 
-                <p:dataTable value="#{balancesBean.positions}" var="p" emptyMessage="">
+                <p:dataTable reflow="true" rowHover="true" value="#{balancesBean.positions}" var="p" emptyMessage="">
                     <p:column headerText="Member" sortBy="#{p.fullName}">
                         <h:outputText value="#{p.fullName}"/>
                     </p:column>
@@ -131,7 +137,7 @@
                     recorded until you enter it on the settle page.
                 </p>
 
-                <p:dataTable value="#{balancesBean.suggested}" var="t" emptyMessage="">
+                <p:dataTable reflow="true" rowHover="true" value="#{balancesBean.suggested}" var="t" emptyMessage="">
                     <p:column headerText="Who pays">
                         <h:outputText value="#{t.from}"/>
                     </p:column>
@@ -146,7 +152,7 @@
 
             <section class="tm-card" rendered="#{balancesBean.hasSettlements}">
                 <h2 class="tm-display-sm">Repayments already recorded</h2>
-                <p:dataTable value="#{balancesBean.settlements}" var="s" emptyMessage="">
+                <p:dataTable reflow="true" rowHover="true" value="#{balancesBean.settlements}" var="s" emptyMessage="">
                     <p:column headerText="When" sortBy="#{s.settledAt}">
                         <h:outputText value="#{s.settledAt}"/>
                     </p:column>

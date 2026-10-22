@@ -2,18 +2,78 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
+      xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>
-        <ui:insert name="title">TripMate</ui:insert>
-    </title>
+
+    <!--
+        The title is composed rather than replaced. A page defines only its own
+        name, and the product name is appended here, so no page can forget it
+        and the separator does not have to be repeated in twelve files.
+    -->
+    <title><ui:insert name="title">TripMate</ui:insert> · TripMate</title>
+
+    <!--
+        Per-page metadata. The default is the product description, so a page
+        that says nothing still ships a sane one; a page that has something
+        more specific to say replaces the whole block rather than a fragment,
+        because `meta` is a void element and cannot wrap an insert.
+    -->
+    <ui:insert name="meta">
+        <meta name="description" content="Group trip planning and expense tracking: build a shared itinerary, log what everyone spends, and see exactly who owes whom."/>
+    </ui:insert>
+
+    <!-- Colours the browser's own chrome on mobile, so the address bar matches
+         the brand rather than defaulting to white. -->
+    <meta name="theme-color" content="#ff385c"/>
+
+    <!--
+        Icons, served from the plain /img directory rather than under Faces'
+        /resources. The resource handler only serves files behind an .xhtml
+        suffix with a rewritten content type, which a browser rejects for an
+        icon or a manifest.
+
+        The SVG is listed first so browsers that understand it use it at any
+        size; the .ico is the fallback, and the touch icon covers a home-screen
+        save on iOS, which ignores both of the others.
+    -->
+    <link rel="icon" href="#{request.contextPath}/img/favicon.svg" type="image/svg+xml"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.ico" sizes="16x16 32x32 48x48"/>
+    <link rel="apple-touch-icon" href="#{request.contextPath}/img/apple-touch-icon.png"/>
+    <link rel="manifest" href="#{request.contextPath}/site.webmanifest"/>
+
+    <!-- Link previews. The image URL is context-relative rather than absolute,
+         because the deployment's own host is not known at build time and
+         hardcoding localhost would be worse than a relative URL that crawlers
+         resolve against the page. -->
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="TripMate"/>
+    <meta property="og:title" content="TripMate"/>
+    <meta property="og:description" content="Plan the trip. Split the costs. Settle up."/>
+    <meta property="og:image" content="#{request.contextPath}/img/og-image.png"/>
+    <meta name="twitter:card" content="summary_large_image"/>
+
     <h:outputStylesheet library="css" name="tripmate.css"/>
+
+    <!-- Target body so it does not block the first paint; it only wires up
+         behaviour that is already present in the markup. -->
+    <h:outputScript library="js" name="tripmate.js" target="body"/>
+
+    <!-- Pages that need their own metadata add it here. -->
+    <ui:insert name="meta"/>
 </h:head>
 
 <h:body>
+
+    <!--
+        Keyboard users land here first. Without it the first tab stop on every
+        page is the wordmark, and reaching the content means tabbing through the
+        whole navigation each time.
+    -->
+    <a class="tm-skip-link" href="#tm-main">Skip to content</a>
 
     <!--
         The application shell. Every signed-in page composes this, so the
@@ -22,9 +82,20 @@
     <header class="tm-topnav">
         <div class="tm-topnav-inner">
 
-            <h:link outcome="/dashboard.xhtml" styleClass="tm-wordmark" value="TripMate"/>
+            <h:link outcome="/dashboard.xhtml" styleClass="tm-wordmark">
+                <!-- Inline rather than an <img>, so it is one fewer request and
+                     inherits the accent from CSS. aria-hidden because the
+                     wordmark text beside it already names the product. -->
+                <span class="tm-wordmark-mark" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" focusable="false">
+                        <rect width="64" height="64" rx="14" fill="currentColor"/>
+                        <path fill="#ffffff" d="M32 14c-6.6 0-12 5.4-12 12 0 8.4 12 24 12 24s12-15.6 12-24c0-6.6-5.4-12-12-12zm0 16.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/>
+                    </svg>
+                </span>
+                <span class="tm-wordmark-text">TripMate</span>
+            </h:link>
 
-            <nav class="tm-nav">
+            <nav class="tm-nav" aria-label="Sections">
                 <h:link outcome="/dashboard.xhtml" value="Dashboard"
                         styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/dashboard.xhtml' ? 'tm-nav-link-active' : ''}"/>
                 <h:link outcome="/trips/list.xhtml" value="Trips"
@@ -34,8 +105,14 @@
             </nav>
 
             <div class="tm-nav-account">
-                <h:link outcome="/profile.xhtml" styleClass="tm-nav-link"
-                        value="#{currentUser.user.fullName}"/>
+                <h:link outcome="/profile.xhtml" styleClass="tm-nav-account-link">
+                    <span class="tm-avatar tm-avatar-sm" aria-hidden="true">
+                        <h:outputText value="#{currentUser.initials}"/>
+                    </span>
+                    <span class="tm-nav-account-name">
+                        <h:outputText value="#{currentUser.fullName}"/>
+                    </span>
+                </h:link>
                 <h:form>
                     <p:commandButton value="Sign out"
                                      styleClass="ui-button-secondary"
@@ -44,17 +121,58 @@
                 </h:form>
             </div>
 
+            <!--
+                Below the mobile breakpoint the links and the account block are
+                hidden by CSS and this button appears. It opens the same
+                navigation in an off-canvas panel, so the two never have to be
+                kept in step by hand: both read from one source.
+            -->
+            <button type="button"
+                    class="tm-nav-toggle"
+                    aria-label="Open navigation"
+                    onclick="PF('tmNavPanel').show(); return false;">
+                <i class="pi pi-bars" aria-hidden="true"></i>
+            </button>
+
         </div>
     </header>
 
-    <main class="tm-page">
+    <p:sidebar widgetVar="tmNavPanel"
+               direction="left"
+               responsive="true"
+               styleClass="tm-nav-panel">
+        <h:link outcome="/dashboard.xhtml" styleClass="tm-nav-panel-link" value="Dashboard"/>
+        <h:link outcome="/trips/list.xhtml" styleClass="tm-nav-panel-link" value="Trips"/>
+        <h:link outcome="/reports/index.xhtml" styleClass="tm-nav-panel-link" value="Reports"/>
+        <h:link outcome="/profile.xhtml" styleClass="tm-nav-panel-link" value="Your profile"/>
+        <h:form>
+            <p:commandButton value="Sign out"
+                             styleClass="ui-button-secondary tm-button-block"
+                             action="#{currentUser.logoutAndReturn}"
+                             ajax="false"/>
+        </h:form>
+    </p:sidebar>
+
+    <!--
+        Toasts. Rendered here rather than per page so every page has them, and
+        outside any form so a message raised for one action is not cleared by
+        the next postback.
+    -->
+    <tm:toast/>
+
+    <main class="tm-page" id="tm-main">
 
         <!--
-            Faces validation and conversion messages. Rendering these matters
-            more than it looks: a conversion failure makes JSF skip the
-            invoke-application phase, so the action never runs and the page
-            simply redisplays. Without somewhere for the message to appear, that
-            is indistinguishable from a broken button.
+            Faces' own validation and conversion messages, as opposed to the
+            ones the application raises.
+
+            These are kept separate from the toasts on purpose and they are not
+            duplicates: a toast is raised by a backing bean after an action has
+            run, while this catches the failures that stop an action running at
+            all. A conversion failure makes JSF skip the invoke-application
+            phase, so the action never executes and the page simply redisplays.
+            Without somewhere for that message to appear it is indistinguishable
+            from a broken button.
 
             Wrapped in its own form because the component tree requires a UIForm
             ancestor; without one the development stage logs a warning banner
@@ -65,18 +183,51 @@
             repeat every validation error twice on the page.
         -->
         <h:form>
-            <p:messages showDetail="true" closable="true" globalOnly="true"/>
+            <p:messages showDetail="true" closable="true" globalOnly="true"
+                        styleClass="tm-form-messages"/>
         </h:form>
 
         <ui:insert name="content"/>
     </main>
 
     <footer class="tm-footer">
-        Jakarta EE 10 · GlassFish 7 · PostgreSQL
-        <span class="tm-footer-links">
-            <h:link outcome="/diagnostics.xhtml" value="Integration checks"/>
-        </span>
+        <div class="tm-footer-inner">
+            <p class="tm-footer-note">
+                <span class="tm-footer-brand">TripMate</span>
+                Group trip planning and expense tracking.
+            </p>
+            <nav class="tm-footer-links" aria-label="About this deployment">
+                <h:link outcome="/diagnostics.xhtml" value="Integration checks"/>
+            </nav>
+            <p class="tm-footer-stack">Jakarta EE 10 · GlassFish 7 · PostgreSQL</p>
+        </div>
     </footer>
+
+    <!--
+        One confirmation dialog for the whole application.
+
+        Declared globally rather than once per destructive button, so every
+        confirmation is worded and behaves the same way, and so a page cannot
+        forget to add one. A button asks for it by carrying a p:confirm child;
+        the two buttons below are the ones PrimeFaces wires it to, which is what
+        the ui-confirmdialog-yes and -no classes are for.
+
+        This replaces window.confirm, which cannot be styled, cannot be
+        described to a screen reader, and blocks the browser's own thread while
+        it is open.
+    -->
+    <p:confirmDialog global="true"
+                     responsive="true"
+                     showEffect="fade"
+                     hideEffect="fade"
+                     styleClass="tm-confirm">
+        <p:commandButton value="Cancel"
+                         type="button"
+                         styleClass="ui-confirmdialog-no ui-button-secondary"/>
+        <p:commandButton value="Yes, continue"
+                         type="button"
+                         styleClass="ui-confirmdialog-yes"/>
+    </p:confirmDialog>
 
 </h:body>
 </html>

@@ -3,6 +3,7 @@
       xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
+      xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
@@ -20,11 +21,16 @@
     <ui:define name="title">Itinerary · #{itineraryBean.trip.tripName}</ui:define>
 
     <ui:define name="content">
+        <tm:error title="This page could not be loaded"
+                  text="#{itineraryBean.loadError}"
+                  rendered="#{not empty itineraryBean.loadError}">
+            <f:facet name="action">
+                <p:button outcome="/trips/list.xhtml" value="Back to your trips"
+                          styleClass="ui-button-secondary"/>
+            </f:facet>
+        </tm:error>
 
-        <h:panelGroup layout="block" styleClass="tm-error"
-                      rendered="#{not empty itineraryBean.error}">
-            <h:outputText value="#{itineraryBean.error}"/>
-        </h:panelGroup>
+
 
         <ui:fragment rendered="#{itineraryBean.loaded}">
 
@@ -41,10 +47,6 @@
                 </p>
             </header>
 
-            <h:panelGroup layout="block" styleClass="tm-notice"
-                          rendered="#{not empty itineraryBean.message}">
-                <h:outputText value="#{itineraryBean.message}"/>
-            </h:panelGroup>
 
             <!-- ============================================================
                  The form, which adds or edits depending on state
@@ -130,7 +132,7 @@
                      components and JSF requires a UIForm ancestor, otherwise
                      every page load logs a warning banner in Development. -->
                 <h:form id="listForm">
-                <p:dataTable value="#{itineraryBean.items}" var="item"
+                <p:dataTable reflow="true" rowHover="true" value="#{itineraryBean.items}" var="item"
                              rendered="#{itineraryBean.hasItems}" emptyMessage="">
                     <p:column headerText="Day" sortBy="#{item.itemDate}">
                         <h:outputText value="#{item.itemDate}"/>
@@ -165,7 +167,10 @@
                                          action="#{itineraryBean.delete(item.itemId)}"
                                          update="@form"
                                          ajax="false"
-                                         onclick="return confirm('Remove this item from the itinerary?');"/>
+                                         >
+                            <p:confirm header="Remove this itinerary item?"
+                                       message="The item is removed from the plan. This cannot be undone."/>
+                        </p:commandButton>
                     </p:column>
                 </p:dataTable>
                 </h:form>

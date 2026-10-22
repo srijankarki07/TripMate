@@ -3,6 +3,7 @@
       xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
+      xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
 <h:head>
@@ -11,38 +12,99 @@
 <h:body>
 
 <ui:composition template="/WEB-INF/templates/layout.xhtml">
-    <ui:define name="title">Profile · TripMate</ui:define>
+    <ui:define name="title">Profile</ui:define>
 
     <ui:define name="content">
 
-        <header class="tm-hero">
-            <p class="tm-eyebrow">Account</p>
-            <h1 class="tm-title">#{profileBean.fullName}</h1>
-            <p class="tm-lede">
-                Your details, and the password you sign in with.
-            </p>
-        </header>
-
-        <section class="tm-stats">
-            <div class="tm-stat">
-                <p class="tm-stat-label">Trips</p>
-                <p class="tm-stat-value">#{profileBean.tripCount}</p>
-                <p class="tm-stat-note">you belong to</p>
+        <!--
+            A card rather than a page header. This is one person's account, so
+            the avatar and the name belong together at the top, and the numbers
+            that describe their position belong on the overview tab rather than
+            crowding the identity.
+        -->
+        <section class="tm-card tm-profile-head">
+            <span class="tm-avatar tm-avatar-lg" aria-hidden="true">
+                <h:outputText value="#{currentUser.initials}"/>
+            </span>
+            <div class="tm-profile-identity">
+                <h1 class="tm-title">#{profileBean.fullName}</h1>
+                <p class="tm-meta">
+                    <h:outputText value="#{profileBean.email}"/>
+                    <h:outputText value=" · "/>
+                    <h:outputText value="#{profileBean.tripCount}"/>
+                    <h:outputText value=" trips"/>
+                </p>
             </div>
-            <div class="tm-stat">
-                <p class="tm-stat-label">You have paid</p>
-                <p class="tm-stat-value">NPR #{profileBean.totalPaid}</p>
-                <p class="tm-stat-note">across every trip</p>
-            </div>
-            <div class="tm-stat">
-                <p class="tm-stat-label">Your share</p>
-                <p class="tm-stat-value">NPR #{profileBean.totalOwed}</p>
-                <p class="tm-stat-note">what your splits come to</p>
-            </div>
+            <h:form>
+                <p:commandButton value="Sign out"
+                                 styleClass="ui-button-secondary"
+                                 action="#{currentUser.logoutAndReturn}"
+                                 ajax="false"/>
+            </h:form>
         </section>
 
+        <!--
+            Split into tabs. Everything used to be on one page, so changing a
+            password meant scrolling past a summary of every trip to find it,
+            and the two forms looked like one long form that happened to have
+            two save buttons.
+        -->
         <section class="tm-card">
-            <h2 class="tm-display-sm">Your details</h2>
+            <p:tabView>
+
+                <p:tab title="Overview">
+                    <div class="tm-toolbar">
+                        <h2 class="tm-display-sm">Where you stand</h2>
+                    </div>
+
+                    <section class="tm-stats">
+                        <div class="tm-stat">
+                            <span class="tm-stat-icon" aria-hidden="true"><i class="pi pi-compass"></i></span>
+                            <p class="tm-stat-label">Trips</p>
+                            <p class="tm-stat-value">#{profileBean.tripCount}</p>
+                            <p class="tm-stat-note">you belong to</p>
+                        </div>
+                        <div class="tm-stat">
+                            <span class="tm-stat-icon" aria-hidden="true"><i class="pi pi-wallet"></i></span>
+                            <p class="tm-stat-label">You have paid</p>
+                            <p class="tm-stat-value">NPR #{profileBean.totalPaid}</p>
+                            <p class="tm-stat-note">across every trip</p>
+                        </div>
+                        <div class="tm-stat">
+                            <span class="tm-stat-icon" aria-hidden="true"><i class="pi pi-chart-pie"></i></span>
+                            <p class="tm-stat-label">Your share</p>
+                            <p class="tm-stat-value">NPR #{profileBean.totalOwed}</p>
+                            <p class="tm-stat-note">what your splits come to</p>
+                        </div>
+                        <div class="tm-stat #{profileBean.netPosition.signum() >= 0 ? 'tm-stat-credit' : 'tm-stat-debit'}">
+                            <span class="tm-stat-icon" aria-hidden="true">
+                                <i class="pi #{profileBean.netPosition.signum() >= 0 ? 'pi-arrow-down-left' : 'pi-arrow-up-right'}"></i>
+                            </span>
+                            <p class="tm-stat-label">Net position</p>
+                            <p class="tm-stat-value #{profileBean.netPosition.signum() >= 0 ? 'tm-positive' : 'tm-negative'}">
+                                NPR #{profileBean.netPosition.abs()}
+                            </p>
+                            <p class="tm-stat-note">
+                                <h:outputText value="#{profileBean.netPosition.signum() >= 0 ? 'owed back to you' : 'you still owe'}"/>
+                            </p>
+                        </div>
+                    </section>
+
+                    <p class="tm-caption-sm tm-text-muted">
+                        These are your gross positions across every trip, counting
+                        every split whether or not it has been repaid. What is still
+                        outstanding on a particular trip is on that trip's page.
+                    </p>
+                </p:tab>
+
+                <p:tab title="Your details">
+                    <h2 class="tm-display-sm">Your details</h2>
+                    <p class="tm-body-sm tm-text-muted">
+                        Your name is what the other people on your trips see.
+                        Your email is how you sign in, so changing it changes
+                        what you type at the sign-in page.
+                    </p>
+
 
             <h:form id="profileForm">
                 <div class="tm-form-grid">
@@ -63,14 +125,6 @@
                     </div>
                 </div>
 
-                <h:panelGroup layout="block" styleClass="tm-error"
-                              rendered="#{not empty profileBean.error}">
-                    <h:outputText value="#{profileBean.error}"/>
-                </h:panelGroup>
-                <h:panelGroup layout="block" styleClass="tm-notice"
-                              rendered="#{not empty profileBean.message}">
-                    <h:outputText value="#{profileBean.message}"/>
-                </h:panelGroup>
 
                 <div class="tm-actions">
                     <p:commandButton value="Save details"
@@ -79,14 +133,16 @@
                                      ajax="false"/>
                 </div>
             </h:form>
-        </section>
+                </p:tab>
 
-        <section class="tm-card">
-            <h2 class="tm-display-sm">Change your password</h2>
-            <p class="tm-body-sm tm-text-muted">
-                Your current password is asked for even though you are already
-                signed in, because a session can be left open on a shared machine.
-            </p>
+                <p:tab title="Password">
+                    <h2 class="tm-display-sm">Change your password</h2>
+                    <p class="tm-body-sm tm-text-muted">
+                        Your current password is asked for even though you are
+                        already signed in, because a session can be left open on
+                        a shared machine.
+                    </p>
+
 
             <h:form id="passwordForm">
                 <div class="tm-form-grid">
@@ -110,14 +166,6 @@
                     </div>
                 </div>
 
-                <h:panelGroup layout="block" styleClass="tm-error"
-                              rendered="#{not empty profileBean.passwordError}">
-                    <h:outputText value="#{profileBean.passwordError}"/>
-                </h:panelGroup>
-                <h:panelGroup layout="block" styleClass="tm-notice"
-                              rendered="#{not empty profileBean.passwordMessage}">
-                    <h:outputText value="#{profileBean.passwordMessage}"/>
-                </h:panelGroup>
 
                 <div class="tm-actions">
                     <p:commandButton value="Change password"
@@ -126,6 +174,9 @@
                                      ajax="false"/>
                 </div>
             </h:form>
+                </p:tab>
+
+            </p:tabView>
         </section>
 
     </ui:define>

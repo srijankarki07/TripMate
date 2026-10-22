@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:h="jakarta.faces.html">
+<!--
+    An empty state.
+
+    Pages used to render a bare sentence in a centred grey paragraph, which
+    reads as a page that failed to load rather than as a page with nothing on it
+    yet. This says what would be here, and gives the action that would put it
+    there where the page has one.
+
+    The action is a facet rather than an outcome attribute, because a link to
+    another page needs a parameter as often as not, and a composite attribute
+    cannot carry one.
+-->
+<cc:interface>
+    <cc:attribute name="icon" default="pi-inbox"
+                  shortDescription="A PrimeIcons class naming the state"/>
+    <cc:attribute name="title" required="true"
+                  shortDescription="What is missing, in a few words"/>
+    <cc:attribute name="text"
+                  shortDescription="One sentence explaining why it is empty"/>
+    <cc:facet name="action" required="false"/>
+</cc:interface>
+
+<cc:implementation>
+    <div class="tm-empty-state">
+
+        <span class="tm-empty-icon" aria-hidden="true">
+            <i class="pi #{cc.attrs.icon}"></i>
+        </span>
+
+        <p class="tm-empty-title">#{cc.attrs.title}</p>
+
+        <h:panelGroup layout="block" styleClass="tm-empty-text"
+                      rendered="#{not empty cc.attrs.text}">
+            #{cc.attrs.text}
+        </h:panelGroup>
+
+        <h:panelGroup layout="block" styleClass="tm-empty-action"
+                      rendered="#{not empty cc.facets.action}">
+            <cc:renderFacet name="action"/>
+        </h:panelGroup>
+
+    </div>
+</cc:implementation>
+</html>

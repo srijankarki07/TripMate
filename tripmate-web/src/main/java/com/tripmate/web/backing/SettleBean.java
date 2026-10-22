@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.tripmate.dto.MemberBalanceDTO;
@@ -13,6 +14,8 @@ import com.tripmate.dto.TripMemberDTO;
 import com.tripmate.remote.ExpenseServiceRemote;
 import com.tripmate.remote.ReportServiceRemote;
 import com.tripmate.remote.TripServiceRemote;
+import com.tripmate.web.support.Messages;
+import com.tripmate.web.support.Toasts;
 
 import jakarta.ejb.EJB;
 import jakarta.faces.view.ViewScoped;
@@ -46,9 +49,9 @@ public class SettleBean implements Serializable {
 
     private Long tripId;
     private TripDTO trip;
-    private List<TripMemberDTO> members = List.of();
-    private List<MemberBalanceDTO> balances = List.of();
-    private List<SettlementDTO> settlements = List.of();
+    private List<TripMemberDTO> members = new ArrayList<>();
+    private List<MemberBalanceDTO> balances = new ArrayList<>();
+    private List<SettlementDTO> settlements = new ArrayList<>();
 
     private Long payerId;
     private Long receiverId;
@@ -56,23 +59,20 @@ public class SettleBean implements Serializable {
     private String note;
 
     private boolean member;
-    private String error;
-    private String message;
-
     public void load() {
-        error = null;
+        loadError = null;
         if (tripId == null) {
-            error = "No trip was named.";
+            loadError = "No trip was named.";
             return;
         }
         trip = tripService.getTrip(tripId);
         if (trip == null) {
-            error = "That trip does not exist, or it has been deleted.";
+            loadError = "That trip does not exist, or it has been deleted.";
             return;
         }
         member = tripService.isMember(tripId, currentUser.getUserId());
         if (!member) {
-            error = "You are not a member of this trip.";
+            loadError = "You are not a member of this trip.";
             trip = null;
             return;
         }
@@ -82,27 +82,25 @@ public class SettleBean implements Serializable {
     }
 
     private void refresh() {
-        members = tripService.getTripMembers(tripId);
-        balances = reportService.getMemberBalances(tripId);
-        settlements = expenseService.getSettlementsForTrip(tripId);
+        members = new ArrayList<>(tripService.getTripMembers(tripId));
+        balances = new ArrayList<>(reportService.getMemberBalances(tripId));
+        settlements = new ArrayList<>(expenseService.getSettlementsForTrip(tripId));
     }
 
     public void save() {
-        error = null;
-        message = null;
 
         if (payerId == null || receiverId == null) {
-            error = "Choose who paid, and who they paid.";
+            Toasts.error("Choose who paid, and who they paid.");
             return;
         }
         // Checked here as well as by the service and by a database constraint,
         // because it is the mistake most likely to be made in this form.
         if (payerId.equals(receiverId)) {
-            error = "A repayment needs two different people.";
+            Toasts.error("A repayment needs two different people.");
             return;
         }
         if (amount == null || amount.signum() <= 0) {
-            error = "The amount must be greater than zero.";
+            Toasts.error("The amount must be greater than zero.");
             return;
         }
 
@@ -116,25 +114,23 @@ public class SettleBean implements Serializable {
 
         try {
             SettlementDTO recorded = expenseService.recordSettlement(dto, currentUser.getUserId());
-            message = recorded.getPayerName() + " paid " + recorded.getReceiverName()
-                    + " NPR " + money(recorded.getAmount()) + ".";
+            Toasts.success(recorded.getPayerName() + " paid " + recorded.getReceiverName()
+                    + " NPR " + money(recorded.getAmount()) + ".");
             amount = null;
             note = null;
             refresh();
         } catch (RuntimeException ex) {
-            error = rootMessage(ex);
+            Toasts.error(Messages.describe(ex));
         }
     }
 
     public void delete(Long settlementId) {
-        error = null;
-        message = null;
         try {
             expenseService.deleteSettlement(settlementId, currentUser.getUserId());
-            message = "Repayment removed.";
+            Toasts.success("Repayment removed.");
             refresh();
         } catch (RuntimeException ex) {
-            error = rootMessage(ex);
+            Toasts.error(Messages.describe(ex));
         }
     }
 
@@ -147,7 +143,6 @@ public class SettleBean implements Serializable {
                 .filter(b -> b.getUserId().equals(payerId))
                 .findFirst()
                 .ifPresent(b -> amount = b.getNetBalance().abs());
-        error = null;
     }
 
     private static String money(BigDecimal value) {
@@ -171,14 +166,62 @@ public class SettleBean implements Serializable {
         return trip;
     }
 
+    /**
+     * The list itself, deliberately, and mutable.
+     *
+     * <p>PrimeFaces sorts a table by sorting the collection this returns, in
+     * place, and then reads it again to render. Returning a defensive copy
+     * looks safer and silently breaks sorting: the sort lands on a copy that is
+     * thrown away, and the render reads a fresh unsorted one. Returning one of
+     * the immutable {@code List.of()} defaults instead throws
+     * {@code UnsupportedOperationException} inside the render, which leaves the
+     * table empty with nothing in the log to explain it.
+     *
+     * <p>So the field is a real {@code ArrayList} and is handed over as-is. The
+     * sort mutating it is the intended contract, not an accident.
+     *
+     * @return the rows, which the table is expected to reorder
+     */
     public List<TripMemberDTO> getMembers() {
         return members;
     }
 
+    /**
+     * The list itself, deliberately, and mutable.
+     *
+     * <p>PrimeFaces sorts a table by sorting the collection this returns, in
+     * place, and then reads it again to render. Returning a defensive copy
+     * looks safer and silently breaks sorting: the sort lands on a copy that is
+     * thrown away, and the render reads a fresh unsorted one. Returning one of
+     * the immutable {@code List.of()} defaults instead throws
+     * {@code UnsupportedOperationException} inside the render, which leaves the
+     * table empty with nothing in the log to explain it.
+     *
+     * <p>So the field is a real {@code ArrayList} and is handed over as-is. The
+     * sort mutating it is the intended contract, not an accident.
+     *
+     * @return the rows, which the table is expected to reorder
+     */
     public List<MemberBalanceDTO> getBalances() {
         return balances;
     }
 
+    /**
+     * The list itself, deliberately, and mutable.
+     *
+     * <p>PrimeFaces sorts a table by sorting the collection this returns, in
+     * place, and then reads it again to render. Returning a defensive copy
+     * looks safer and silently breaks sorting: the sort lands on a copy that is
+     * thrown away, and the render reads a fresh unsorted one. Returning one of
+     * the immutable {@code List.of()} defaults instead throws
+     * {@code UnsupportedOperationException} inside the render, which leaves the
+     * table empty with nothing in the log to explain it.
+     *
+     * <p>So the field is a real {@code ArrayList} and is handed over as-is. The
+     * sort mutating it is the intended contract, not an accident.
+     *
+     * @return the rows, which the table is expected to reorder
+     */
     public List<SettlementDTO> getSettlements() {
         return settlements;
     }
@@ -227,20 +270,19 @@ public class SettleBean implements Serializable {
         this.note = note;
     }
 
-    public String getError() {
-        return error;
-    }
+    
 
-    public String getMessage() {
-        return message;
-    }
+    /**
+     * Why the page could not be built, if it could not.
+     *
+     * <p>Kept apart from the toasts on purpose. A toast reports what
+     * happened to an action and then leaves; this is a state the reader is
+     * still in, so the page renders it in place with a way out.
+     */
+    private String loadError;
 
-    private static String rootMessage(Throwable thrown) {
-        Throwable cause = thrown;
-        while (cause.getCause() != null && cause.getCause() != cause) {
-            cause = cause.getCause();
-        }
-        String message = cause.getMessage();
-        return message == null ? "Something went wrong." : message;
+    /** @return the sentence explaining an unbuildable page, or null */
+    public String getLoadError() {
+        return loadError;
     }
 }

@@ -49,6 +49,8 @@ public class ProfileBean implements Serializable {
     private String confirmPassword;
     private BigDecimal totalPaid = BigDecimal.ZERO;
     private BigDecimal totalOwed = BigDecimal.ZERO;
+    private BigDecimal totalRepaidOut = BigDecimal.ZERO;
+    private BigDecimal totalReceived = BigDecimal.ZERO;
     private long tripCount;
 
     @PostConstruct
@@ -63,6 +65,12 @@ public class ProfileBean implements Serializable {
         if (currentUser.isLoggedIn()) {
             totalPaid = reportService.getTotalPaidByUser(userId, userId);
             totalOwed = reportService.getTotalOwedByUser(userId, userId);
+            // The repayments, so the net figure below is what is actually still
+            // to move rather than what would have been owed if nobody had paid
+            // anybody back. Recording a repayment used to leave this page
+            // exactly as it was, which is the fault this fixes.
+            totalRepaidOut = reportService.getTotalRepaidOutByUser(userId, userId);
+            totalReceived = reportService.getTotalReceivedByUser(userId, userId);
             tripCount = reportService.getTripCountForUser(userId, userId);
         }
     }
@@ -140,8 +148,25 @@ public class ProfileBean implements Serializable {
     // Figures shown alongside the form
     // ------------------------------------------------------------------
 
+    /**
+     * What is still to move, across every trip.
+     *
+     * <p>Positive means the user is still owed it. The repayments already
+     * recorded are counted, because a repayment is money that has changed
+     * hands: leaving it out made this the one figure on the page that did not
+     * move when somebody settled up.
+     *
+     * @return paid minus share, plus repaid out, minus received
+     */
     public BigDecimal getNetPosition() {
-        return totalPaid.subtract(totalOwed);
+        return totalPaid.subtract(totalOwed)
+                .add(totalRepaidOut)
+                .subtract(totalReceived);
+    }
+
+    /** @return true when any repayment has moved this user's figure */
+    public boolean isTouchedByRepayments() {
+        return totalRepaidOut.signum() != 0 || totalReceived.signum() != 0;
     }
 
     // ------------------------------------------------------------------
@@ -202,6 +227,14 @@ public class ProfileBean implements Serializable {
 
     public BigDecimal getTotalOwed() {
         return totalOwed;
+    }
+
+    public BigDecimal getTotalRepaidOut() {
+        return totalRepaidOut;
+    }
+
+    public BigDecimal getTotalReceived() {
+        return totalReceived;
     }
 
     public long getTripCount() {

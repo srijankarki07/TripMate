@@ -7,7 +7,10 @@ import java.util.List;
 import java.util.Locale;
 
 import com.tripmate.dto.CategoryTotalDTO;
+import com.tripmate.dto.ItineraryItemDTO;
 import com.tripmate.dto.MemberBalanceDTO;
+import com.tripmate.entity.TripStatus;
+import com.tripmate.entity.TripSummaryKind;
 
 /**
  * Builds the application's transactional email.
@@ -21,29 +24,30 @@ import com.tripmate.dto.MemberBalanceDTO;
  * contexts and rewrites others. Apple Mail and iOS Mail do support media
  * queries, and will also auto-invert colours in dark mode whatever is declared.
  *
- * <p>So this file is written to the rules that survive all of that:
+ * <p>
+ * So this file is written to the rules that survive all of that:
  *
  * <ul>
- *   <li><strong>Tables for layout.</strong> Not a stylistic preference: a
- *       {@code div}-based layout collapses in Outlook. Every spacing decision is
- *       a cell padding or a fixed-height spacer row.</li>
- *   <li><strong>Inline styles on everything that matters.</strong> A
- *       {@code <style>} block carries the media queries and the client resets,
- *       but nothing load-bearing depends on it, because some clients drop
- *       it.</li>
- *   <li><strong>A conditional wrapper for Outlook.</strong> The 600px container
- *       is a {@code max-width} that Outlook ignores, so Outlook gets a
- *       fixed-width table of the same size inside a {@code [if mso]} block
- *       instead.</li>
- *   <li><strong>A bulletproof button.</strong> A styled anchor becomes a
- *       VML rounded rectangle in Outlook, so it is still a button rather than a
- *       bare link.</li>
- *   <li><strong>A preheader.</strong> The first line of body text that a client
- *       shows next to the subject in the inbox list, set explicitly, with hidden
- *       filler after it so the client cannot pull the greeting in instead.</li>
- *   <li><strong>A plain-text part.</strong> Written by hand for each message
- *       rather than stripped from the HTML, because a stripped version reads
- *       like a ransom note and scores worse with spam filters.</li>
+ * <li><strong>Tables for layout.</strong> Not a stylistic preference: a
+ * {@code div}-based layout collapses in Outlook. Every spacing decision is
+ * a cell padding or a fixed-height spacer row.</li>
+ * <li><strong>Inline styles on everything that matters.</strong> A
+ * {@code <style>} block carries the media queries and the client resets,
+ * but nothing load-bearing depends on it, because some clients drop
+ * it.</li>
+ * <li><strong>A conditional wrapper for Outlook.</strong> The 600px container
+ * is a {@code max-width} that Outlook ignores, so Outlook gets a
+ * fixed-width table of the same size inside a {@code [if mso]} block
+ * instead.</li>
+ * <li><strong>A bulletproof button.</strong> A styled anchor becomes a
+ * VML rounded rectangle in Outlook, so it is still a button rather than a
+ * bare link.</li>
+ * <li><strong>A preheader.</strong> The first line of body text that a client
+ * shows next to the subject in the inbox list, set explicitly, with hidden
+ * filler after it so the client cannot pull the greeting in instead.</li>
+ * <li><strong>A plain-text part.</strong> Written by hand for each message
+ * rather than stripped from the HTML, because a stripped version reads
+ * like a ransom note and scores worse with spam filters.</li>
  * </ul>
  *
  * <h2>Escaping</h2>
@@ -74,8 +78,7 @@ public final class Templates {
     /** The width every client is told to render at. 600 is the safe maximum. */
     private static final int WIDTH = 600;
 
-    private static final String FONT_STACK =
-            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+    private static final String FONT_STACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH);
     private static final DateTimeFormatter DAY_SHORT = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH);
@@ -154,8 +157,8 @@ public final class Templates {
      * @return the rendered message
      */
     public static Email addedToTrip(String toEmail, String recipientName, String actorName,
-                                    String tripName, String destination,
-                                    LocalDate startDate, LocalDate endDate, String tripUrl) {
+            String tripName, String destination,
+            LocalDate startDate, LocalDate endDate, String tripUrl) {
         String greeting = firstNameOr(recipientName, "there");
         // Kept in both forms. The HTML part needs the escaped one, the plain-text
         // part needs the raw one, and deriving either from the other is how an
@@ -229,7 +232,7 @@ public final class Templates {
      * @return a complete HTML document
      */
     private static String layout(String title, String preheader, String heading,
-                                 String content, String footer) {
+            String content, String footer) {
         String shell = """
                 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" \
                 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -366,7 +369,8 @@ public final class Templates {
     /**
      * A small definition table for the trip's facts.
      *
-     * <p>A table rather than lines of text so the labels and the values line up,
+     * <p>
+     * A table rather than lines of text so the labels and the values line up,
      * which is what makes a set of facts scannable rather than a paragraph to be
      * read.
      *
@@ -404,7 +408,8 @@ public final class Templates {
     /**
      * A button that is still a button in Outlook.
      *
-     * <p>Outlook renders with Word's engine, which does not support padding on an
+     * <p>
+     * Outlook renders with Word's engine, which does not support padding on an
      * inline element, so an anchor styled as a button collapses to underlined
      * text. The fix is a VML rounded rectangle for Outlook and a styled anchor
      * for everyone else, which is what the conditional comments below do. The VML
@@ -446,7 +451,8 @@ public final class Templates {
     /**
      * Replaces one token in a template, then leaves the rest alone.
      *
-     * <p>{@code String.replace} rather than a regular expression, so a value
+     * <p>
+     * {@code String.replace} rather than a regular expression, so a value
      * containing a dollar sign or a backslash is inserted literally. A user's
      * name is not a pattern.
      */
@@ -461,7 +467,8 @@ public final class Templates {
     /**
      * Escapes a value for HTML text content and for a double-quoted attribute.
      *
-     * <p>Escapes the apostrophe as well as the double quote, because values here
+     * <p>
+     * Escapes the apostrophe as well as the double quote, because values here
      * are interpolated into attributes that may be single-quoted in a client's
      * own rewrite. Escaping both means the output is safe in either.
      *
@@ -490,11 +497,13 @@ public final class Templates {
     /**
      * The first word of a name, for a greeting.
      *
-     * <p>"Dear Alice Sharma" reads like a form letter. The first word is what a
+     * <p>
+     * "Dear Alice Sharma" reads like a form letter. The first word is what a
      * person is actually called in most of the world, and a name that yields
      * nothing falls back to a neutral word rather than producing "Dear ,".
      *
-     * <p>Returns the name <em>unescaped</em>. Escaping belongs at the point the
+     * <p>
+     * Returns the name <em>unescaped</em>. Escaping belongs at the point the
      * value is put into HTML, and the plain-text part needs the raw form: a name
      * containing an ampersand would otherwise read as "&amp;" in a text-only
      * client, which is the kind of detail that makes an automated message look
@@ -516,7 +525,8 @@ public final class Templates {
     /**
      * A readable date range.
      *
-     * <p>Collapses to what is known, so a trip with no dates does not produce
+     * <p>
+     * Collapses to what is known, so a trip with no dates does not produce
      * "null to null". A range inside one month is shortened, because
      * "3 to 9 August 2026" is how a person says it.
      *
@@ -560,28 +570,29 @@ public final class Templates {
      * apologised for the wait or explained what happened would be a longer way
      * of saying the same thing.
      *
-     * <p>It does not offer a button only. The link is written out in full in
+     * <p>
+     * It does not offer a button only. The link is written out in full in
      * the plain-text part and repeated under the button in the HTML, because a
      * reset link that only exists behind a button is unreachable in a client
      * that strips them, and this is the one message where being unable to
      * proceed has no workaround.
      *
-     * @param toEmail     the address to send to
-     * @param fullName    the name on the account
-     * @param resetUrl    the absolute URL carrying the token
+     * @param toEmail      the address to send to
+     * @param fullName     the name on the account
+     * @param resetUrl     the absolute URL carrying the token
      * @param validMinutes how long the link lasts, stated in the message so the
      *                     reader knows whether it is worth trying
      * @return the rendered message
      */
     public static Email passwordReset(String toEmail, String fullName, String resetUrl,
-                                      int validMinutes) {
+            int validMinutes) {
         String greeting = firstNameOr(fullName, "there");
         String heading = "Reset your TripMate password";
         String escapedUrl = escape(resetUrl);
 
         String body = paragraph("Somebody asked to reset the password for this address. "
-                        + "If that was you, the button below takes you to a page where you "
-                        + "can choose a new one.")
+                + "If that was you, the button below takes you to a page where you "
+                + "can choose a new one.")
                 + button("Choose a new password", resetUrl)
                 + paragraph("Or paste this link into your browser:")
                 + linkBlock(escapedUrl)
@@ -617,7 +628,8 @@ public final class Templates {
     /**
      * The reset link, written out so it can be copied.
      *
-     * <p>A long URL in a 600px column has to break, and it has to break as a
+     * <p>
+     * A long URL in a 600px column has to break, and it has to break as a
      * block rather than mid-word, or the email client widens the whole message
      * and the layout falls apart on a phone. {@code word-break} is what the
      * clients that honour it need; the rest wrap it as one long token, which is
@@ -637,7 +649,8 @@ public final class Templates {
     /**
      * A quieter paragraph, set apart from the body of the message.
      *
-     * <p>Used for the reassurance that nothing happened, which is important
+     * <p>
+     * Used for the reassurance that nothing happened, which is important
      * enough to state and not important enough to compete with the instruction
      * above it.
      */
@@ -662,7 +675,8 @@ public final class Templates {
      * and the position is not, and the reader's own line comes before the table
      * of everyone else.
      *
-     * <p>That is also why {@code recipientId} is a parameter. A summary that
+     * <p>
+     * That is also why {@code recipientId} is a parameter. A summary that
      * only listed the group's positions would leave every reader to find their
      * own row and work out their own answer, which is the work the email exists
      * to save them.
@@ -686,18 +700,92 @@ public final class Templates {
      * @param tripUrl      the absolute URL of the trip's page
      * @return the rendered message
      */
-    public static Email tripSummary(String toEmail, String fullName, Long recipientId,
-                                    String tripName, LocalDate startDate, LocalDate endDate,
-                                    BigDecimal total, int expenseCount,
-                                    List<CategoryTotalDTO> categories,
-                                    List<MemberBalanceDTO> balances,
-                                    String tripUrl) {
+    /**
+     * The plan on its own: what is happening, and when.
+     *
+     * <p>Split out of the old combined summary so a reader can send the
+     * itinerary without the money, or the money without the itinerary. They are
+     * two different questions and a trip in planning usually has an answer to
+     * only the first.
+     */
+    public static Email itinerarySummary(String toEmail, String fullName,
+            String tripName, LocalDate startDate, LocalDate endDate,
+            TripStatus status,
+            List<ItineraryItemDTO> itinerary,
+            String tripUrl) {
+        return summary(TripSummaryKind.ITINERARY, toEmail, fullName, null,
+                tripName, startDate, endDate, status,
+                BigDecimal.ZERO, 0, itinerary, List.of(), List.of(), null, tripUrl);
+    }
+
+    /**
+     * The money on its own: what the trip cost, and where everybody landed.
+     *
+     * @param recipientId       which row of the balances is the reader's, so
+     *                          their own position can be said in a sentence
+     *                          before the table
+     * @param readerOutstanding what the reader still has to settle once the
+     *                          repayments recorded on the trip are counted,
+     *                          positive when they are still owed. Null when it
+     *                          could not be worked out, in which case the
+     *                          message falls back to the gross difference.
+     */
+    public static Email balancesSummary(String toEmail, String fullName, Long recipientId,
+            String tripName, LocalDate startDate, LocalDate endDate,
+            TripStatus status,
+            BigDecimal total, int expenseCount,
+            List<CategoryTotalDTO> categories,
+            List<MemberBalanceDTO> balances,
+            BigDecimal readerOutstanding,
+            String tripUrl) {
+        return summary(TripSummaryKind.BALANCES, toEmail, fullName, recipientId,
+                tripName, startDate, endDate, status,
+                total, expenseCount, List.of(), categories, balances,
+                readerOutstanding, tripUrl);
+    }
+
+    private static Email summary(TripSummaryKind kind,
+            String toEmail, String fullName, Long recipientId,
+            String tripName, LocalDate startDate, LocalDate endDate,
+            TripStatus status,
+            BigDecimal total, int expenseCount,
+            List<ItineraryItemDTO> itinerary,
+            List<CategoryTotalDTO> categories,
+            List<MemberBalanceDTO> balances,
+            BigDecimal readerOutstanding,
+            String tripUrl) {
+        boolean withPlan = kind == TripSummaryKind.ITINERARY;
+        boolean withMoney = kind == TripSummaryKind.BALANCES;
+
         String greeting = firstNameOr(fullName, "there");
         String plainTrip = isBlank(tripName) ? "your trip" : tripName;
         String escapedTrip = escape(plainTrip);
 
-        String heading = escape(plainTrip) + ": the numbers";
+        // A trip that has not finished gets a different message, not the same
+        // message with a different date on it. The summary used to open with
+        // "The trip is done" whatever the trip's state, so a trip still in
+        // planning arrived announcing its own completion, which is both wrong
+        // and the sort of wrong that makes a reader distrust every figure under
+        // it.
+        //
+        // Cancelled counts as finished: nothing further is going to be planned
+        // or spent, so what is left to say about it is what it cost.
+        boolean finished = status == TripStatus.COMPLETED || status == TripStatus.CANCELLED;
+
+        String subjectTail = withPlan
+                ? "what is planned"
+                : (finished ? "the numbers" : "where it stands");
+        String heading = escape(plainTrip) + ": " + subjectTail;
         String when = dateRange(startDate, endDate);
+
+        String intro;
+        if (withPlan) {
+            intro = "Here is what is planned for " + plainTrip + ".";
+        } else {
+            intro = finished
+                    ? "The trip is done. Here is what it cost and where everybody landed."
+                    : "Here is what has been spent so far, and where everybody landed.";
+        }
 
         MemberBalanceDTO mine = balances.stream()
                 .filter(b -> recipientId != null && recipientId.equals(b.getUserId()))
@@ -705,54 +793,72 @@ public final class Templates {
                 .orElse(null);
 
         StringBuilder body = new StringBuilder();
-        body.append(paragraph("The trip is done. Here is what it cost and where "
-                + "everybody landed."));
+        body.append(paragraph(intro));
 
-        body.append(figures(new String[][] {
-                {"Total spent", "NPR " + money(total)},
-                {"Expenses", String.valueOf(expenseCount)},
-                {"People", String.valueOf(balances.size())},
-                {"Each", "NPR " + perPerson(total, balances.size())},
-        }));
-
-        if (mine != null) {
-            body.append(position(mine));
+        // The plan, which the closing summary never carried because it assumed
+        // there was nothing left to plan.
+        if (withPlan && !itinerary.isEmpty()) {
+            body.append(subheading("What is planned"));
+            body.append(itineraryTable(itinerary));
         }
 
-        if (!categories.isEmpty()) {
-            body.append(subheading("Where it went"));
-            body.append(categoryTable(categories, total));
-        }
+        if (withMoney) {
+            body.append(figures(new String[][] {
+                    { "Total spent", "NPR " + money(total) },
+                    { "Expenses", String.valueOf(expenseCount) },
+                    { "People", String.valueOf(balances.size()) },
+                    { "Each", "NPR " + perPerson(total, balances.size()) },
+            }));
 
-        if (!balances.isEmpty()) {
-            body.append(subheading("Where everybody landed"));
-            body.append(balanceTable(balances, recipientId));
+            if (mine != null) {
+                body.append(position(mine, readerOutstanding));
+            }
+
+            if (!categories.isEmpty()) {
+                body.append(subheading("Where it went"));
+                body.append(categoryTable(categories, total));
+            }
+
+            if (!balances.isEmpty()) {
+                body.append(subheading("Where everybody landed"));
+                body.append(balanceTable(balances, recipientId));
+            }
         }
 
         body.append(button("Open the trip", tripUrl));
 
         String html = layout(
-                plainTrip + ": the numbers",
-                "What " + plainTrip + " cost, and where everybody landed.",
+                plainTrip + ": " + subjectTail,
+                withPlan
+                        ? "What is planned for " + plainTrip + "."
+                        : (finished
+                                ? "What " + plainTrip + " cost, and where everybody landed."
+                                : "What " + plainTrip + " has cost so far, and where everybody landed."),
                 heading,
                 (when.isEmpty() ? "" : paragraph(when)) + body,
                 "You are receiving this because you were on this trip at TripMate.");
 
-        String text = greeting + ",\n\n"
-                + "The trip is done. Here is what it cost and where everybody landed.\n\n"
-                + (when.isEmpty() ? "" : when + "\n\n")
-                + "Total spent: NPR " + money(total) + "\n"
-                + "Expenses:    " + expenseCount + "\n"
-                + "People:      " + balances.size() + "\n"
-                + "Each:        NPR " + perPerson(total, balances.size()) + "\n\n"
-                + (mine == null ? "" : positionText(mine) + "\n\n")
-                + plainCategories(categories, total)
-                + plainBalances(balances)
-                + "Open the trip: " + tripUrl + "\n\n"
-                + "--\n"
-                + "You are receiving this because you were on this trip at TripMate.\n";
+        StringBuilder text = new StringBuilder()
+                .append(greeting).append(",\n\n")
+                .append(intro).append("\n\n")
+                .append(when.isEmpty() ? "" : when + "\n\n")
+                .append(withPlan ? plainItinerary(itinerary) : "");
 
-        return new Email(toEmail, plainTrip + ": the numbers", html, text);
+        if (withMoney) {
+            text.append("Total spent: NPR ").append(money(total)).append("\n")
+                    .append("Expenses:    ").append(expenseCount).append("\n")
+                    .append("People:      ").append(balances.size()).append("\n")
+                    .append("Each:        NPR ").append(perPerson(total, balances.size())).append("\n\n")
+                    .append(mine == null ? "" : positionText(mine, readerOutstanding) + "\n\n")
+                    .append(plainCategories(categories, total))
+                    .append(plainBalances(balances));
+        }
+
+        text.append("Open the trip: ").append(tripUrl).append("\n\n")
+                .append("--\n")
+                .append("You are receiving this because you were on this trip at TripMate.\n");
+
+        return new Email(toEmail, plainTrip + ": " + subjectTail, html, text.toString());
     }
 
     // --- pieces of the summary ------------------------------------------
@@ -796,55 +902,127 @@ public final class Templates {
     /**
      * The reader's own line.
      *
-     * <p>Coloured on the left edge as well as worded, so it is findable in a
+     * <p>
+     * Coloured on the left edge as well as worded, so it is findable in a
      * message that also contains a table of everybody else.
      */
-    private static String position(MemberBalanceDTO mine) {
+    private static String position(MemberBalanceDTO mine, BigDecimal outstanding) {
         String tone = mine.isCreditor() ? "#0f7b52" : (mine.isDebtor() ? "#c13515" : MUTED);
         return "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" "
                 + "width=\"100%\" style=\"margin:0 0 8px;\"><tr>"
                 + "<td style=\"padding:14px 16px;background-color:" + SURFACE_SOFT
                 + ";border-left:3px solid " + tone + ";border-radius:6px;"
                 + "font-family:" + FONT_STACK + ";font-size:15px;line-height:1.5;color:"
-                + INK + ";\">" + positionHtml(mine) + "</td></tr></table>";
+                + INK + ";\">" + positionHtml(mine, outstanding) + "</td></tr></table>";
     }
 
     /**
      * The reader's position, for the HTML part, with the money emphasised.
      *
-     * <p>Written separately from {@link #positionText} rather than derived from
+     * <p>
+     * Written separately from {@link #positionText} rather than derived from
      * it. The two differ by markup, and the first version of this method built
      * both from one string, which put literal {@code <strong>} tags into the
      * plain-text part of the message.
      */
-    private static String positionHtml(MemberBalanceDTO mine) {
-        return sentence(mine, "<strong>", "</strong>");
+    private static String positionHtml(MemberBalanceDTO mine, BigDecimal outstanding) {
+        return sentence(mine, outstanding, "<strong>", "</strong>");
     }
 
     /** The same sentence for the plain-text part, with no markup at all. */
-    private static String positionText(MemberBalanceDTO mine) {
-        return sentence(mine, "", "");
+    private static String positionText(MemberBalanceDTO mine, BigDecimal outstanding) {
+        return sentence(mine, outstanding, "", "");
     }
 
     /**
+     * The reader's own line.
+     *
+     * <p>Reads the outstanding figure when it is known, which is what is left
+     * once the repayments recorded on the trip are counted. The gross
+     * difference is the fallback: on a trip nobody has repaid anything the two
+     * are the same number, and where they differ the outstanding one is the
+     * only one the reader can act on.
+     *
+     * <p>"You get back" and "you pay" rather than a signed number, and rather
+     * than the words the tables use: a minus sign in front of a currency figure
+     * is read correctly by about half of people and misread by the rest.
+     *
      * @param open  markup to put before the figure, empty for plain text
      * @param close markup to put after it, empty for plain text
      */
-    private static String sentence(MemberBalanceDTO mine, String open, String close) {
-        String difference = money(mine.getNetBalance().abs());
+    private static String sentence(MemberBalanceDTO mine, BigDecimal outstanding,
+            String open, String close) {
+        BigDecimal left = outstanding != null ? outstanding : mine.getNetBalance();
+        String figure = money(left.abs());
 
         String verdict;
-        if (mine.isCreditor()) {
-            verdict = "You are owed " + open + "NPR " + difference + close + ".";
-        } else if (mine.isDebtor()) {
-            verdict = "You owe " + open + "NPR " + difference + close + ".";
+        if (left.signum() > 0) {
+            verdict = "You get back " + open + "NPR " + figure + close + ".";
+        } else if (left.signum() < 0) {
+            verdict = "You pay " + open + "NPR " + figure + close + ".";
         } else {
-            verdict = "You came out even.";
+            verdict = "You are even.";
         }
 
         return "You paid NPR " + money(mine.getTotalPaid())
                 + " and your share came to NPR " + money(mine.getTotalOwed())
                 + ". " + verdict;
+    }
+
+    /**
+     * The plan, as a table of day, time and what.
+     *
+     * <p>Day and time are two columns rather than one, because the times are
+     * the thing a reader scans for: "what happens on the 8th" and "what starts
+     * at nine" are different questions, and a single column answers neither
+     * quickly.
+     */
+    private static String itineraryTable(List<ItineraryItemDTO> items) {
+        StringBuilder out = new StringBuilder();
+        out.append(openTable());
+        out.append("<tr>")
+                .append(headCell("Day")).append(headCell("Time"))
+                .append(headCell("What")).append(headCell("Where"))
+                .append("</tr>");
+        for (ItineraryItemDTO item : items) {
+            String time = item.getStartTime() == null
+                    ? ""
+                    : item.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH));
+            if (item.getEndTime() != null) {
+                time = time.isEmpty() ? "" : time + " - ";
+                time = time + item.getEndTime()
+                        .format(DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH));
+            }
+            out.append("<tr>")
+                    .append(cell(item.getItemDate() == null ? "" : item.getItemDate().toString(), false))
+                    .append(cell(escape(time), false))
+                    .append(cell(escape(item.getTitle()), false))
+                    .append(cell(escape(item.getLocation()), false))
+                    .append("</tr>");
+        }
+        out.append("</table>");
+        return out.toString();
+    }
+
+    /** The same plan, for a client that refuses HTML. */
+    private static String plainItinerary(List<ItineraryItemDTO> items) {
+        if (items.isEmpty()) {
+            return "";
+        }
+        StringBuilder out = new StringBuilder("What is planned:\n");
+        for (ItineraryItemDTO item : items) {
+            out.append("  ")
+                    .append(item.getItemDate() == null ? "" : item.getItemDate())
+                    .append("  ")
+                    .append(item.getStartTime() == null ? "" : item.getStartTime())
+                    .append("  ")
+                    .append(item.getTitle() == null ? "" : item.getTitle());
+            if (item.getLocation() != null && !item.getLocation().isBlank()) {
+                out.append(" (").append(item.getLocation()).append(")");
+            }
+            out.append("\n");
+        }
+        return out.append("\n").toString();
     }
 
     private static String categoryTable(List<CategoryTotalDTO> categories, BigDecimal total) {

@@ -4,7 +4,9 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="jakarta.faces.facelets"
       xmlns:tm="jakarta.faces.composite/tm"
-      lang="en">
+      lang="en"
+      data-theme="#{themeBean.theme}"
+      data-tm-context-path="#{request.contextPath}">
 <h:head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -15,96 +17,109 @@
     <link rel="icon" href="#{request.contextPath}/img/favicon.ico" sizes="16x16 32x32 48x48"/>
     <link rel="apple-touch-icon" href="#{request.contextPath}/img/apple-touch-icon.png"/>
     <h:outputStylesheet library="css" name="tripmate.css"/>
+
+    <!-- In the head and not deferred, so a visitor whose desktop is dark
+         does not get a white flash before the theme resolves. See theme.js. -->
+    <h:outputScript library="js" name="theme.js" target="head"/>
     <h:outputScript library="js" name="tripmate.js" target="body"/>
 </h:head>
 
 <h:body>
     <tm:toast/>
 
+    <!-- Form first, product second. Same two-column shell as the sign-in page
+         and the same reasoning: the source order is the reading order. -->
     <main class="tm-auth-page">
         <div class="tm-auth-shell">
 
-            <section class="tm-auth-pitch">
-                <ui:include src="/WEB-INF/includes/auth-pitch.xhtml"/>
-            </section>
-
             <section class="tm-auth-panel">
                 <div class="tm-auth-card">
-            <p class="tm-eyebrow">Get started</p>
-            <h1 class="tm-display-lg">Create an account</h1>
-            <p class="tm-body-sm tm-text-muted">
-                Create trips of your own, or join ones you are invited to.
-            </p>
+                    <p class="tm-eyebrow">Get started</p>
+                    <h1 class="tm-display-lg">Create an account</h1>
+                    <p class="tm-body-sm tm-text-muted">
+                        Create trips of your own, or join ones you are invited to.
+                    </p>
 
-            <h:form>
-                <div class="tm-field">
-                    <label class="tm-field-label" for="fullName">Full name</label>
-                    <p:inputText id="fullName"
-                                 styleClass="tm-input-full"
-                                 value="#{registerBean.fullName}"
-                                 required="true"
-                                 requiredMessage="Enter your name."
-                                 autocomplete="name"/>
-                    <p:message for="fullName" display="text" styleClass="tm-field-error"/>
+                    <h:form>
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="fullName">Full name</label>
+                            <p:inputText id="fullName"
+                                         styleClass="tm-input-full"
+                                         value="#{registerBean.fullName}"
+                                         required="true"
+                                         requiredMessage="Enter your name."
+                                         autocomplete="name"/>
+                            <p:message for="fullName" display="text" styleClass="tm-field-error"/>
+                        </div>
+
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="email">Email</label>
+                            <p:inputText id="email"
+                                         styleClass="tm-input-full"
+                                         value="#{registerBean.email}"
+                                         required="true"
+                                         requiredMessage="Enter your email address."
+                                         autocomplete="username"/>
+                            <p:message for="email" display="text" styleClass="tm-field-error"/>
+                        </div>
+
+                        <!--
+                            Marked optional in the label. An unmarked field in a
+                            row of five reads as required, and this one is not,
+                            so somebody who does not want to give a number has
+                            to guess whether they can skip it.
+                        -->
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="phone">
+                                Phone <span class="tm-field-optional">optional</span>
+                            </label>
+                            <p:inputText id="phone"
+                                         styleClass="tm-input-full"
+                                         value="#{registerBean.phone}"
+                                         autocomplete="tel"/>
+                        </div>
+
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="password">Password</label>
+                            <p:password id="password"
+                                        styleClass="tm-input-full"
+                                        value="#{registerBean.password}"
+                                        required="true"
+                                        requiredMessage="Choose a password."
+                                        feedback="false"
+                                        autocomplete="new-password"/>
+                            <p:message for="password" display="text" styleClass="tm-field-error"/>
+                        </div>
+
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="confirmPassword">Confirm password</label>
+                            <p:password id="confirmPassword"
+                                        styleClass="tm-input-full"
+                                        value="#{registerBean.confirmPassword}"
+                                        required="true"
+                                        requiredMessage="Repeat the password."
+                                        feedback="false"
+                                        autocomplete="new-password"/>
+                            <p:message for="confirmPassword" display="text" styleClass="tm-field-error"/>
+                        </div>
+
+                        <div class="tm-actions">
+                            <p:commandButton value="Create account"
+                                             action="#{registerBean.register}"
+                                             ajax="false"
+                                             styleClass="tm-button-block"/>
+                        </div>
+                    </h:form>
+
+                    <p class="tm-body-sm tm-text-muted tm-auth-alt">
+                        Already have an account?
+                        <h:link outcome="/login.xhtml" value="Sign in"/>
+                    </p>
                 </div>
+            </section>
 
-                <div class="tm-field">
-                    <label class="tm-field-label" for="email">Email</label>
-                    <p:inputText id="email"
-                                 styleClass="tm-input-full"
-                                 value="#{registerBean.email}"
-                                 required="true"
-                                 requiredMessage="Enter your email address."
-                                 autocomplete="username"/>
-                    <p:message for="email" display="text" styleClass="tm-field-error"/>
-                </div>
-
-                <div class="tm-field">
-                    <label class="tm-field-label" for="phone">Phone (optional)</label>
-                    <p:inputText id="phone"
-                                 styleClass="tm-input-full"
-                                 value="#{registerBean.phone}"
-                                 autocomplete="tel"/>
-                </div>
-
-                <div class="tm-field">
-                    <label class="tm-field-label" for="password">Password</label>
-                    <p:password id="password"
-                                styleClass="tm-input-full"
-                                value="#{registerBean.password}"
-                                required="true"
-                                requiredMessage="Choose a password."
-                                feedback="false"
-                                autocomplete="new-password"/>
-                    <p:message for="password" display="text" styleClass="tm-field-error"/>
-                </div>
-
-                <div class="tm-field">
-                    <label class="tm-field-label" for="confirmPassword">Confirm password</label>
-                    <p:password id="confirmPassword"
-                                styleClass="tm-input-full"
-                                value="#{registerBean.confirmPassword}"
-                                required="true"
-                                requiredMessage="Repeat the password."
-                                feedback="false"
-                                autocomplete="new-password"/>
-                    <p:message for="confirmPassword" display="text" styleClass="tm-field-error"/>
-                </div>
-
-
-                <div class="tm-actions">
-                    <p:commandButton value="Create account"
-                                     action="#{registerBean.register}"
-                                     ajax="false"
-                                     styleClass="tm-button-block"/>
-                </div>
-            </h:form>
-
-            <p class="tm-body-sm tm-text-muted tm-auth-alt">
-                Already have an account?
-                <h:link outcome="/login.xhtml" value="Sign in"/>
-            </p>
-                </div>
+            <section class="tm-auth-pitch">
+                <ui:include src="/WEB-INF/includes/auth-pitch.xhtml"/>
             </section>
 
         </div>

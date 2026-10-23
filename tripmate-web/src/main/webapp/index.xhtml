@@ -2,46 +2,87 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
-      lang="en">
+      xmlns:tm="jakarta.faces.composite/tm"
+      xmlns:ui="jakarta.faces.facelets"
+      lang="en"
+      data-theme="#{themeBean.theme}"
+      data-tm-context-path="#{request.contextPath}">
 <h:head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>TripMate</title>
+    <meta name="description" content="Group trip planning and expense tracking: a shared itinerary and a running record of who paid for what."/>
+    <meta name="theme-color" content="#ff385c"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.svg" type="image/svg+xml"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.ico" sizes="16x16 32x32 48x48"/>
+    <link rel="apple-touch-icon" href="#{request.contextPath}/img/apple-touch-icon.png"/>
     <h:outputStylesheet library="css" name="tripmate.css"/>
+
+    <!-- In the head and not deferred, so a visitor whose desktop is dark
+         does not get a white flash before the theme resolves. See theme.js. -->
+    <h:outputScript library="js" name="theme.js" target="head"/>
+    <h:outputScript library="js" name="tripmate.js" target="body"/>
 </h:head>
 
 <h:body>
+    <tm:toast/>
+
+    <!--
+        The landing page, in the same two-column shell as sign-in and register.
+
+        It used to be a single card floating in the middle of an otherwise
+        blank page, which is the one thing a first-time visitor cannot make a
+        decision from: it said what the product was called and offered a button,
+        and nothing about whether the thing behind the button was worth
+        signing up for. The pitch column is that answer, and it is the same
+        column the other two pages use, so arriving here and arriving at the
+        sign-in form does not feel like two different products.
+    -->
     <main class="tm-auth-page">
+        <div class="tm-auth-shell">
 
-        <div class="tm-auth-card">
-            <p class="tm-eyebrow">Group trip planning and expense tracking</p>
-            <h1 class="tm-display-lg">TripMate</h1>
-            <p class="tm-body-sm tm-text-muted">
-                A shared itinerary and a running record of who paid for what, for a
-                small group of travellers.
-            </p>
+            <section class="tm-auth-panel">
+                <div class="tm-auth-card">
+                    <p class="tm-eyebrow">Group trip planning and expense tracking</p>
+                    <h1 class="tm-display-lg">TripMate</h1>
+                    <p class="tm-body-sm tm-text-muted">
+                        A shared itinerary and a running record of who paid for what,
+                        for a small group of travellers.
+                    </p>
 
-            <h:panelGroup layout="block" rendered="#{currentUser.loggedIn}">
-                <p class="tm-body-sm">
-                    Signed in as <strong>#{currentUser.fullName}</strong>.
-                </p>
-                <div class="tm-actions">
-                    <p:button outcome="/dashboard.xhtml" value="Go to the dashboard"
-                              styleClass="tm-button-block"/>
+                    <h:panelGroup layout="block" rendered="#{currentUser.loggedIn}">
+                        <p class="tm-body-sm tm-auth-alt">
+                            Signed in as <strong>#{currentUser.fullName}</strong>.
+                        </p>
+                        <div class="tm-actions">
+                            <p:button outcome="/dashboard.xhtml" value="Go to the dashboard"
+                                      styleClass="tm-button-block"/>
+                        </div>
+                    </h:panelGroup>
+
+                    <h:panelGroup layout="block" rendered="#{not currentUser.loggedIn}">
+                        <div class="tm-actions">
+                            <p:button outcome="/login.xhtml" value="Sign in"
+                                      styleClass="tm-button-block"/>
+                        </div>
+                        <div class="tm-actions">
+                            <p:button outcome="/register.xhtml" value="Create an account"
+                                      styleClass="tm-button-block ui-button-secondary"/>
+                        </div>
+                        <p class="tm-caption-sm tm-text-muted tm-auth-hint">
+                            The sample data signs in as
+                            <strong>alice@tripmate.test</strong> with the password
+                            <strong>tripmate123</strong>.
+                        </p>
+                    </h:panelGroup>
                 </div>
-            </h:panelGroup>
+            </section>
 
-            <h:panelGroup layout="block" rendered="#{not currentUser.loggedIn}">
-                <div class="tm-actions">
-                    <p:button outcome="/login.xhtml" value="Sign in" styleClass="tm-button-block"/>
-                </div>
-                <p class="tm-body-sm tm-text-muted tm-auth-alt">
-                    No account yet?
-                    <h:link outcome="/register.xhtml" value="Create one"/>
-                </p>
-            </h:panelGroup>
+            <section class="tm-auth-pitch">
+                <ui:include src="/WEB-INF/includes/auth-pitch.xhtml"/>
+            </section>
+
         </div>
-
     </main>
 </h:body>
 </html>

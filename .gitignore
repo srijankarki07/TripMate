@@ -55,3 +55,6 @@ glassfish/domains/*/osgi-cache/
 .DS_Store
 Thumbs.db
 *~
+
+# Local overrides read by scripts/env.sh
+.env

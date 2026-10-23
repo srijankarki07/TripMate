@@ -55,10 +55,13 @@ public final class Charts {
         JsonObject dataSet = Json.createObjectBuilder()
                 .add("data", numbers(values))
                 .add("backgroundColor", strings(colours))
-                // A ring of touching segments reads as one shape. A two-pixel
-                // gap in the surface colour separates them instead.
-                .add("borderColor", ChartPalette.SURFACE)
-                .add("borderWidth", 2)
+                // A ring of touching segments reads as one shape, so they are
+                // separated by spacing rather than by an outline. The outline
+                // was drawn in the surface colour, which is white in this
+                // palette, so on the dark theme every segment was ringed in
+                // white. Spacing is a gap, and a gap is whatever is behind it.
+                .add("borderWidth", 0)
+                .add("spacing", 2)
                 .add("hoverOffset", 6)
                 .build();
 
@@ -93,8 +96,10 @@ public final class Charts {
                 .add("fill", true)
                 .add("tension", 0.3)
                 .add("pointBackgroundColor", colour)
-                .add("pointBorderColor", ChartPalette.SURFACE)
-                .add("pointBorderWidth", 2)
+                // No ring round the markers. It was drawn in the surface
+                // colour, which is white, so on the dark theme the line was
+                // punctuated by white dots.
+                .add("pointBorderWidth", 0)
                 // Eight pixels is the floor at which a marker is a target
                 // rather than a speck.
                 .add("pointRadius", 4)
@@ -132,10 +137,16 @@ public final class Charts {
                     .add("label", seriesNames.get(i))
                     .add("data", numbers(seriesData.get(i)))
                     .add("backgroundColor", colours.get(i))
-                    .add("borderColor", ChartPalette.SURFACE)
-                    .add("borderWidth", 2)
-                    .add("borderRadius", 4)
-                    .add("maxBarThickness", 42));
+                    // No outline. It was the surface colour, so every bar was
+                    // drawn with a white edge that on the dark theme was
+                    // brighter than the bar itself.
+                    .add("borderWidth", 0)
+                    .add("borderRadius", 6)
+                    // Top corners only. Rounding all four lifts the bar off
+                    // its own baseline and the series stop reading as
+                    // quantities measured from zero.
+                    .add("borderSkipped", "bottom")
+                    .add("maxBarThickness", 38));
         }
 
         JsonObject config = Json.createObjectBuilder()
@@ -158,17 +169,22 @@ public final class Charts {
         JsonObject dataSet = Json.createObjectBuilder()
                 .add("data", numbers(values))
                 .add("backgroundColor", strings(colours))
-                .add("borderRadius", 4)
-                .add("maxBarThickness", 28)
+                .add("borderRadius", 6)
+                .add("borderSkipped", "false")
+                .add("maxBarThickness", 26)
                 .build();
 
+        // Same as the vertical chart: no rules behind the bars and none along
+        // either axis.
         JsonObject scales = Json.createObjectBuilder()
                 .add("x", Json.createObjectBuilder()
                         .add("beginAtZero", true)
-                        .add("grid", Json.createObjectBuilder().add("color", ChartPalette.GRID))
+                        .add("grid", Json.createObjectBuilder().add("display", false))
+                        .add("border", Json.createObjectBuilder().add("display", false))
                         .add("ticks", tickStyle()))
                 .add("y", Json.createObjectBuilder()
                         .add("grid", Json.createObjectBuilder().add("display", false))
+                        .add("border", Json.createObjectBuilder().add("display", false))
                         .add("ticks", tickStyle()))
                 .build();
 
@@ -209,15 +225,19 @@ public final class Charts {
                         .add("color", ChartPalette.AXIS)
                         .add("padding", 16));
 
+        // No grid lines and no axis rules on either axis. The rules drew a
+        // line along the bottom of the plot, and the grid behind it, in a
+        // colour from the Java palette that is a light grey: on the dark theme
+        // they were the brightest thing on the card, brighter than the data.
+        // The figures a reader checks are in the table beside every chart.
         JsonObject scales = Json.createObjectBuilder()
                 .add("x", Json.createObjectBuilder()
                         .add("grid", Json.createObjectBuilder().add("display", false))
+                        .add("border", Json.createObjectBuilder().add("display", false))
                         .add("ticks", tickStyle()))
                 .add("y", Json.createObjectBuilder()
                         .add("beginAtZero", true)
-                        .add("grid", Json.createObjectBuilder().add("color", ChartPalette.GRID))
-                        // Horizontal rules only. A full grid is noise behind
-                        // thin marks.
+                        .add("grid", Json.createObjectBuilder().add("display", false))
                         .add("border", Json.createObjectBuilder().add("display", false))
                         .add("ticks", tickStyle()))
                 .build();
@@ -244,11 +264,25 @@ public final class Charts {
     private static JsonObjectBuilder tooltip() {
         return Json.createObjectBuilder()
                 .add("backgroundColor", ChartPalette.INK)
-                .add("padding", 10)
-                .add("cornerRadius", 8)
+                .add("padding", 12)
+                .add("cornerRadius", 10)
                 .add("displayColors", true)
+                // Round swatches rather than the default squares, so the
+                // tooltip and the legend mark a series the same way.
+                .add("usePointStyle", true)
                 .add("boxWidth", 8)
-                .add("boxHeight", 8);
+                .add("boxHeight", 8)
+                .add("boxPadding", 6)
+                // The title is the axis label the reader is hovering, and it
+                // was rendering at the same weight as the rows under it, so the
+                // panel read as three equal lines rather than as a heading and
+                // its values.
+                .add("titleFont", Json.createObjectBuilder()
+                        .add("size", 13)
+                        .add("weight", "600"))
+                .add("titleMarginBottom", 8)
+                .add("bodyFont", Json.createObjectBuilder().add("size", 13))
+                .add("bodySpacing", 6);
     }
 
     private static JsonObjectBuilder hidden() {

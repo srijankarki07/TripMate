@@ -18,6 +18,12 @@ import java.util.List;
  * and reports it rather than letting a chart quietly come out in the wrong
  * colours. When changing a colour here, change it there too.
  *
+ * <p>There is no grid or surface colour here any more. Both were single values
+ * covering both themes, and both were light: the grid behind every chart and
+ * the outline round every bar and doughnut segment were drawn in a near-white
+ * that on the dark theme outshone the data they were meant to sit behind. The
+ * charts draw no grid and no outlines now, so there is nothing to get wrong.
+ *
  * <h2>Why the order matters</h2>
  *
  * The slot order is the colourblind-safety mechanism, not a preference. It was
@@ -53,17 +59,11 @@ public final class ChartPalette {
      */
     public static final String OTHER = "#6a6a6a";
 
-    /** Grid lines, deliberately recessive so the data sits in front of them. */
-    public static final String GRID = "#ebebeb";
-
     /** Axis labels and tick text. */
     public static final String AXIS = "#6a6a6a";
 
     /** Text inside the plot: tooltips and value labels. */
     public static final String INK = "#222222";
-
-    /** The chart surface, used for the gap between stacked segments. */
-    public static final String SURFACE = "#ffffff";
 
     private ChartPalette() {
     }

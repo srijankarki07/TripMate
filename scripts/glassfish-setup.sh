@@ -94,3 +94,26 @@ echo "==> Pinging the pool"
 
 echo
 echo "==> Datasource ready: ${TM_JNDI_NAME} -> ${TM_DB_URL}"
+
+# ---------------------------------------------------------------------------
+# Site presentation
+# ---------------------------------------------------------------------------
+# The footer's development link and its stack line are deployment facts, and a
+# Java EE application has no reliable access to the environment its server was
+# started in. The container's own configuration is the portable place for
+# them, so they are written here from .env and read back with
+# System.getProperty.
+echo
+# `create-system-properties` takes one operand, and the pairs in it are
+# separated by colons rather than given as separate arguments. Creating fails
+# once they exist, so it is followed by a set that puts the current values in;
+# both are quiet, because either one failing alone is the normal case.
+"${ASADMIN}" create-system-properties \
+    "tripmate.showDiagnostics=${TM_SHOW_DIAGNOSTICS}:tripmate.footerStack=${TM_FOOTER_STACK}" \
+    >/dev/null 2>&1 || true
+"${ASADMIN}" set \
+    "configs.config.server-config.system-property.tripmate.showDiagnostics.value=${TM_SHOW_DIAGNOSTICS}" \
+    "configs.config.server-config.system-property.tripmate.footerStack.value=${TM_FOOTER_STACK}" \
+    >/dev/null 2>&1 || true
+
+echo "==> Site: diagnostics ${TM_SHOW_DIAGNOSTICS}, footer '${TM_FOOTER_STACK}'"

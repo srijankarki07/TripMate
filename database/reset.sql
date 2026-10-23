@@ -10,10 +10,11 @@
 -- DESTRUCTIVE: all data in these tables is lost. Dropping a table also drops
 -- its BIGSERIAL sequences and its indexes, so nothing is left behind.
 --
--- Only the seven TripMate tables are touched. Anything else in the database
+-- Only the nine TripMate tables are touched. Anything else in the database
 -- (including other schemas and roles) is left alone.
 -- ============================================================================
 
+DROP TABLE IF EXISTS trip_summary_emails CASCADE;
 DROP TABLE IF EXISTS password_resets CASCADE;
 DROP TABLE IF EXISTS expense_splits  CASCADE;
 DROP TABLE IF EXISTS settlements     CASCADE;

@@ -4,7 +4,9 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
-      lang="en">
+      lang="en"
+      data-theme="#{themeBean.theme}"
+      data-tm-context-path="#{request.contextPath}">
 <h:head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -58,6 +60,12 @@
 
     <h:outputStylesheet library="css" name="tripmate.css"/>
 
+    <!-- Deliberately in the head and deliberately not deferred. It resolves the
+         theme for a visitor who has never chosen one, which it can only do
+         before the body renders; deferred, it would run after the first paint
+         and show a light page to somebody whose desktop is dark. -->
+    <h:outputScript library="js" name="theme.js" target="head"/>
+
     <!-- Target body so it does not block the first paint; it only wires up
          behaviour that is already present in the markup. -->
     <h:outputScript library="js" name="tripmate.js" target="body"/>
@@ -76,9 +84,78 @@
     <a class="tm-skip-link" href="#tm-main">Skip to content</a>
 
     <!--
+        The loading bar. Hidden until a request is in flight, at which point
+        tripmate.js adds `tm-loading` to <html>.
+
+        There is nothing to show on the very first paint, because the server
+        sends the finished page; the gap is everything after that. An action
+        posted by AJAX, or a full form postback, leaves the reader looking at a
+        page that has not changed yet and no indication that anything is
+        happening. This is that indication, and because it is fixed to the top
+        of the viewport it is visible wherever on the page they are.
+    -->
+    <div class="tm-progress" role="progressbar" aria-label="Loading"></div>
+
+    <!--
         The application shell. Every signed-in page composes this, so the
         navigation exists in one place and cannot drift between pages.
     -->
+    <div class="tm-shell">
+
+        <aside class="tm-sidebar">
+            <a href="#{request.contextPath}/dashboard.xhtml" class="tm-sidebar-brand">
+                <img src="#{request.contextPath}/img/favicon.svg"
+                     class="tm-sidebar-brand-mark" alt="" width="28" height="28"/>
+                <span class="tm-wordmark-text">TripMate</span>
+            </a>
+
+            <nav class="tm-sidebar-nav" aria-label="Sections">
+                <p class="tm-sidebar-label">Workspace</p>
+
+                <!-- An icon per row, as a second cue beside the label, so the
+                     list can be read down its left edge rather than word by
+                     word. aria-hidden because the label beside it is the name;
+                     two names for one link is one too many. -->
+                <h:link outcome="/dashboard.xhtml"
+                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/dashboard.xhtml' ? 'tm-nav-link-active' : ''}">
+                    <i class="pi pi-home" aria-hidden="true"></i>
+                    <span class="tm-nav-link-text">Dashboard</span>
+                </h:link>
+                <h:link outcome="/trips/list.xhtml"
+                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId.startsWith('/trips/') ? 'tm-nav-link-active' : ''}">
+                    <i class="pi pi-map" aria-hidden="true"></i>
+                    <span class="tm-nav-link-text">Trips</span>
+                </h:link>
+                <h:link outcome="/reports/index.xhtml"
+                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId.startsWith('/reports/') ? 'tm-nav-link-active' : ''}">
+                    <i class="pi pi-chart-pie" aria-hidden="true"></i>
+                    <span class="tm-nav-link-text">Reports</span>
+                </h:link>
+            </nav>
+
+            <div class="tm-sidebar-foot">
+                <button type="button"
+                        class="tm-sidebar-link"
+                        data-tm-theme-toggle="true"
+                        data-tm-context-path="#{request.contextPath}"
+                        aria-label="#{themeBean.toggleLabel}">
+                    <i class="pi #{themeBean.toggleIcon}" aria-hidden="true"></i>
+                    <h:outputText value="#{themeBean.toggleLabel}"/>
+                </button>
+
+                <h:link outcome="/profile.xhtml" styleClass="tm-nav-account-link">
+                    <span class="tm-avatar tm-avatar-sm" aria-hidden="true">
+                        <h:outputText value="#{currentUser.initials}"/>
+                    </span>
+                    <span class="tm-nav-account-name">
+                        <h:outputText value="#{currentUser.fullName}"/>
+                    </span>
+                </h:link>
+            </div>
+        </aside>
+
+        <div class="tm-content">
+
     <header class="tm-topnav">
         <div class="tm-topnav-inner">
 
@@ -95,16 +172,39 @@
                 <span class="tm-wordmark-text">TripMate</span>
             </h:link>
 
+            <!--
+                Each section is matched by prefix rather than by exact view id.
+
+                Exact matching meant the section lit up only on its own landing
+                page: opening a trip from the trips list left the bar with
+                nothing marked at all, so the reader lost the one cue that says
+                where they are. A section is a set of pages, not a page.
+
+                The slash is part of the prefix so that `/trips/` cannot match a
+                sibling that merely starts with the same letters.
+            -->
             <nav class="tm-nav" aria-label="Sections">
                 <h:link outcome="/dashboard.xhtml" value="Dashboard"
                         styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/dashboard.xhtml' ? 'tm-nav-link-active' : ''}"/>
                 <h:link outcome="/trips/list.xhtml" value="Trips"
-                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/trips/list.xhtml' ? 'tm-nav-link-active' : ''}"/>
+                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId.startsWith('/trips/') ? 'tm-nav-link-active' : ''}"/>
                 <h:link outcome="/reports/index.xhtml" value="Reports"
-                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/reports/index.xhtml' ? 'tm-nav-link-active' : ''}"/>
+                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId.startsWith('/reports/') ? 'tm-nav-link-active' : ''}"/>
             </nav>
 
             <div class="tm-nav-account">
+                <!-- A plain button rather than a commandButton: the theme is a
+                     display preference stored in a cookie, so it needs no
+                     round trip and no server-side state. See theme.js. -->
+                <button type="button"
+                        class="tm-theme-toggle"
+                        data-tm-theme-toggle="true"
+                        data-tm-context-path="#{request.contextPath}"
+                        aria-label="#{themeBean.toggleLabel}"
+                        title="#{themeBean.toggleLabel}">
+                    <i class="pi #{themeBean.toggleIcon}" aria-hidden="true"></i>
+                </button>
+
                 <h:link outcome="/profile.xhtml" styleClass="tm-nav-account-link">
                     <span class="tm-avatar tm-avatar-sm" aria-hidden="true">
                         <h:outputText value="#{currentUser.initials}"/>
@@ -113,12 +213,13 @@
                         <h:outputText value="#{currentUser.fullName}"/>
                     </span>
                 </h:link>
-                <h:form>
-                    <p:commandButton value="Sign out"
-                                     styleClass="ui-button-secondary"
-                                     action="#{currentUser.logoutAndReturn}"
-                                     ajax="false"/>
-                </h:form>
+                <!--
+                    No sign-out button here. It duplicated the one on the
+                    profile page, which is where somebody goes to manage their
+                    account anyway, and it put the most consequential control in
+                    the application two pixels from the link that opens their
+                    profile. The profile page keeps it.
+                -->
             </div>
 
             <!--
@@ -137,20 +238,59 @@
         </div>
     </header>
 
+    <!--
+        The drawer carries the same brand as the sidebar, from the same assets.
+        Below the breakpoint the sidebar is not rendered at all, so without this
+        the product had no name anywhere on a phone, and the one thing a small
+        screen most needs is to say what it is you are looking at.
+    -->
     <p:sidebar widgetVar="tmNavPanel"
                direction="left"
                responsive="true"
                styleClass="tm-nav-panel">
-        <h:link outcome="/dashboard.xhtml" styleClass="tm-nav-panel-link" value="Dashboard"/>
-        <h:link outcome="/trips/list.xhtml" styleClass="tm-nav-panel-link" value="Trips"/>
-        <h:link outcome="/reports/index.xhtml" styleClass="tm-nav-panel-link" value="Reports"/>
-        <h:link outcome="/profile.xhtml" styleClass="tm-nav-panel-link" value="Your profile"/>
-        <h:form>
-            <p:commandButton value="Sign out"
-                             styleClass="ui-button-secondary tm-button-block"
-                             action="#{currentUser.logoutAndReturn}"
-                             ajax="false"/>
-        </h:form>
+        <a href="#{request.contextPath}/dashboard.xhtml" class="tm-sidebar-brand tm-nav-panel-brand">
+            <img src="#{request.contextPath}/img/favicon.svg"
+                 class="tm-sidebar-brand-mark" alt="" width="28" height="28"/>
+            <span class="tm-wordmark-text">TripMate</span>
+        </a>
+
+        <p class="tm-sidebar-label">Workspace</p>
+
+        <h:link outcome="/dashboard.xhtml"
+                styleClass="tm-nav-panel-link #{facesContext.viewRoot.viewId eq '/dashboard.xhtml' ? 'tm-nav-link-active' : ''}">
+            <i class="pi pi-home" aria-hidden="true"></i>
+            <span class="tm-nav-link-text">Dashboard</span>
+        </h:link>
+        <h:link outcome="/trips/list.xhtml"
+                styleClass="tm-nav-panel-link #{facesContext.viewRoot.viewId.startsWith('/trips/') ? 'tm-nav-link-active' : ''}">
+            <i class="pi pi-map" aria-hidden="true"></i>
+            <span class="tm-nav-link-text">Trips</span>
+        </h:link>
+        <h:link outcome="/reports/index.xhtml"
+                styleClass="tm-nav-panel-link #{facesContext.viewRoot.viewId.startsWith('/reports/') ? 'tm-nav-link-active' : ''}">
+            <i class="pi pi-chart-pie" aria-hidden="true"></i>
+            <span class="tm-nav-link-text">Reports</span>
+        </h:link>
+        <h:link outcome="/profile.xhtml"
+                styleClass="tm-nav-panel-link #{facesContext.viewRoot.viewId eq '/profile.xhtml' ? 'tm-nav-link-active' : ''}">
+            <i class="pi pi-user" aria-hidden="true"></i>
+            <span class="tm-nav-link-text">Your profile</span>
+        </h:link>
+
+        <!-- The same toggle as the bar carries. It is repeated rather than
+             hoisted because the bar's copy is hidden by CSS below the
+             breakpoint, and a control that disappears on a phone is worse than
+             one that is written twice. -->
+        <button type="button"
+                class="tm-nav-panel-link tm-theme-toggle-panel"
+                data-tm-theme-toggle="true"
+                data-tm-context-path="#{request.contextPath}"
+                aria-label="#{themeBean.toggleLabel}">
+            <i class="pi #{themeBean.toggleIcon}" aria-hidden="true"></i>
+            <h:outputText value="#{themeBean.toggleLabel}"/>
+        </button>
+
+        <!-- As in the bar above: no sign-out. It lives on the profile page. -->
     </p:sidebar>
 
     <!--
@@ -158,9 +298,37 @@
         outside any form so a message raised for one action is not cleared by
         the next postback.
     -->
-    <tm:toast/>
+    <!--
+        Wrapped in an identified element so an AJAX action can ask for it to be
+        re-rendered along with the part of the page it changed.
+
+        The toast stack is outside every form, which is deliberate: a message
+        raised for one action must not be cleared by the next postback. The cost
+        is that "update this form" does not include it, so an action sent by
+        AJAX raised its message into a region the response never re-rendered and
+        the message was lost with no error. Full postbacks hid this, because
+        they re-render everything.
+    -->
+    <h:panelGroup layout="block" id="tmToasts">
+        <tm:toast/>
+    </h:panelGroup>
 
     <main class="tm-page" id="tm-main">
+
+        <!--
+            Where the reader is, in one line, before the page says anything.
+
+            A page's own heading says what it is; this says how it was reached,
+            which is the thing a reader who arrived from somewhere unexpected
+            needs. Each page replaces the trail; the default is the root, so a
+            page that says nothing still shows a way back rather than an empty
+            strip.
+        -->
+        <nav class="tm-breadcrumbs" aria-label="Breadcrumb">
+            <ui:insert name="breadcrumbs">
+                <h:link outcome="/dashboard.xhtml" value="Dashboard" styleClass="tm-crumb"/>
+            </ui:insert>
+        </nav>
 
         <!--
             Faces' own validation and conversion messages, as opposed to the
@@ -196,12 +364,23 @@
                 <span class="tm-footer-brand">TripMate</span>
                 Group trip planning and expense tracking.
             </p>
-            <nav class="tm-footer-links" aria-label="About this deployment">
+            <!-- Both of these are deployment facts, read from system
+                 properties that the setup script writes from .env. The link
+                 points at a page of internal checks, so a deployment that has
+                 not asked for it does not get it. -->
+            <h:panelGroup layout="block" styleClass="tm-footer-links"
+                          rendered="#{siteBean.showDiagnostics}">
                 <h:link outcome="/diagnostics.xhtml" value="Integration checks"/>
-            </nav>
-            <p class="tm-footer-stack">Jakarta EE 10 · GlassFish 7 · PostgreSQL</p>
+            </h:panelGroup>
+            <h:panelGroup layout="block" styleClass="tm-footer-stack"
+                          rendered="#{not empty siteBean.footerStack}">
+                <h:outputText value="#{siteBean.footerStack}"/>
+            </h:panelGroup>
         </div>
     </footer>
+
+        </div>
+    </div>
 
     <!--
         One confirmation dialog for the whole application.

@@ -146,6 +146,34 @@ public class ReportService implements ReportServiceRemote {
                 + "WHERE es.user.userId = :id", userId);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Every settlement names a payer directly, so this needs no join through
+     * the trip membership: a repayment the user made is theirs whichever trip
+     * it was on.
+     */
+    @Override
+    public BigDecimal getTotalRepaidOutByUser(Long userId, Long actedBy) {
+        if (userId == null) {
+            return BigDecimal.ZERO;
+        }
+        requireSelf(userId, actedBy, "read these totals");
+        return scalar("SELECT COALESCE(SUM(s.amount), 0) FROM Settlement s "
+                + "WHERE s.payer.userId = :id", userId);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public BigDecimal getTotalReceivedByUser(Long userId, Long actedBy) {
+        if (userId == null) {
+            return BigDecimal.ZERO;
+        }
+        requireSelf(userId, actedBy, "read these totals");
+        return scalar("SELECT COALESCE(SUM(s.amount), 0) FROM Settlement s "
+                + "WHERE s.receiver.userId = :id", userId);
+    }
+
     @Override
     public long getTripCountForUser(Long userId, Long actedBy) {
         if (userId == null) {

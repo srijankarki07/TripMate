@@ -3,6 +3,7 @@
       xmlns:f="jakarta.faces.core"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
+      xmlns:pt="jakarta.faces.passthrough"
       xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
       lang="en">
@@ -15,17 +16,36 @@
 
     <f:metadata>
         <f:viewParam name="tripId" value="#{settleBean.tripId}"/>
+        <!--
+            Optional, and only ever set by a link from a balances table: who is
+            paying, who is receiving, and how much. None of them is required,
+            and the form fills whatever is missing from the same suggestions
+            the balances page shows.
+        -->
+        <f:viewParam name="payerId" value="#{settleBean.requestedPayerId}"/>
+        <f:viewParam name="receiverId" value="#{settleBean.requestedReceiverId}"/>
+        <f:viewParam name="amount" value="#{settleBean.requestedAmount}"/>
         <f:viewAction action="#{settleBean.load}"/>
     </f:metadata>
 
     <ui:define name="title">Settle up · #{settleBean.trip.tripName}</ui:define>
+        <ui:define name="breadcrumbs">
+            <h:link outcome="/dashboard.xhtml" value="Dashboard" styleClass="tm-crumb"/>
+            <span class="tm-crumb-sep" aria-hidden="true"></span>
+            <h:link outcome="/trips/detail.xhtml" value="#{settleBean.trip.tripName}" styleClass="tm-crumb">
+                <f:param name="tripId" value="#{settleBean.tripId}"/>
+            </h:link>
+            <span class="tm-crumb-sep" aria-hidden="true"></span>
+            <span class="tm-crumb-current">Settle up</span>
+        </ui:define>
+
 
     <ui:define name="content">
         <tm:error title="This page could not be loaded"
                   text="#{settleBean.loadError}"
                   rendered="#{not empty settleBean.loadError}">
             <f:facet name="action">
-                <p:button outcome="/trips/list.xhtml" value="Back to your trips"
+                <p:button icon="pi pi-arrow-left" outcome="/trips/list.xhtml" value="Back to your trips"
                           styleClass="ui-button-secondary"/>
             </f:facet>
         </tm:error>
@@ -35,11 +55,6 @@
         <ui:fragment rendered="#{settleBean.loaded}">
 
             <header class="tm-hero">
-                <p class="tm-eyebrow">
-                    <h:link outcome="/trips/balances.xhtml" value="#{settleBean.trip.tripName}">
-                        <f:param name="tripId" value="#{settleBean.tripId}"/>
-                    </h:link>
-                </p>
                 <h1 class="tm-title">Settle up</h1>
                 <p class="tm-lede">
                     Record money that has changed hands. This is a note of what
@@ -49,63 +64,35 @@
 
 
             <section class="tm-card">
-                <h2 class="tm-display-sm">Record a repayment</h2>
-
+                <!--
+                    One form for the whole page: the toolbar's button, the
+                    dialog it opens, and the list underneath. The dialog has to
+                    see the same bean state as everything else on the page, and
+                    two forms was two things to keep in step.
+                -->
                 <h:form id="settleForm">
-                    <div class="tm-form-grid">
-                        <div class="tm-field">
-                            <label class="tm-field-label" for="payer">Who paid</label>
-                            <p:selectOneMenu id="payer" styleClass="tm-input-full"
-                                             value="#{settleBean.payerId}">
-                                <f:selectItems value="#{settleBean.members}" var="m"
-                                               itemLabel="#{m.fullName}" itemValue="#{m.userId}"/>
-                            </p:selectOneMenu>
-                        </div>
-                        <div class="tm-field">
-                            <label class="tm-field-label" for="receiver">Who received it</label>
-                            <p:selectOneMenu id="receiver" styleClass="tm-input-full"
-                                             value="#{settleBean.receiverId}">
-                                <f:selectItem itemLabel="Choose someone" itemValue="#{null}"/>
-                                <f:selectItems value="#{settleBean.members}" var="m"
-                                               itemLabel="#{m.fullName}" itemValue="#{m.userId}"/>
-                            </p:selectOneMenu>
-                        </div>
-                        <div class="tm-field">
-                            <label class="tm-field-label" for="settleAmount">Amount (NPR)</label>
-                            <div class="tm-inline">
-                                <p:inputText id="settleAmount" styleClass="tm-input-full"
-                                             value="#{settleBean.amount}"/>
-                                <p:commandButton value="Use what they owe"
-                                                 styleClass="ui-button-secondary"
-                                                 action="#{settleBean.suggestAmount}"
-                                                 update="@form"
-                                                 ajax="true"/>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="tm-field">
-                        <label class="tm-field-label" for="note">Note (optional)</label>
-                        <p:inputText id="note" styleClass="tm-input-full"
-                                     value="#{settleBean.note}"/>
-                    </div>
-
-                    <div class="tm-actions">
-                        <p:commandButton value="Record repayment"
-                                         action="#{settleBean.save}"
+                    <div class="tm-toolbar">
+                        <h2 class="tm-display-sm">Repayments</h2>
+                        <p:commandButton icon="pi pi-arrow-right-arrow-left"
+                                         value="Record a repayment"
+                                        
+                                         action="#{settleBean.openForm}"
                                          update="@form"
-                                         ajax="false"/>
+                                         ajax="true"/>
                     </div>
-                </h:form>
-            </section>
 
-<h:panelGroup layout="block" styleClass="tm-card" rendered="#{settleBean.hasSettlements}">
-                <h2 class="tm-display-sm">Recorded so far</h2>
-
-                <h:form id="settlementListForm">
-                    <p:dataTable reflow="true" rowHover="true" value="#{settleBean.settlements}" var="s" emptyMessage="">
+                    <p:dataTable reflow="true" rowHover="true" value="#{settleBean.settlements}" var="s"
+                                 rendered="#{settleBean.hasSettlements}" emptyMessage=""
+                                 paginator="true"
+                                 rows="10"
+                                 paginatorAlwaysVisible="false"
+                                 paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
+                                 currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
+                            <p:column headerText="SN" styleClass="tm-col-sn">
+                                <h:outputText value="#{settleBean.settlements.indexOf(s) + 1}"/>
+                            </p:column>
                         <p:column headerText="When" sortBy="#{s.settledAt}">
-                            <h:outputText value="#{s.settledAt}"/>
+                            <h:outputText value="#{s.settledAt}" converter="localDateTimeConverter"/>
                         </p:column>
                         <p:column headerText="From">
                             <h:outputText value="#{s.payerName}"/>
@@ -119,19 +106,118 @@
                         <p:column headerText="Note">
                             <h:outputText value="#{s.note}"/>
                         </p:column>
-                        <p:column headerText="">
-                            <p:commandButton value="Delete"
-                                             styleClass="ui-button-secondary"
-                                             action="#{settleBean.delete(s.settlementId)}"
-                                             ajax="false"
-                                             >
-                            <p:confirm header="Remove this repayment?"
-                                       message="The repayment is deleted and the two members' outstanding amounts go back to what they were before it was recorded. The expenses themselves are not touched."/>
-                        </p:commandButton>
+                        <p:column headerText="" styleClass="tm-col-actions">
+                            <div class="tm-row-actions">
+                                <p:commandButton icon="pi pi-trash" value=""
+                                                 styleClass="ui-button-secondary ui-button-icon-only"
+                                                 title="Remove this repayment"
+                                                 pt:aria-label="Remove this repayment"
+                                                 action="#{settleBean.delete(s.settlementId)}"
+                                                 update="@form tmToasts"
+                                                 ajax="true">
+                                    <p:confirm header="Remove this repayment?"
+                                               message="The repayment is deleted and the two members' outstanding amounts go back to what they were before it was recorded. The expenses themselves are not touched."/>
+                                </p:commandButton>
+                            </div>
                         </p:column>
                     </p:dataTable>
+
+                    <!-- No button here. The one above is already on screen and
+                         already does this; a second identical control under an
+                         empty table is the same action offered twice. -->
+                    <tm:empty icon="pi-arrow-right-arrow-left"
+                              title="Nothing recorded yet"
+                              text="When somebody pays somebody else back, record it here and it is taken off what they still owe. Use Record a repayment above to add the first one."
+                              rendered="#{not settleBean.hasSettlements}"/>
+
+                    <p:dialog id="settleDialog"
+                              widgetVar="settleDialogWidget"
+                              visible="#{settleBean.formOpen}"
+                              header="Record a repayment"
+                              modal="true"
+                              draggable="false"
+                              resizable="false"
+                              responsive="true"
+                              styleClass="tm-dialog">
+                        <div class="tm-dialog-body">
+                            <!--
+                                Both dropdowns hide the other's selection, so the
+                                two can never name the same person. Changing
+                                either one re-renders the dialog, which is what
+                                makes the other list shrink and the amount
+                                suggestion agree with it.
+                            -->
+                            <div class="tm-form-grid">
+                                <div class="tm-field">
+                                    <label class="tm-field-label" for="payer">Who paid</label>
+                                    <p:selectOneMenu id="payer" styleClass="tm-input-full"
+                                                     value="#{settleBean.payerId}">
+                                        <f:selectItems value="#{settleBean.payerChoices}" var="m"
+                                                       itemLabel="#{m.fullName}" itemValue="#{m.userId}"/>
+                                        <p:ajax event="change" update="@form"/>
+                                    </p:selectOneMenu>
+                                </div>
+                                <div class="tm-field">
+                                    <label class="tm-field-label" for="receiver">Who received it</label>
+                                    <p:selectOneMenu id="receiver" styleClass="tm-input-full"
+                                                     value="#{settleBean.receiverId}">
+                                        <f:selectItem itemLabel="Choose someone" itemValue="#{null}"/>
+                                        <f:selectItems value="#{settleBean.receiverChoices}" var="m"
+                                                       itemLabel="#{m.fullName}" itemValue="#{m.userId}"/>
+                                        <p:ajax event="change" update="@form"/>
+                                    </p:selectOneMenu>
+                                </div>
+                                <div class="tm-field">
+                                    <label class="tm-field-label" for="settleAmount">Amount (NPR)</label>
+                                    <div class="tm-inline">
+                                        <p:inputText id="settleAmount" styleClass="tm-input-full"
+                                                     value="#{settleBean.amount}"/>
+                                        <p:commandButton icon="pi pi-arrow-down-left" value="Use what they owe"
+                                                         styleClass="tm-button-quiet"
+                                                         action="#{settleBean.suggestAmount}"
+                                                         update="@form"
+                                                         ajax="true"/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="tm-field">
+                                <label class="tm-field-label" for="note">Note (optional)</label>
+                                <p:inputText id="note" styleClass="tm-input-full"
+                                             value="#{settleBean.note}"/>
+                            </div>
+
+                            <!--
+                                A refusal is shown here, and everything above is
+                                left exactly as the reader typed it. An action
+                                that failed must not clear the fields or close
+                                the dialog: the reader's next move is to correct
+                                one thing, and retyping the other three is not
+                                part of that.
+                            -->
+                            <h:panelGroup layout="block" styleClass="tm-field-error tm-form-error"
+                                          rendered="#{not empty settleBean.formError}">
+                                <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+                                <h:outputText value="#{settleBean.formError}"/>
+                            </h:panelGroup>
+                        </div>
+
+                        <f:facet name="footer">
+                            <div class="tm-dialog-actions">
+                                <p:commandButton value="Cancel"
+                                                 styleClass="ui-button-secondary"
+                                                 action="#{settleBean.closeForm}"
+                                                 update="@form"
+                                                 ajax="true"/>
+                                <p:commandButton icon="pi pi-check" value="Record repayment"
+                                                 action="#{settleBean.save}"
+                                                 update="@form tmToasts"
+                                                 ajax="true"/>
+                            </div>
+                        </f:facet>
+                    </p:dialog>
                 </h:form>
-</h:panelGroup>
+            </section>
 
         </ui:fragment>
 

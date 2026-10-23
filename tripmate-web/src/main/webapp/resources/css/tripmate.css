@@ -55,7 +55,15 @@
     /* ---------------------------------------------------------------------
        Colour — surface
        --------------------------------------------------------------------- */
-    --tm-color-canvas: #ffffff;              /* page floor; no public dark mode */
+    --tm-color-canvas: #fafafa;
+    /* The neutral a button wears when it is neither the brand action nor a
+       destructive one. One value in both themes: it is dark enough for white
+       text, which is what makes a row of buttons read the same in either. */
+    --tm-color-button: #373434;
+    --tm-color-on-button: #f4f4f6;
+    /* The quiet counterpart, for the button beside the one that commits. */
+    --tm-color-button-quiet: transparent;
+    --tm-color-button-quiet-ink: #373434;              /* page floor; no public dark mode */
     --tm-color-surface-soft: #f7f7f7;        /* disabled fields, hover bands */
     --tm-color-surface-card: #ffffff;
     --tm-color-surface-strong: #f2f2f2;      /* circular icon-button surface */
@@ -83,6 +91,11 @@
     --tm-color-muted-soft: #929292;          /* disabled link text */
     --tm-color-on-primary: #ffffff;          /* text on Rausch */
     --tm-color-on-dark: #ffffff;
+
+    /* Text on an ink-filled surface. Identical to on-dark here, because ink
+       is dark in this theme and the gradient is too; the two only diverge on
+       the dark theme, where ink flips and the gradient does not. */
+    --tm-color-on-ink: #ffffff;
 
     /* Ratings render in ink, not gold — a deliberate choice in the source
        system; yellow stars read as cheap in a travel context. */
@@ -119,6 +132,16 @@
     --tm-color-danger: #c13515;              /* same value as --tm-color-error */
     --tm-color-danger-soft: #fdeceb;
     --tm-color-danger-border: #f3c4bd;
+
+    /* Danger is the one state tone that does two jobs, and the only one that
+       therefore needs two tokens. It fills the destructive buttons, where it
+       carries white text and has to stay dark, and it is also the text and
+       the icon on a soft surface, where it has to stay light. Those two
+       requirements pull in opposite directions on a dark page and not on a
+       light one, so the text role gets its own name. Here the two are the
+       same value, which is why introducing the split changes nothing on the
+       light theme: see the dark block below, where they diverge. */
+    --tm-color-danger-ink: #c13515;
 
     --tm-color-info: #1f5fa8;
     --tm-color-info-soft: #eaf2fc;
@@ -181,6 +204,16 @@
     --tm-chart-other: #6a6a6a; /* reserved for "Other", never a series colour */
 
     /* Recessive furniture: grid lines and axis labels sit behind the data. */
+    /* One tone per expense category, keyed rather than measured: the same six
+       slots the charts draw from, in a soft/ink/border triple so a chip can be
+       a chip in either theme. */
+    --tm-cat-1: #8a5c00; --tm-cat-1-soft: #fdf3e2; --tm-cat-1-border: #f0d9a8;
+    --tm-cat-2: #1f5fa8; --tm-cat-2-soft: #eaf2fc; --tm-cat-2-border: #bcd6f2;
+    --tm-cat-3: #0f7b52; --tm-cat-3-soft: #e8f5ef; --tm-cat-3-border: #b8e0cd;
+    --tm-cat-4: #4a3aa7; --tm-cat-4-soft: #efedfb; --tm-cat-4-border: #cdc6f0;
+    --tm-cat-5: #a52a5c; --tm-cat-5-soft: #fdeaf2; --tm-cat-5-border: #f2c2d6;
+    --tm-cat-6: #5a5a66; --tm-cat-6-soft: #f2f2f4; --tm-cat-6-border: #d4d4da;
+
     --tm-chart-grid: #ebebeb;
     --tm-chart-axis: #6a6a6a;
 
@@ -253,16 +286,44 @@
        references it by the old name keeps working.
        --------------------------------------------------------------------- */
     --tm-elevation-1: rgba(0, 0, 0, 0.02) 0 0 0 1px,
-                      rgba(0, 0, 0, 0.04) 0 2px 6px 0,
-                      rgba(0, 0, 0, 0.1) 0 4px 8px 0;
-    --tm-elevation-2: rgba(0, 0, 0, 0.04) 0 0 0 1px,
-                      rgba(0, 0, 0, 0.06) 0 4px 12px 0,
-                      rgba(0, 0, 0, 0.08) 0 12px 20px -8px;
-    --tm-elevation-3: rgba(0, 0, 0, 0.08) 0 0 0 1px,
-                      rgba(0, 0, 0, 0.08) 0 8px 24px 0,
-                      rgba(0, 0, 0, 0.12) 0 20px 40px -12px;
+                      rgba(0, 0, 0, 0.04) 0 1px 3px 0,
+                      rgba(0, 0, 0, 0.05) 0 4px 8px -4px;
+    --tm-elevation-2: rgba(0, 0, 0, 0.03) 0 0 0 1px,
+                      rgba(0, 0, 0, 0.06) 0 3px 8px -1px,
+                      rgba(0, 0, 0, 0.05) 0 10px 18px -10px;
+    --tm-elevation-3: rgba(0, 0, 0, 0.05) 0 0 0 1px,
+                      rgba(0, 0, 0, 0.08) 0 8px 20px -8px,
+                      rgba(0, 0, 0, 0.06) 0 18px 36px -14px;
 
     --tm-elevation-card: var(--tm-elevation-1);
+
+    /* ---------------------------------------------------------------------
+       Control density
+
+       Heights for anything a person types into or clicks. Named here rather
+       than written into each rule for the same reason the colours are: the
+       question "how tall is a control" should have one answer, and changing
+       the answer should not mean finding every rule that guessed.
+
+       The values are deliberately smaller than the specification's. These come
+       from a marketplace design system whose 56px field and 48px button are
+       sized for a consumer booking flow, where a field is often the only thing
+       on the screen and a large target is the point. TripMate is a data
+       application: a settings form is five fields and two buttons in a row, and
+       at the specification's sizes that form is taller than the viewport and
+       reads as loose rather than as generous.
+
+       40 and 44 rather than smaller. Below about 36px a control stops being a
+       comfortable pointer target, and the text inside it stops having room for
+       the descenders. */
+    /* One height for both, because they sit next to each other in every form
+       in the application. Two tokens rather than one only so the intent is
+       readable at the use site; the values are deliberately equal. */
+    --tm-control-height: 40px;    /* buttons */
+    --tm-control-height-sm: 32px; /* buttons inside a table row or a toolbar */
+    --tm-field-height: 40px;      /* text inputs, selects, date pickers */
+    --tm-control-pad-x: 18px;     /* button side padding */
+    --tm-field-pad-x: 12px;       /* field side padding */
 
     /* ---------------------------------------------------------------------
        Layout
@@ -270,6 +331,202 @@
     --tm-container-max: 1280px; /* editorial and homepage */
     --tm-container-narrow: 1080px; /* listing detail */
     --tm-container-wide: 1440px; /* search results cap */
+}
+
+/* ==========================================================================
+   Dark theme
+
+   Selected by an attribute on <html> rather than by a prefers-color-scheme
+   media query, because the application is server-rendered and the server has
+   to be able to answer the same question. The report charts are Chart.js
+   configuration built in Java, and a canvas cannot read a custom property, so
+   the palette has to be chosen before the page is sent. A media query would
+   leave the server guessing and the charts rendering light on a dark page.
+
+   The attribute is written by ThemeBean from a cookie, which means there is
+   no flash of the wrong theme on load: the correct colours are in the first
+   byte of HTML. It also means the choice survives a sign-out, which a
+   session-scoped setting would not.
+
+   Only tokens are redefined. Not one rule below this line changes, and that
+   is a property of the stylesheet worth protecting: there is no colour
+   literal anywhere outside the two token blocks, which is what makes this
+   block the whole of dark mode. Adding a literal below would mean writing
+   dark mode twice.
+
+   The values are not the light ones inverted. Inverting a white floor with
+   dark ink gives pure black and pure white, which is harsh to read and, more
+   practically, destroys the hairline a card needs to separate itself from the
+   page. So the floor is a near-black carrying a trace of blue, surfaces step
+   *up* toward the reader instead of down, and ink stops short of white for
+   the same reason the light theme stops short of black.
+   ========================================================================== */
+
+:root[data-theme="dark"] {
+    /* ---------------------------------------------------------------------
+       Accent
+
+       Rausch is unchanged. It is the brand and the single accent, and it
+       already clears 3:1 against this floor for the filled buttons it
+       carries. Only the pressed state had to move: darkening Rausch on a dark
+       page reads as nothing having happened, so the press goes the other way,
+       to a lighter tint.
+       --------------------------------------------------------------------- */
+    --tm-color-primary: #ff385c;
+    --tm-color-primary-active: #ff5c7a;
+    --tm-color-primary-disabled: #5c2431;
+
+    /* ---------------------------------------------------------------------
+       Surface
+
+       Card above canvas, canvas below card. The soft tone is the hover band
+       and the disabled field, so it sits between the two, and the strong tone
+       is the circular icon-button surface, so it sits above the card.
+       --------------------------------------------------------------------- */
+    --tm-color-canvas: #000000;
+    --tm-color-button: #373434;
+    --tm-color-on-button: #f4f4f6;
+    --tm-color-button-quiet: transparent;
+    --tm-color-button-quiet-ink: #e7e7e7;
+    --tm-color-surface-card: #151519;
+    --tm-color-surface-soft: #1e1e23;
+    --tm-color-surface-strong: #2a2a31;
+
+    /* ---------------------------------------------------------------------
+       Hairlines
+
+       Lifted well clear of the surfaces rather than nudged. #dddddd against
+       white is a 12% step; the same 12% step taken down here lands inside the
+       noise of the surfaces and the border disappears entirely. These are
+       roughly a 25% step, which reads as the same weight of line.
+       --------------------------------------------------------------------- */
+    --tm-color-hairline: #2a2a31;
+    --tm-color-hairline-soft: #212127;
+    --tm-color-track: #3b3b44;
+    --tm-color-border-strong: #5a5a66;
+
+    /* ---------------------------------------------------------------------
+       Text
+       --------------------------------------------------------------------- */
+    --tm-color-ink: #f4f4f6;
+    --tm-color-body: #cfcfd6;
+    --tm-color-muted: #a0a0ac;
+    --tm-color-muted-soft: #6f6f7c;
+    --tm-color-on-primary: #ffffff;
+    --tm-color-on-dark: #f4f4f6;
+
+    /* Text on an ink-filled surface: the selected chip, the current page in
+       a paginator, a checked box, the administrator chip. Ink is dark on the
+       light theme and light on the dark one, so the text on it has to flip
+       with it. `--tm-color-on-dark` is the wrong token for these: it means
+       text on the brand gradient, which is dark in both themes and needs
+       white in both. */
+    --tm-color-on-ink: #0b0b0e;
+    --tm-color-star-rating: #f4f4f6;
+
+    /* ---------------------------------------------------------------------
+       States
+
+       Each tone is its light value lifted until it clears 4.5:1 on its own
+       soft surface *and* on the canvas, and each soft surface is the light
+       one dropped to a tint that reads as a surface rather than as a coloured
+       block. The pairing rule from the light theme is unchanged: the tone is
+       always the text, the soft value is always the background.
+       --------------------------------------------------------------------- */
+    --tm-color-success: #4ade80;
+    --tm-color-success-soft: #10261c;
+    --tm-color-success-border: #215a3d;
+
+    --tm-color-warning: #fbbf24;
+    --tm-color-warning-soft: #2a1f0a;
+    --tm-color-warning-border: #6b4c14;
+
+    --tm-color-danger-soft: #2b1614;
+    --tm-color-danger-border: #7c2d26;
+
+    /* The token the split above exists for. `--tm-color-danger` fills the
+       destructive buttons and carries white text, so it has to stay dark;
+       `--tm-color-danger-ink` is the same tone read as text on a soft
+       surface, so it has to be light. On a light page those are the same
+       requirement; here they are opposite ones. */
+    --tm-color-danger: #b91c1c;
+    --tm-color-danger-ink: #f87171;
+
+    --tm-color-info: #60a5fa;
+    --tm-color-info-soft: #0f2036;
+    --tm-color-info-border: #1f4670;
+
+    /* Text role, so it lifts. The hover belongs to the destructive button's
+       fill, so it stays dark enough for white to sit on it, which is why the
+       pair diverges here and does not in the light theme. */
+    --tm-color-error: #f87171;
+    --tm-color-error-hover: #991b1b;
+    --tm-color-legal-link: #7cb3ff;
+
+    /* ---------------------------------------------------------------------
+       Gradients
+       --------------------------------------------------------------------- */
+    /* The brand gradient is already dark enough to carry white text and is
+       left exactly as it is. Only the near-white wash has to be re-pitched,
+       or every empty state becomes a bright rectangle on a dark page. */
+    --tm-gradient-subtle: linear-gradient(180deg, #1a1119 0%, #0b0b0e 100%);
+
+    /* ---------------------------------------------------------------------
+       Charts
+
+       Lifted for the same reason the state tones are: the light series were
+       validated against a white canvas, and against a near-black one the two
+       darkest lose the separation the ordering depends on.
+
+       The order is untouched. The order is the colourblind-safety mechanism,
+       and this set was put through the same five checks as the light one
+       rather than being lightened by eye.
+       --------------------------------------------------------------------- */
+    --tm-chart-1: #ff5c7a;
+    --tm-chart-2: #5b9df9;
+    --tm-chart-3: #35c08e;
+    --tm-chart-4: #e0a83a;
+    --tm-chart-5: #8b7ce8;
+    --tm-chart-6: #e879a6;
+    --tm-chart-other: #a0a0ac;
+    --tm-cat-1: #e0a83a; --tm-cat-1-soft: #2a1f0a; --tm-cat-1-border: #6b4c14;
+    --tm-cat-2: #7cb3ff; --tm-cat-2-soft: #101d2e; --tm-cat-2-border: #27456d;
+    --tm-cat-3: #4ade80; --tm-cat-3-soft: #10261c; --tm-cat-3-border: #215a3d;
+    --tm-cat-4: #a99cf0; --tm-cat-4-soft: #1c1930; --tm-cat-4-border: #3f3670;
+    --tm-cat-5: #ec86b4; --tm-cat-5-soft: #2c1420; --tm-cat-5-border: #6d2c48;
+    --tm-cat-6: #a0a0ac; --tm-cat-6-soft: #1e1e23; --tm-cat-6-border: #3b3b44;
+
+    --tm-chart-grid: #2a2a31;
+    --tm-chart-axis: #a0a0ac;
+
+    /* ---------------------------------------------------------------------
+       Elevation
+
+       A drop shadow cannot be seen on a dark floor: there is nothing darker
+       for it to fall on. Depth therefore moves to the ring, which goes from a
+       near-transparent black hairline to a real light edge, and the shadow is
+       kept only to soften the transition rather than to carry the tier.
+       --------------------------------------------------------------------- */
+    --tm-elevation-1: rgba(255, 255, 255, 0.05) 0 0 0 1px,
+                      rgba(0, 0, 0, 0.35) 0 1px 3px 0,
+                      rgba(0, 0, 0, 0.3) 0 4px 8px -4px;
+    --tm-elevation-2: rgba(255, 255, 255, 0.06) 0 0 0 1px,
+                      rgba(0, 0, 0, 0.4) 0 3px 8px -1px,
+                      rgba(0, 0, 0, 0.35) 0 10px 18px -10px;
+    --tm-elevation-3: rgba(255, 255, 255, 0.08) 0 0 0 1px,
+                      rgba(0, 0, 0, 0.5) 0 8px 20px -8px,
+                      rgba(0, 0, 0, 0.4) 0 18px 36px -14px;
+
+    /* The scrim sits behind a dialog on a page that is already dark, so it
+       has to be heavier to separate the two planes at all. */
+    --tm-scrim-opacity: 0.7;
+
+    /* Asks the browser to draw its own furniture: scrollbars, the caret, the
+       native parts of the date picker, the default form control chrome, for
+       a dark page. Without it a scrollbar is a light strip down a dark
+       window, which is the tell that a theme was applied rather than
+       designed. */
+    color-scheme: dark;
 }
 
 /* ==========================================================================
@@ -306,11 +563,7 @@ body {
     min-height: 100dvh;
 }
 
-/* The content column absorbs the free space, which is what pushes the footer
-   down. Without this the flex column packs everything to the top. */
-body > main {
-    flex: 1 0 auto;
-}
+
 
 /* ==========================================================================
    Breakpoints
@@ -382,7 +635,7 @@ body > main {
    DESIGN.md Part Two section 1. The soft value is always the background. */
 .tm-text-success     { color: var(--tm-color-success); }
 .tm-text-warning     { color: var(--tm-color-warning); }
-.tm-text-danger      { color: var(--tm-color-danger); }
+.tm-text-danger      { color: var(--tm-color-danger-ink); }
 .tm-text-info        { color: var(--tm-color-info); }
 
 /* ==========================================================================
@@ -400,8 +653,8 @@ body > main {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 48px;
-    padding: 14px 24px;
+    min-height: var(--tm-control-height);
+    padding: 10px var(--tm-control-pad-x);
     border: none;
     border-radius: var(--tm-radius-sm);
     background-color: var(--tm-color-primary);
@@ -429,8 +682,8 @@ body > main {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 48px;
-    padding: 13px 23px; /* 1px less than primary to absorb the border */
+    min-height: var(--tm-control-height);
+    padding: 9px 17px; /* 1px less than primary to absorb the border */
     border: 1px solid var(--tm-color-ink);
     border-radius: var(--tm-radius-sm);
     background-color: var(--tm-color-canvas);
@@ -447,8 +700,8 @@ body > main {
    thickens to 2px ink — no glow, no ring. */
 .tm-input {
     width: 100%;
-    min-height: 56px;
-    padding: 14px 12px;
+    min-height: var(--tm-field-height);
+    padding: 10px var(--tm-field-pad-x);
     border: 1px solid var(--tm-color-hairline);
     border-radius: var(--tm-radius-sm);
     background-color: var(--tm-color-canvas);
@@ -474,6 +727,7 @@ body > main {
    14px radius, 24px padding, the single elevation tier. */
 .tm-card {
     padding: var(--tm-space-lg);
+    border: 1px solid var(--tm-color-hairline);
     border-radius: var(--tm-radius-md);
     background-color: var(--tm-color-surface-card);
     box-shadow: var(--tm-elevation-card);
@@ -511,10 +765,31 @@ body > main {
        that impossible whatever the container does. */
     width: 100%;
     align-self: stretch;
+
+    /* Absorbs the free space in the content column, which is what pushes the
+       footer to the bottom of a short page rather than leaving it directly
+       under the last card.
+
+       This lived on `body > main` until the shell was introduced. That selector
+       needed the page to be a direct child of body, and wrapping the shell
+       around it quietly broke the match, so the footer rose to sit under the
+       content with the rest of the viewport empty beneath it. Nothing errored:
+       a descendant selector that stops matching just stops applying. Stating it
+       on the page's own class instead means it survives whatever wraps it. */
+    flex: 1 0 auto;
     box-sizing: border-box;
     max-width: var(--tm-container-max);
     margin: 0 auto;
-    padding: var(--tm-space-xxl) var(--tm-space-lg) var(--tm-space-section);
+    /* The top inset is one step, not two. With the breadcrumb line above it
+       there is already a band between the chrome and the first heading, and a
+       second generous gap under that read as a page that had not finished
+       loading rather than as breathing room. */
+    padding: var(--tm-space-base) var(--tm-space-lg) var(--tm-space-section);
+}
+
+/* The breadcrumb sits directly on the first block, not a page-gap away. */
+.tm-page > .tm-breadcrumbs + * {
+    margin-top: var(--tm-space-base);
 }
 
 .tm-page > * + * {
@@ -713,9 +988,26 @@ body > main {
    variants get the ink outline the system uses for its secondary button.
    -------------------------------------------------------------------------- */
 
-body .ui-button {
-    min-height: 48px;
-    padding: 14px 24px;
+/* The theme's button rules outrank a plain `body .ui-button`, because its
+   selectors carry more classes, and three of the things it sets have to be
+   undone:
+
+     - it pads the label (`8px 16px 8px 32px`) to clear the icon, which both
+       pushes the label away from the icon and inflates the button: the height
+       fell out of that padding and came to 60px beside a 44px field
+     - it positions the icon absolutely against the left edge, so the icon sat
+       on the border with the label stranded to its right
+     - it lets the height be derived rather than setting one, which is why the
+       button and the field never agreed
+
+   The selectors below therefore repeat the class and carry a `:root`, which is
+   enough to outrank the theme's, and they set the geometry outright. */
+:root body .ui-button.ui-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--tm-field-height);
+    padding: 0 var(--tm-control-pad-x);
     border: none;
     border-radius: var(--tm-radius-sm);
     background-color: var(--tm-color-primary);
@@ -725,6 +1017,29 @@ body .ui-button {
     font-weight: 500;
     line-height: 1.25;
     transition: none;
+}
+
+/* Icon and label geometry, at a specificity the theme does not outrank.
+
+   The icon goes back into the flow and sits immediately left of the label,
+   and the pair is centred by the flex container. The margin is the whole of
+   the gap between icon and text; the button's own padding supplies the space
+   to the border, equally on both sides, which is what keeps the icon off the
+   edge and the group centred. */
+:root body .ui-button.ui-button .ui-button-icon-left {
+    position: static;
+    left: auto;
+    top: auto;
+    width: auto;
+    height: auto;
+    margin: 0 var(--tm-space-sm) 0 0;
+    font-size: 1em;
+    line-height: 1;
+}
+
+:root body .ui-button.ui-button .ui-button-text {
+    padding: 0;
+    line-height: 1.25;
 }
 
 body .ui-button.ui-state-hover,
@@ -765,11 +1080,41 @@ body .ui-button.ui-state-disabled {
     opacity: 1;
 }
 
+/* The icon in an icon-only button sits in the middle of the button.
+
+   Two things moved it off centre. The base button rule, `:root body
+   .ui-button.ui-button`, outranks `body .ui-button.ui-button-icon-only`, so
+   every icon-only button kept the full field padding of 18px a side: inside a
+   40px box that leaves a 4px content box, and the icon overflows it rather than
+   being centred in it. And the icon span carries an 8px trailing margin to
+   space it from a label, which is right for a button with a label and wrong
+   for one without: `justify-content: center` centres the margin box, so the
+   glyph sat about 4px right of centre. The empty text span is taken out of the
+   flow for the same reason, since it is a flex item with nothing in it. */
+:root body .ui-button.ui-button-icon-only {
+    padding: 0;
+}
+
+:root body .ui-button.ui-button-icon-only .ui-button-icon-left {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    margin: 0;
+    font-size: 1em;
+    line-height: 1;
+}
+
+:root body .ui-button.ui-button-icon-only .ui-button-text {
+    display: none;
+}
+
 /* Icon-only buttons: the system's circular icon button, on the strong surface
    rather than on Rausch, since they are navigation rather than actions. */
 body .ui-button.ui-button-icon-only {
-    width: 40px;
-    min-height: 40px;
+    width: var(--tm-field-height);
+    height: var(--tm-field-height);
     padding: 0;
     border: 1px solid var(--tm-color-hairline);
     border-radius: var(--tm-radius-full);
@@ -809,13 +1154,20 @@ body .ui-inputtextarea {
 
 body .ui-inputfield,
 body .ui-inputtext {
-    height: 56px;
-    padding: 0 14px;
+    height: var(--tm-field-height);
+    padding: 0 var(--tm-field-pad-x);
 }
+
+/* The select is deliberately not in the rule above. It is an outer wrapper
+   with an inner label rather than a single box, so it has its own rule further
+   down that sets the wrapper's height and centres the label inside it; giving
+   both the same declaration here would only be a second place for the height
+   to be written, and the two would drift. */
+
 
 body .ui-inputtextarea {
     height: auto;
-    padding: 14px;
+    padding: 10px var(--tm-field-pad-x);
 }
 
 /* The select is an outer wrapper with an absolutely positioned trigger and an
@@ -823,7 +1175,11 @@ body .ui-inputtextarea {
    centres its text with flexbox rather than with padding, so the text cannot
    push the wrapper taller than the height set here. */
 body .ui-selectonemenu {
-    height: 56px;
+    /* From the token, not a literal. This said 56px, which was correct while
+       every other field was 56px and stayed correct-looking for exactly as
+       long as that lasted: when the fields were compacted this one did not
+       move, and a select beside a text input came out 16px taller. */
+    height: var(--tm-field-height);
     padding: 0;
 }
 
@@ -1118,22 +1474,49 @@ body .ui-datatable table {
     border-collapse: collapse;
 }
 
-body .ui-datatable thead th,
-body .ui-datatable .ui-datatable-thead > tr > th {
-    padding: var(--tm-space-md) var(--tm-space-base);
+/* The header is a band rather than a row of labels with a rule under it.
+
+   It takes the soft surface, so the columns are named on something and the
+   data starts on the card: the eye finds the boundary between the two without
+   reading anything. The type is smaller and heavier than the body, which is
+   the one place in the application where that is true, and it is what makes a
+   header read as a label rather than as a short first row. */
+:root body .ui-datatable thead th,
+:root body .ui-datatable .ui-datatable-thead > tr > th {
+    padding: 0 var(--tm-space-base);
+    height: 42px;
     border: none;
     border-bottom: 1px solid var(--tm-color-hairline);
-    background-color: transparent;
+    background-color: var(--tm-color-surface-soft);
     color: var(--tm-color-muted);
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.29;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.2px;
     text-align: left;
+    white-space: nowrap;
 }
 
-body .ui-datatable tbody td,
-body .ui-datatable .ui-datatable-tbody > tr > td {
-    padding: var(--tm-space-md) var(--tm-space-base);
+body .ui-datatable thead tr > th:first-child {
+    border-top-left-radius: var(--tm-radius-sm);
+}
+
+body .ui-datatable thead tr > th:last-child {
+    border-top-right-radius: var(--tm-radius-sm);
+}
+
+/* `:root` and the data-table path, because the theme's own rule for a body
+   cell is a class heavier and was supplying the vertical padding and the
+   height. */
+:root body .ui-datatable tbody tr > td,
+:root body .ui-datatable .ui-datatable-tbody > tr > td,
+:root body .ui-datatable .ui-datatable-data > tr > td {
+    /* No padding above or below a cell. The row has a height of its own, and
+       padding on top of it was making every table taller than its rows. */
+    padding: 0 var(--tm-space-base);
+    height: 60px;
+    line-height: 1.5;
+    vertical-align: middle;
     border: none;
     border-bottom: 1px solid var(--tm-color-hairline-soft);
     background-color: transparent;
@@ -1173,11 +1556,19 @@ body .ui-datatable thead th.ui-sortable-column {
 }
 
 body .ui-datatable thead th.ui-sortable-column:hover {
-    background-color: var(--tm-color-surface-soft);
+    background-color: var(--tm-color-surface-strong);
     color: var(--tm-color-ink);
 }
 
+/* The background is reset here and not only on hover, which is what the theme
+   was showing through. The bundled theme paints its own light background on an
+   active header, and its rule is more specific than the transparent one the
+   base table rule sets. While the pointer stayed on the header our hover rule
+   covered it; the moment the pointer left, the hover stopped applying and the
+   theme's near-white band appeared under a sorted column on the dark theme.
+   Declaring it here outranks the theme, in both themes and in both states. */
 body .ui-datatable thead th.ui-sortable-column.ui-state-active {
+    background-color: var(--tm-color-surface-strong);
     color: var(--tm-color-ink);
     font-weight: 600;
 }
@@ -1263,7 +1654,7 @@ body .ui-paginator .ui-paginator-last:hover {
 body .ui-paginator .ui-paginator-pages .ui-paginator-page.ui-state-active {
     border-color: var(--tm-color-ink);
     background-color: var(--tm-color-ink);
-    color: var(--tm-color-on-dark);
+    color: var(--tm-color-on-ink);
     font-weight: 600;
 }
 
@@ -2194,7 +2585,7 @@ body .ui-chart {
     padding: var(--tm-space-md) var(--tm-space-base);
     border-radius: var(--tm-radius-sm);
     background-color: var(--tm-color-ink);
-    color: var(--tm-color-on-dark);
+    color: var(--tm-color-on-ink);
     font-size: 14px;
     font-weight: 600;
     text-decoration: none;
@@ -2203,7 +2594,7 @@ body .ui-chart {
 
 .tm-skip-link:focus {
     top: var(--tm-space-base);
-    color: var(--tm-color-on-dark);
+    color: var(--tm-color-on-ink);
 }
 
 /* --- wordmark ------------------------------------------------------------- */
@@ -2320,6 +2711,62 @@ body .ui-chart {
     white-space: nowrap;
 }
 
+/* The theme toggle. Sized and shaped to sit beside the account link without
+   reading as a stray control: same height, same round silhouette, and muted
+   until it is pointed at, because it is a preference rather than an action
+   anybody came here to take. */
+.tm-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: var(--tm-radius-full);
+    background-color: transparent;
+    color: var(--tm-color-muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--tm-motion-fast) var(--tm-motion-ease),
+                color var(--tm-motion-fast) var(--tm-motion-ease);
+}
+
+.tm-theme-toggle:hover {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+.tm-theme-toggle:focus-visible {
+    outline: 2px solid var(--tm-color-ink);
+    outline-offset: 2px;
+}
+
+/* The copy inside the off-canvas panel is a full-width row like the links
+   above it, rather than the circular button used in the bar. An icon-only
+   button floating in a list of text links reads as a mistake, and the panel
+   has the width to spell out what it does. */
+.tm-theme-toggle-panel {
+    display: flex;
+    align-items: center;
+    gap: var(--tm-space-sm);
+    width: 100%;
+    border: none;
+    background-color: transparent;
+    color: var(--tm-color-ink);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tm-theme-toggle-panel:hover {
+    background-color: var(--tm-color-surface-soft);
+}
+
 /* The sign-out control is a compact secondary button, not a full-height CTA:
    it sits inside the bar. */
 .tm-nav-account .ui-button {
@@ -2411,6 +2858,22 @@ body .ui-chart {
     text-decoration: none;
 }
 
+/* The active section in the panel takes a filled row rather than the bar's
+   underline. Two reasons. On a full-width vertical row an underline sits
+   against the row below it and reads as a divider between two items rather
+   than as the selected one. And the underline is positioned absolutely against
+   the link, which works in the bar because the bar's links are positioned; the
+   panel's are not, so the rule would be drawn against whatever ancestor
+   happened to be positioned. */
+.tm-nav-panel-link.tm-nav-link-active {
+    background-color: var(--tm-color-surface-soft);
+    font-weight: 600;
+}
+
+.tm-nav-panel-link.tm-nav-link-active::after {
+    display: none;
+}
+
 .tm-nav-panel-link:hover {
     background-color: var(--tm-color-surface-soft);
     color: var(--tm-color-ink);
@@ -2436,8 +2899,22 @@ body .ui-chart {
    the slide still works. The transition is what keeps the animation: visibility
    flips instantly on open, and on close it waits out the slide before hiding,
    so the panel is not cut off mid-motion. */
-.tm-nav-panel {
+/* Prefixed with `:root` for the same reason the selected tab is: this rule
+   ties with the theme's own `.ui-sidebar` on specificity, the theme's
+   stylesheet is injected after this one, and the tie goes to the theme. The
+   visible result was a white drawer sliding over a black page, with the links
+   in it drawn in our ink, which is white on white, so the navigation was invisible.
+
+   Naming the tokens here rather than adding an override to the dark block is
+   what fixes both themes at once: the theme's white was already right on a
+   white page, and wrong only because nothing had ever told it otherwise. */
+:root .tm-nav-panel {
     visibility: hidden;
+
+    border-right: 1px solid var(--tm-color-hairline);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-ink);
+
     transition: transform var(--tm-motion-slow) var(--tm-motion-ease),
                 visibility 0s linear var(--tm-motion-slow);
 }
@@ -2455,6 +2932,28 @@ body .ui-chart {
 @media (max-width: 1023px) {
     .tm-nav-account-name {
         display: none;
+    }
+
+    /* The section links and the account block collapse into the drawer as soon
+       as the sidebar is gone, so the bar has one shape below 1024 rather than
+       two. The sidebar is the navigation on a wide screen; the moment it is
+       taken away, the bar must carry the whole of it, which means the drawer.
+
+       The alternative, which is what this replaced, was to keep the links in
+       the bar down to 744px and only then collapse. That left a band where the
+       bar showed three links and an avatar and the drawer showed the same three
+       links plus a profile link: two navigations on screen at once, neither of
+       them complete. */
+    .tm-nav {
+        display: none;
+    }
+
+    .tm-nav-account {
+        display: none;
+    }
+
+    .tm-nav-toggle {
+        display: inline-flex;
     }
 }
 
@@ -2505,9 +3004,12 @@ body .ui-chart {
 
 @media (min-width: 1280px) {
     /* Past a certain width an even split gives the form more room than it can
-       use and starves the pitch, so the pitch takes the larger share. */
+       use and starves the pitch, so the pitch takes the larger share.
+
+       The order here is the source order: the form is the first column and the
+       pitch is the second, which is why the larger fraction is last. */
     .tm-auth-shell {
-        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
     }
 }
 
@@ -2625,15 +3127,27 @@ body .ui-chart {
     margin-bottom: var(--tm-space-md);
 }
 
-.tm-auth-card .tm-body-sm {
+/* The lead paragraph under the heading. Scoped to direct children so it cannot
+   reach the two paragraphs below the form, which carry their own spacing and
+   are not leads. */
+.tm-auth-card > .tm-body-sm {
     margin: 0 0 var(--tm-space-lg);
 }
 
-.tm-auth-alt {
-    margin: var(--tm-space-lg) 0 0;
+/* Both of these sit below the form and both are `tm-body-sm`, so both collide
+   with the rule above. They are written with the card in the selector so they
+   match its specificity and, being later in the file, win.
+
+   Without that they lost, and the symptom was the one reported: "No account
+   yet?" sat almost against the button. The rule above was setting
+   `margin: 0 0 24px`, so the `margin-top` these two ask for was being
+   overwritten with zero, and no amount of increasing it here would have
+   helped. */
+.tm-auth-card .tm-auth-alt {
+    margin: var(--tm-space-xl) 0 0;
 }
 
-.tm-auth-hint {
+.tm-auth-card .tm-auth-hint {
     margin: var(--tm-space-base) 0 0;
     padding-top: var(--tm-space-base);
     border-top: 1px solid var(--tm-color-hairline-soft);
@@ -2727,10 +3241,13 @@ body .tm-input-narrow.ui-inputfield {
 
 .tm-stat-debit .tm-stat-icon {
     background-color: var(--tm-color-danger-soft);
-    color: var(--tm-color-danger);
+    color: var(--tm-color-danger-ink);
 }
 
+/* The icon is pinned to the corner, so the label has to keep clear of it.
+   With five tiles across, "YOU HAVE PAID" ran underneath it. */
 .tm-stat-label {
+    padding-right: 40px;
     margin: 0 0 var(--tm-space-sm);
     color: var(--tm-color-muted);
     font-size: 12px;
@@ -2756,6 +3273,27 @@ body .tm-input-narrow.ui-inputfield {
     color: var(--tm-color-muted);
     font-size: 13px;
     line-height: 1.23;
+}
+
+/* The tiles whose figure is a direction or a kind say so in colour; the ones
+   that are plain counts stay ink.
+
+   These need the second class. `.tm-stat-value` is declared below
+   `.tm-positive` and `.tm-negative` at the same weight, so it was winning and
+   every figure came out ink however it was classed, which is why the position
+   on the profile was the same colour whether the reader was owed money or
+   owed it. */
+.tm-stat-value.tm-stat-value-pay {
+    color: var(--tm-color-danger-ink);
+}
+
+.tm-stat-value.tm-stat-value-get,
+.tm-stat-value.tm-stat-value-received {
+    color: var(--tm-color-success);
+}
+
+.tm-stat-value.tm-stat-value-repaid {
+    color: var(--tm-color-info);
 }
 
 /* State chips.
@@ -2815,7 +3353,7 @@ body .tm-input-narrow.ui-inputfield {
 .tm-status-cancelled {
     border-color: var(--tm-color-danger-border);
     background-color: var(--tm-color-danger-soft);
-    color: var(--tm-color-danger);
+    color: var(--tm-color-danger-ink);
 }
 
 /* --- which way a balance runs --------------------------------------------
@@ -2830,7 +3368,7 @@ body .tm-input-narrow.ui-inputfield {
 .tm-status-debit {
     border-color: var(--tm-color-danger-border);
     background-color: var(--tm-color-danger-soft);
-    color: var(--tm-color-danger);
+    color: var(--tm-color-danger-ink);
 }
 
 .tm-status-square {
@@ -2845,7 +3383,7 @@ body .tm-input-narrow.ui-inputfield {
 .tm-status-admin {
     border-color: var(--tm-color-ink);
     background-color: var(--tm-color-ink);
-    color: var(--tm-color-on-dark);
+    color: var(--tm-color-on-ink);
 }
 
 .tm-status-member {
@@ -3147,7 +3685,7 @@ body .tm-input-narrow.ui-inputfield {
 .tm-notice-danger {
     border-left-color: var(--tm-color-danger);
     background-color: var(--tm-color-danger-soft);
-    color: var(--tm-color-danger);
+    color: var(--tm-color-danger-ink);
 }
 
 .tm-notice-info {
@@ -3177,13 +3715,25 @@ body .tm-input-narrow.ui-inputfield {
     border-top: 1px solid var(--tm-color-hairline);
 }
 
+/* The prose in a danger row. Takes the free space so the control beside it is
+   pushed to the right edge, which is what puts one block on the left and the
+   button on the right without either of them being positioned. */
+.tm-danger-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Replaces the leave button when leaving would strand the trip. Constrained to
+   a readable measure so the sentence wraps inside the danger row rather than
+   stretching the full width of the card. */
+
 .tm-danger-zone h3 {
     margin: 0 0 var(--tm-space-xs);
 }
 
 .tm-danger-zone p {
     margin: 0;
-    max-width: 60ch;
+    max-width: none;
 }
 
 /* A danger zone whose action needs more than one control, as the typed
@@ -3218,19 +3768,43 @@ body .ui-button.tm-button-danger.ui-state-hover {
     color: var(--tm-color-on-primary);
 }
 
-/* Checkboxes and radios take ink when checked. The theme uses its blue, which
-   is a second accent the system does not have. */
-body .ui-chkbox .ui-chkbox-box.ui-state-active,
-body .ui-radiobutton .ui-radiobutton-box.ui-state-active {
-    border-color: var(--tm-color-ink);
-    background-color: var(--tm-color-ink);
-    color: var(--tm-color-on-dark);
-}
+/* Checked boxes and radios take the brand accent, and nothing else gets in.
 
-body .ui-chkbox .ui-chkbox-box,
-body .ui-radiobutton .ui-radiobutton-box {
+   The theme paints them with a blue of its own, which is a second accent this
+   system does not have. Two things were letting it through: the theme's rule
+   for the checked box is one class away from matching ours, and it paints the
+   tick and the radio's dot on the inner icon elements, which nothing here
+   touched. Both are covered now, and both carry `:root` so the weight is not
+   in question.
+
+   The fill used to be ink, on the argument that a third colour was worse than
+   none. It is not: on the dark theme ink is near-white, so a checked box came
+   out as a white square with a dark tick, which reads as inverted rather than
+   as chosen. The accent is the colour the buttons beside it already use. */
+:root body .ui-chkbox .ui-chkbox-box,
+:root body .ui-radiobutton .ui-radiobutton-box {
     border: 1px solid var(--tm-color-border-strong);
     background-color: var(--tm-color-canvas);
+}
+
+:root body .ui-chkbox .ui-chkbox-box.ui-state-active,
+:root body .ui-radiobutton .ui-radiobutton-box.ui-state-active {
+    border-color: var(--tm-color-primary);
+    background-color: var(--tm-color-primary);
+    color: var(--tm-color-on-primary);
+}
+
+:root body .ui-chkbox .ui-chkbox-box.ui-state-hover,
+:root body .ui-chkbox .ui-chkbox-box.ui-state-focus,
+:root body .ui-radiobutton .ui-radiobutton-box.ui-state-hover,
+:root body .ui-radiobutton .ui-radiobutton-box.ui-state-focus {
+    border-color: var(--tm-color-primary);
+}
+
+:root body .ui-chkbox .ui-chkbox-box .ui-chkbox-icon,
+:root body .ui-radiobutton .ui-radiobutton-box .ui-radiobutton-icon {
+    background-color: transparent;
+    color: inherit;
 }
 
 /* ==========================================================================
@@ -3265,11 +3839,31 @@ body .ui-tabs .ui-tabs-nav li.ui-tabs-header > a {
     line-height: 1.25;
 }
 
+/* The hover surface is named, not inherited, and it carries the `:root` bump
+   for the same reason the selected tab does: the theme puts its own pale
+   background on a hovered tab, and while it was white-on-white here only in
+   dark mode, it was the wrong surface in light mode too. */
+:root body .ui-tabs .ui-tabs-nav li.ui-tabs-header.ui-state-hover {
+    background-color: var(--tm-color-surface-soft);
+}
+
 body .ui-tabs .ui-tabs-nav li.ui-tabs-header.ui-state-hover > a {
     color: var(--tm-color-ink);
 }
 
-body .ui-tabs .ui-tabs-nav li.ui-tabs-header.ui-state-active {
+/* Written with a `:root` prefix it does not need, on purpose.
+
+   The rule below ties with the theme's own rule for the selected tab: same
+   classes, same elements, and the theme's stylesheet is injected after this
+   one, so on a tie it wins. The visible result was a bright blue underline
+   under the selected tab in an application whose whole colour system is built
+   on there being exactly one accent, and it was there in both themes because
+   the theme's blue does not change with ours.
+
+   The extra pseudo-class is a specificity bump of one, which is enough to take
+   the tie-break out of the picture. `:root` is `html`, so this matches the same
+   elements as before and changes nothing else. */
+:root body .ui-tabs .ui-tabs-nav li.ui-tabs-header.ui-state-active {
     border-bottom: 2px solid var(--tm-color-ink);
     background-color: transparent;
 }
@@ -3284,9 +3878,14 @@ body .ui-tabs .ui-tabs-panels {
     background-color: transparent;
 }
 
+/* The colour is named here rather than left to inheritance. The theme sets a
+   grey on its own panel, and a panel that only clears its background inherits
+   that grey: every heading inside a tab rendered in the theme's text colour
+   instead of ours, which was invisible in light mode and obvious in dark. */
 body .ui-tabs .ui-tabs-panel {
     padding: var(--tm-space-lg) 0 0;
     background-color: transparent;
+    color: var(--tm-color-ink);
 }
 
 /* ==========================================================================
@@ -3326,7 +3925,22 @@ body .ui-datepicker .ui-datepicker-next:focus:not(:focus-visible) {
     outline: none;
 }
 
+/* Nothing is drawn on a tab header for pointer focus.
+
+   The theme puts a box on a tab as soon as it is clicked. It is not an outline,
+   a border or a shadow on the anchor, which is why it survived every attempt to
+   remove it by targeting those: it is drawn by the theme's own rule for the
+   header, at a specificity a plain selector does not reach. Scoped with `:root`
+   here, and the keyboard ring below is scoped more tightly still so it wins. */
+:root body .ui-tabs .ui-tabs-nav,
+:root body .ui-tabs .ui-tabs-nav li.ui-tabs-header,
+:root body .ui-tabs .ui-tabs-nav li.ui-tabs-header > a {
+    outline: none;
+    box-shadow: none;
+}
+
 /* Keyboard focus, which stays obvious. */
+:root body .ui-tabs .ui-tabs-nav li.ui-tabs-header > a:focus-visible,
 body .ui-tabs .ui-tabs-nav li.ui-tabs-header > a:focus-visible,
 body .ui-datatable .ui-datatable-data > tr:focus-visible,
 body .ui-datatable td:focus-visible,
@@ -3394,7 +4008,6 @@ body .ui-button:focus-visible {
     gap: var(--tm-space-md);
     padding: var(--tm-space-md) var(--tm-space-base);
     border: 1px solid var(--tm-color-hairline);
-    border-left-width: 3px;
     border-radius: var(--tm-radius-md);
     background-color: var(--tm-color-canvas);
     box-shadow: var(--tm-elevation-3);
@@ -3445,17 +4058,17 @@ body .ui-button:focus-visible {
 
 /* Severity. The icon, the left edge and the tint all change together, so the
    severity is never carried by colour alone. */
-.tm-toast-success { border-left-color: var(--tm-color-success); background-color: var(--tm-color-success-soft); }
+.tm-toast-success { background-color: var(--tm-color-success-soft); }
 .tm-toast-success .tm-toast-icon { color: var(--tm-color-success); }
 
-.tm-toast-info { border-left-color: var(--tm-color-info); background-color: var(--tm-color-info-soft); }
+.tm-toast-info { background-color: var(--tm-color-info-soft); }
 .tm-toast-info .tm-toast-icon { color: var(--tm-color-info); }
 
-.tm-toast-warning { border-left-color: var(--tm-color-warning); background-color: var(--tm-color-warning-soft); }
+.tm-toast-warning { background-color: var(--tm-color-warning-soft); }
 .tm-toast-warning .tm-toast-icon { color: var(--tm-color-warning); }
 
-.tm-toast-error { border-left-color: var(--tm-color-danger); background-color: var(--tm-color-danger-soft); }
-.tm-toast-error .tm-toast-icon { color: var(--tm-color-danger); }
+.tm-toast-error { background-color: var(--tm-color-danger-soft); }
+.tm-toast-error .tm-toast-icon { color: var(--tm-color-danger-ink); }
 
 .tm-toast-leaving {
     animation: tm-toast-out var(--tm-motion-slow) var(--tm-motion-ease) both;
@@ -3559,7 +4172,7 @@ body .ui-button:focus-visible {
     height: 36px;
     border-radius: var(--tm-radius-full);
     background-color: var(--tm-color-canvas);
-    color: var(--tm-color-danger);
+    color: var(--tm-color-danger-ink);
     font-size: 16px;
 }
 
@@ -3593,49 +4206,101 @@ body .ui-button:focus-visible {
    reader as nothing in particular, and blocks the browser while it is open.
    ========================================================================== */
 
+/* The dialog is a shell with no padding of its own. Each part pads itself, so
+   the footer's rule can run the full width of the dialog the way a card's does,
+   instead of stopping short inside a padded box. */
 body .ui-confirm-dialog.tm-confirm,
 body .tm-confirm.ui-confirmdialog {
-    padding: var(--tm-space-lg);
-    border: none;
-    border-radius: var(--tm-radius-md);
-    background-color: var(--tm-color-canvas);
-    box-shadow: var(--tm-elevation-3);
-    max-width: min(440px, calc(100vw - 2 * var(--tm-space-base)));
-}
-
-body .tm-confirm .ui-confirm-dialog-message {
-    margin: 0 0 var(--tm-space-lg);
-    color: var(--tm-color-ink);
-    font-size: 15px;
-    line-height: 1.5;
-}
-
-body .tm-confirm .ui-confirm-dialog-severity {
-    color: var(--tm-color-warning);
-    font-size: 20px;
-}
-
-body .tm-confirm .ui-dialog-footer,
-body .tm-confirm .ui-confirm-dialog-footer {
-    display: flex;
-    gap: var(--tm-space-sm);
-    justify-content: flex-end;
     padding: 0;
     border: none;
+    border-radius: var(--tm-radius-md);
+    /* The card surface rather than the page floor, so on the dark theme the
+       dialog reads as a panel raised off the page instead of a hole in it. */
+    background-color: var(--tm-color-surface-card);
+    box-shadow: var(--tm-elevation-3);
+    max-width: min(440px, calc(100vw - 2 * var(--tm-space-base)));
+    overflow: hidden;
 }
 
 body .tm-confirm .ui-dialog-titlebar {
-    padding: 0 0 var(--tm-space-sm);
+    padding: var(--tm-space-lg) var(--tm-space-lg) var(--tm-space-sm);
     border: none;
     background-color: transparent;
     color: var(--tm-color-ink);
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 700;
+    line-height: 1.4;
 }
 
 /* The dialog's own close control, matched to the rest of the chrome. */
 body .tm-confirm .ui-dialog-titlebar-icon {
     color: var(--tm-color-muted);
+}
+
+/*
+   The message is a plain block, not a flex row around the severity glyph.
+
+   The glyph is not drawn: PrimeFaces hides it unless a confirmation carries a
+   severity, and none of ours does. Laying the row out as a flex container
+   around it left the message indented by the gap beside an element with no
+   width, which is what made the description look nudged out of line with the
+   title above it. With the glyph out of the flow entirely, the description
+   starts on exactly the same left edge as the title.
+*/
+/* `:root` and the full path are not decoration. The theme has
+   `body .ui-dialog.ui-confirm-dialog .ui-dialog-content` (one class more than
+   the bare selector here) laying the content out as a flex row, and
+   `... .ui-dialog-content > span` putting a half-rem of left margin on the
+   message. Both outranked the plain selector, so the content stayed a flex row
+   and the description kept its nudge in from the title. Matching the theme's
+   weight and coming later in the file is what takes it back. */
+:root body .tm-confirm .ui-dialog-content {
+    display: block;
+    margin: 0;
+    padding: 0 var(--tm-space-lg) var(--tm-space-lg);
+    background-color: transparent;
+    border: none;
+    color: var(--tm-color-ink);
+}
+
+:root body .tm-confirm .ui-dialog-content > .ui-confirm-dialog-message {
+    margin: 0;
+    max-width: 46ch;
+    color: var(--tm-color-body);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* The rule above the buttons, full width, with the buttons inset from it. */
+body .tm-confirm .ui-dialog-footer,
+body .tm-confirm .ui-confirm-dialog-footer {
+    display: flex;
+    gap: var(--tm-space-sm);
+    justify-content: flex-end;
+    padding: var(--tm-space-base) var(--tm-space-lg);
+    border: none;
+    border-top: 1px solid var(--tm-color-hairline);
+    background-color: transparent;
+}
+
+/*
+   The two buttons have to be told apart at a glance. Both were being painted
+   from the base button rule, so the cancel and the confirmation came out as
+   two shades of the same red and the reader had to read them to know which one
+   they were about to press. The cancel is now the quiet, outlined button and
+   the confirmation is the only filled one.
+*/
+body .tm-confirm .ui-confirmdialog-no.ui-button {
+    border: 1px solid var(--tm-color-hairline);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-ink);
+}
+
+body .tm-confirm .ui-confirmdialog-no.ui-button:hover,
+body .tm-confirm .ui-confirmdialog-no.ui-button.ui-state-hover {
+    border-color: var(--tm-color-border-strong);
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
 }
 
 /* The confirming button takes the danger tone rather than the brand accent.
@@ -4991,10 +5656,23 @@ body .ui-datatable th {
    visible, each one is reachable by keyboard without opening anything, and the
    chosen trip is in the URL where it can be shared or bookmarked. */
 .tm-chip-row {
+    margin-bottom: var(--tm-space-xl);
+}
+
+/* The chips, and the flex container that carries them.
+   This is the list rather than the row around it, and that is not a detail: the
+   row holds a single <nav>, so a gap set on the row has nothing to sit between
+   and the chips came out touching however large it was made. The gap has to be
+   on the element the chips are children of.
+
+   Row gap is larger than the column gap. Chips wrap on a narrow screen, and an
+   even gap made the wrapped rows read as one dense block rather than as two
+   rows of separate choices. */
+.tm-chip-set {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--tm-space-sm);
-    margin-bottom: var(--tm-space-xl);
+    column-gap: var(--tm-space-md);
+    row-gap: var(--tm-space-base);
 }
 
 /* Written as `a.tm-chip` rather than `.tm-chip` on purpose. The generic
@@ -5031,7 +5709,7 @@ a.tm-chip-active,
 a.tm-chip-active:hover {
     border-color: var(--tm-color-ink);
     background-color: var(--tm-color-ink);
-    color: var(--tm-color-on-dark);
+    color: var(--tm-color-on-ink);
     font-weight: 600;
     text-decoration: none;
 }
@@ -5172,9 +5850,1688 @@ body .ui-tabs .ui-tabs-panel > * {
     margin-bottom: var(--tm-space-xs);
 }
 
-/* Sits directly under the sign-in button, where somebody who has just failed to
-   sign in is looking. */
-.tm-auth-forgot {
-    margin: var(--tm-space-base) 0 0;
+/* A label and a link about the same field, on one row.
+
+   The reset link used to sit under the submit button, which made it the last
+   thing before the action and close enough to the button to read as part of
+   it. On the label's row it costs no vertical space and belongs to the field
+   it is about. `baseline` rather than `center` so the link's text sits on the
+   same line as the label's rather than being centred against its box. */
+.tm-field-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--tm-space-sm);
+    margin-bottom: var(--tm-space-sm);
+}
+
+.tm-field-head .tm-field-label {
+    margin-bottom: 0;
+}
+
+.tm-field-link {
+    color: var(--tm-color-ink);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.tm-field-link:hover {
+    text-decoration: underline;
+}
+
+/* Marks a field that may be left empty. Lighter and smaller than the label so
+   it reads as a qualifier on the field's name rather than as part of it, and
+   lower case so it cannot be mistaken for the name itself. */
+.tm-field-optional {
+    margin-left: var(--tm-space-xs);
+    color: var(--tm-color-muted-soft);
+    font-weight: 400;
+}
+
+
+/* ==========================================================================
+   Application shell
+
+   A sidebar on a wide screen, a bar on a narrow one. Every signed-in page
+   composes the layout template, so the shell is described in one place.
+
+   The navigation is a fixed set of three places and the reader is in one of
+   them for a long time. A bar spends the top of every page on links that never
+   change and puts them as far from the eye as the viewport allows; a sidebar
+   keeps them in one column and leaves the full width to the content. Below
+   1024px that trade reverses, because a permanent 248px column on a tablet is
+   a quarter of the screen spent on three links.
+   ========================================================================== */
+
+.tm-shell {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* The column the page lives in. It is the flex column that keeps the footer at
+   the bottom of a short page, which body used to do before the shell was
+   wrapped around it. */
+.tm-content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* Narrow screens have the bar and the drawer, so there is no sidebar. */
+.tm-sidebar {
+    display: none;
+}
+
+.tm-sidebar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--tm-space-sm);
+    color: var(--tm-color-ink);
+    font-size: 18px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.tm-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tm-sidebar-foot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tm-space-xs);
+    margin-top: auto;
+    padding-top: var(--tm-space-base);
+    border-top: 1px solid var(--tm-color-hairline-soft);
+}
+
+.tm-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: var(--tm-space-sm);
+    min-height: 40px;
+    padding: 0 var(--tm-space-md);
+    border: none;
+    border-radius: var(--tm-radius-sm);
+    background-color: transparent;
+    color: var(--tm-color-ink);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--tm-motion-fast) var(--tm-motion-ease);
+}
+
+.tm-sidebar-link:hover {
+    background-color: var(--tm-color-surface-soft);
+}
+
+/* The vertical presentation of a nav link. Shared by the sidebar and the
+   drawer, so the two cannot describe the same place differently. */
+.tm-sidebar-nav .tm-nav-link,
+.tm-nav-panel .tm-nav-link {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 var(--tm-space-md);
+    border-radius: var(--tm-radius-sm);
+    color: var(--tm-color-ink);
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color var(--tm-motion-fast) var(--tm-motion-ease);
+}
+
+.tm-sidebar-nav .tm-nav-link:hover,
+.tm-nav-panel .tm-nav-link:hover {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+    text-decoration: none;
+}
+
+/* A filled row rather than the bar's underline: on a full-width vertical row an
+   underline sits against the row below and reads as a divider between two items
+   rather than as the selected one. */
+.tm-sidebar-nav .tm-nav-link.tm-nav-link-active,
+.tm-nav-panel .tm-nav-link.tm-nav-link-active {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* The bar's underline is positioned absolutely against the link, which works
+   there because the bar's links are positioned. These are not. */
+.tm-sidebar-nav .tm-nav-link.tm-nav-link-active::after,
+.tm-nav-panel .tm-nav-link.tm-nav-link-active::after {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .tm-shell {
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+    }
+
+    /* Sticky rather than fixed, so it scrolls with the document until it would
+       leave the viewport and then holds. A fixed column would need the content
+       offset by a matching padding, kept in step with this width by hand. */
+    .tm-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: var(--tm-space-lg);
+        position: sticky;
+        top: 0;
+        align-self: start;
+        box-sizing: border-box;
+        height: 100vh;
+        height: 100dvh;
+        padding: var(--tm-space-lg) var(--tm-space-base);
+        border-right: 1px solid var(--tm-color-hairline);
+        background-color: var(--tm-color-canvas);
+    }
+
+    /* The bar is the narrow-screen presentation, and the hamburger goes with it. */
+    .tm-topnav {
+        display: none;
+    }
+}
+
+/* The sidebar's brand mark. An <img> on the icon file that already ships for
+   the browser tab, rather than a second inline copy of the same drawing. */
+.tm-sidebar-brand-mark {
+    display: block;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+}
+
+/* ==========================================================================
+   Table row actions, inline row editing, and the mobile tab panel
+   ========================================================================== */
+
+/* The theme pads every tab panel by 1rem on all four sides, which is a second
+   inset on top of the page's own gutter. On a phone that was 32px of a 420px
+   screen, so the tab content came out narrower than the card holding it and
+   the table inside it had less room than it needed.
+
+   The plural `ui-tabs-panels` is in the selector to match the theme's
+   specificity and then beat it. The application's own rule used the shorter
+   selector and lost, which is why the theme's padding was winning. */
+body .ui-tabs .ui-tabs-panels .ui-tabs-panel {
+    padding: var(--tm-space-lg) 0 0;
+}
+
+@media (max-width: 743px) {
+    /* The page gutter is the whole of the inset on a phone. */
+    body .ui-tabs .ui-tabs-panels .ui-tabs-panel {
+        padding: var(--tm-space-base) 0 0;
+    }
+}
+
+/* A date picker is a wrapper with the input and a trigger inside it, so a
+   `width: 100%` on the wrapper is not enough: the input inside keeps its own
+   width, and the control came out narrower than the text fields beside it.
+   That is what made the spacing across the new-trip form look uneven, and it
+   was the only field type in that grid that did not fill its column. */
+body .tm-input-full .ui-inputfield,
+body .tm-input-full .ui-inputtext {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* The actions column is as narrow as its buttons and never wraps. Left to
+   itself it took a share of the table proportional to nothing and pushed the
+   three buttons into a stack three rows deep. */
+.tm-col-actions {
+    /* Wide enough for the most buttons a row can carry: three icon buttons, the
+       two gaps between them, and this cell's own side padding. `width: 1%` on
+       its own, which is the usual shrink-to-fit recipe, took the column down to
+       the width of the word "Actions" and the buttons hung over the card's
+       right edge; a table cell may be laid out narrower than its content, so
+       the width has to be asked for rather than inferred. */
+    width: calc(3 * var(--tm-control-height-sm)
+                + 2 * var(--tm-space-sm)
+                + 2 * var(--tm-space-base));
+    white-space: nowrap;
+    /* The buttons sit on the text's centre line rather than its baseline. Left
+       at the default the three of them hung below the member's name, which is
+       what made the column look out of line with itself. */
+    vertical-align: middle;
+}
+
+.tm-row-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--tm-space-sm);
+    align-items: center;
+    justify-content: flex-start;
+}
+
+/* A flex item shrinks by default, and inside a column that is only as wide as
+   its content a narrow one is squeezed until the three buttons come out at
+   three widths. They are icon-sized and must not shrink at all. */
+.tm-row-actions .ui-button {
+    flex: 0 0 auto;
+}
+
+/* Square, and matched to the height of a field so a row of them lines up with
+   the text beside it.
+
+   Prefixed with `:root body` and not written on its own, which is the whole
+   reason the actions column looked wrong. The stylesheet's own base button rule
+   is `:root body .ui-button.ui-button`, which carries one more element in its
+   selector than `.tm-row-actions .ui-button.ui-button-icon-only` does and
+   therefore won: the icon buttons came out at the full field height with the
+   field's side padding, so each one was wider than the narrow column that holds
+   them and spilled over the edge of the card. Column widths, heights and
+   padding are all set below at a weight that deliberately outranks it. */
+:root body .tm-row-actions .ui-button.ui-button-icon-only {
+    width: var(--tm-control-height-sm);
+    height: var(--tm-control-height-sm);
+    min-height: var(--tm-control-height-sm);
+    padding: 0;
+    font-size: 14px;
+}
+
+/* The row that is open for editing, so it is obvious which one the inputs
+   belong to when several rows look alike. */
+.tm-row-editing > td {
+    background-color: var(--tm-color-surface-soft);
+}
+
+/* Saving an edit, as opposed to deleting something. The destructive button
+   takes the danger tone and this takes the accent, which is the one place the
+   accent is still allowed: it is the primary action of the row. */
+body .ui-button.tm-button-confirm {
+    border: 1px solid var(--tm-color-primary);
+    background-color: var(--tm-color-primary);
+    color: var(--tm-color-on-primary);
+}
+
+body .ui-button.tm-button-confirm:hover {
+    border-color: var(--tm-color-primary-active);
+    background-color: var(--tm-color-primary-active);
+    color: var(--tm-color-on-primary);
+}
+
+/* A control that has just been filled in for the reader, briefly outlined so
+   the change is visible on a page that did not navigate. */
+@keyframes tm-reveal {
+    from { box-shadow: 0 0 0 3px var(--tm-color-primary); }
+    to   { box-shadow: 0 0 0 3px transparent; }
+}
+
+.tm-reveal {
+    animation: tm-reveal 1.6s var(--tm-motion-ease) both;
+    border-radius: var(--tm-radius-md);
+}
+
+/* ==========================================================================
+   Loading state
+   ========================================================================== */
+
+/* The bar itself. Present in the markup always and invisible by default, so
+   there is no element to create at the moment it is needed, which is the one
+   moment it must not be late. */
+.tm-progress {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 400;
+    height: 2px;
+    background-color: transparent;
+    pointer-events: none;
+}
+
+html.tm-loading .tm-progress {
+    background-image: linear-gradient(90deg,
+            transparent 0%,
+            var(--tm-color-primary) 50%,
+            transparent 100%);
+    background-repeat: no-repeat;
+    background-size: 35% 100%;
+    animation: tm-progress 1.1s linear infinite;
+}
+
+@keyframes tm-progress {
+    from { background-position: -35% 0; }
+    to   { background-position: 135% 0; }
+}
+
+/* A skeleton block: the shape of the thing that is coming, in the place it
+   will arrive. Used where the server is about to replace a region and the
+   reader would otherwise be looking at the old contents with no sign that they
+   are stale. */
+.tm-skeleton {
+    border-radius: var(--tm-radius-sm);
+    background-image: linear-gradient(90deg,
+            var(--tm-color-surface-soft) 25%,
+            var(--tm-color-surface-strong) 37%,
+            var(--tm-color-surface-soft) 63%);
+    background-size: 400% 100%;
+    animation: tm-shimmer 1.4s var(--tm-motion-ease) infinite;
+}
+
+@keyframes tm-shimmer {
+    from { background-position: 100% 0; }
+    to   { background-position: 0 0; }
+}
+
+/* While a request is in flight, the region that is about to be replaced dims
+   slightly. Dimming rather than covering: the old contents are still readable,
+   which matters because a request can fail and leave them in place. */
+html.tm-loading .tm-page,
+html.tm-loading .tm-auth-card {
+    opacity: 0.72;
+    transition: opacity var(--tm-motion-fast) var(--tm-motion-ease);
+}
+
+/* Someone who has asked for less motion gets the dimming and the bar without
+   either of them moving. */
+@media (prefers-reduced-motion: reduce) {
+    html.tm-loading .tm-progress {
+        background-image: linear-gradient(90deg, transparent, var(--tm-color-primary), transparent);
+        background-size: 100% 100%;
+        animation: none;
+    }
+
+    .tm-skeleton {
+        animation: none;
+    }
+}
+
+/* Stands in for a chart that has nothing to plot. Centred in the space the
+   chart would have taken, so the card does not change height when the data
+   arrives and the table below does not jump. */
+.tm-chart-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: 320px;
+    margin: 0;
+    padding: var(--tm-space-lg);
+    color: var(--tm-color-muted);
+    font-size: 14px;
+    line-height: 1.5;
     text-align: center;
+}
+
+/* ==========================================================================
+   Trip page: the hero's actions, the panels inside a tab, and dialogs
+   ========================================================================== */
+
+/* --- the hero, with its actions on the right ------------------------------
+   The name and the two controls that change the trip share one row, so the
+   pencil sits on the trip's own line rather than in a card at the bottom of
+   the page. `min-width: 0` is what lets a long trip name wrap instead of
+   pushing the buttons off the edge. */
+.tm-hero-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--tm-space-base);
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.tm-hero-heading {
+    flex: 1 1 22rem;
+    min-width: 0;
+}
+
+.tm-hero-actions {
+    display: flex;
+    gap: var(--tm-space-sm);
+    align-items: center;
+}
+
+/* The bin is the same shape as the pencil and only takes the danger colour on
+   hover. Red at rest made the more common of the two actions look like the
+   more dangerous one, on every visit to every trip. */
+body .ui-button.tm-button-danger-icon:hover,
+body .ui-button.tm-button-danger-icon.ui-state-hover {
+    border-color: var(--tm-color-danger-border);
+    background-color: var(--tm-color-danger-soft);
+    color: var(--tm-color-danger-ink);
+}
+
+/* --- a panel inside a tab -------------------------------------------------
+   A tab's content sits in a card. Two headings in that one card read as one
+   long table with a change of columns halfway down, so each section gets its
+   own bordered block. The background is the card's own, so the row hover bands
+   inside the tables still read as a change. */
+/* A panel is a bordered section inside a card.
+
+   It has been a fill twice and a plain container once. A fill made a large
+   grey slab on a page whose floor was already grey; a plain container left two
+   sections running into each other. A hairline and the card's own surface
+   separates them without introducing a second colour. */
+.tm-panel {
+    padding: var(--tm-space-lg);
+    border: 1px solid var(--tm-color-hairline);
+    border-radius: var(--tm-radius-md);
+    background-color: transparent;
+}
+
+.tm-panel + .tm-panel {
+    margin-top: var(--tm-space-lg);
+}
+
+.tm-panel + .tm-panel {
+    margin-top: var(--tm-space-lg);
+}
+
+/* The first toolbar in a panel carries the panel's own top padding, so the
+   heading does not double it up. */
+.tm-panel > .tm-toolbar:first-child {
+    margin-top: 0;
+}
+
+/* The sentence under a panel's heading, which introduces the table below it. */
+.tm-panel-lede {
+    max-width: 70ch;
+    margin: calc(-1 * var(--tm-space-sm)) 0 var(--tm-space-base);
+}
+
+/* --- a chip that is also a link -------------------------------------------
+   The "pays" chip on the reader's own row opens the settle form filled in from
+   that row. It keeps the chip's shape and tone so the column still reads as one
+   set of labels; only the pointer and the hover say it can be pressed. */
+a.tm-status-action {
+    text-decoration: none;
+    cursor: pointer;
+}
+
+a.tm-status-action:hover,
+a.tm-status-action:focus-visible {
+    border-color: var(--tm-color-danger-border);
+    background-color: var(--tm-color-danger-soft);
+    color: var(--tm-color-danger-ink);
+}
+
+/* --- dialogs ---------------------------------------------------------------
+   The trip's settings, its delete confirmation, adding a member and emailing a
+   summary are all p:dialog. The bundled theme paints its own surfaces here and
+   they are light in both themes, so the surface, the type and the spacing are
+   all set from the tokens.
+
+   The spacing is the point as much as the colour. The description at the top
+   of a dialog sets the measure and the rhythm: a comfortable line height, a
+   column narrow enough to read, and a real gap before the form starts, so the
+   explanation and the fields do not run together into one block of text. */
+/* As with the confirmation dialog: a shell with no padding of its own, so the
+   rule above the buttons can run the full width of the dialog. Title,
+   description and footer then all start on the same left edge, which is the
+   thing that was wrong before: the description sat a few pixels in from the
+   title and the pair read as two blocks that had been placed by hand. */
+body .ui-dialog.tm-dialog {
+    padding: 0;
+    border: none;
+    border-radius: var(--tm-radius-md);
+    /* The card surface rather than the page floor, so on the dark theme the
+       dialog reads as a panel raised off the page instead of a hole in it. */
+    background-color: var(--tm-color-surface-card);
+    box-shadow: var(--tm-elevation-3);
+    max-width: min(560px, calc(100vw - 2 * var(--tm-space-base)));
+    overflow: hidden;
+}
+
+body .tm-dialog .ui-dialog-titlebar {
+    padding: var(--tm-space-lg) var(--tm-space-lg) var(--tm-space-sm);
+    border: none;
+    background-color: transparent;
+    color: var(--tm-color-ink);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+body .tm-dialog .ui-dialog-titlebar-icon {
+    color: var(--tm-color-muted);
+    font-size: 14px;
+}
+
+body .tm-dialog .ui-dialog-content {
+    padding: 0 var(--tm-space-lg) var(--tm-space-lg);
+    border: none;
+    background-color: transparent;
+    color: var(--tm-color-ink);
+}
+
+body .tm-dialog .ui-dialog-footer {
+    padding: var(--tm-space-base) var(--tm-space-lg);
+    border: none;
+    border-top: 1px solid var(--tm-color-hairline);
+    background-color: transparent;
+}
+
+/* The sentence that explains what the dialog is for. A narrower measure than
+   the dialog, because a line of prose and the width of a form are different
+   problems. */
+.tm-dialog-lede {
+    max-width: 54ch;
+    margin: 0 0 var(--tm-space-lg);
+    color: var(--tm-color-body);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* Paragraph text inside a dialog shares the same rhythm, so a dialog with more
+   than one paragraph does not look like two different documents. */
+.tm-dialog-body p {
+    line-height: 1.6;
+}
+
+.tm-dialog-body p + p {
+    margin-top: var(--tm-space-sm);
+}
+
+/* The last field in a dialog needs no trailing gap: the footer supplies it. */
+.tm-dialog-body > *:last-child {
+    margin-bottom: 0;
+}
+
+.tm-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--tm-space-sm);
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* --- choices inside a dialog ---------------------------------------------
+   A labelled group of radios or checkboxes, with the options stacked rather
+   than run together on one line, so a long member name does not push the next
+   option out of the column. */
+.tm-choice-list {
+    margin-top: var(--tm-space-xs);
+}
+
+.tm-choice-list .ui-selectoneradio label,
+.tm-recipient-list .ui-selectmanycheckbox label {
+    margin-left: var(--tm-space-xs);
+    color: var(--tm-color-body);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.tm-recipient-list {
+    max-height: 15rem;
+    overflow-y: auto;
+}
+
+/* --- a refusal inside a form ---------------------------------------------
+   The message raised when an action is refused. It sits with the control that
+   raised it rather than in the corner of the screen, because the reader's next
+   move is to change something on the form in front of them. */
+.tm-form-error {
+    display: flex;
+    gap: var(--tm-space-sm);
+    align-items: flex-start;
+    margin: var(--tm-space-base) 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.tm-form-error > i {
+    margin-top: 2px;
+    flex: 0 0 auto;
+}
+
+
+/* A cancel button inside a dialog has to look like a cancel button.
+   The stylesheet's base button rule is `:root body .ui-button.ui-button`, which
+   carries one more element in its selector than `body .ui-button.ui-button-secondary`
+   does and therefore outranks it, so every secondary button in the application
+   is painted as a primary one. That is long-standing and this does not change
+   it globally; inside a dialog, though, a cancel sits directly beside the button
+   it cancels, and two identically filled buttons with no way to tell which one
+   commits the change is not something to ship. The scoped pair below matches
+   the base rule's weight and comes later in the file. */
+body .tm-dialog .ui-button.ui-button-secondary {
+    border: 1px solid var(--tm-color-ink);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-ink);
+}
+
+body .tm-dialog .ui-button.ui-button-secondary:hover,
+body .tm-dialog .ui-button.ui-button-secondary.ui-state-hover {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+/* The destructive button in a dialog, for the same reason as the cancel button
+   above: `body .ui-button.tm-button-danger` is outranked by the base button
+   rule, so the dialog's Delete button was painted as an ordinary primary
+   action. Inside a dialog it is the last thing between the reader and an
+   irreversible delete, so it takes the danger tone here. */
+body .tm-dialog .ui-button.tm-button-danger {
+    border: 1px solid transparent;
+    background-color: var(--tm-color-danger);
+    color: var(--tm-color-on-primary);
+}
+
+body .tm-dialog .ui-button.tm-button-danger:hover,
+body .tm-dialog .ui-button.tm-button-danger.ui-state-hover {
+    background-color: var(--tm-color-error-hover);
+    color: var(--tm-color-on-primary);
+}
+
+/* --------------------------------------------------------------------------
+   The summary log
+   -------------------------------------------------------------------------- */
+
+/* The count of who a summary reached, as a control. It is a link rather than a
+   number because it opens the entry's details, and it keeps the table's own
+   type so the column still reads as a column of counts. */
+.tm-log-count,
+.tm-log-count:visited {
+    color: var(--tm-color-ink);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--tm-color-hairline);
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.tm-log-count:hover,
+.tm-log-count:focus-visible {
+    text-decoration-color: var(--tm-color-primary);
+    color: var(--tm-color-primary);
+}
+
+.tm-log-failed {
+    display: block;
+    margin-top: var(--tm-space-xs);
+    font-size: 13px;
+}
+
+/* Label and value pairs, for a read-only panel. */
+.tm-facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--tm-space-sm) var(--tm-space-base);
+    margin: 0 0 var(--tm-space-lg);
+}
+
+.tm-facts dt {
+    color: var(--tm-color-muted);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.6;
+}
+
+.tm-facts dd {
+    margin: 0;
+    color: var(--tm-color-ink);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* A list of people, one to a line, with a mark that reads as a person. */
+.tm-name-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tm-space-xs);
+    margin: var(--tm-space-xs) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tm-name-list li {
+    display: flex;
+    align-items: center;
+    gap: var(--tm-space-sm);
+    color: var(--tm-color-ink);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.tm-name-list i {
+    color: var(--tm-color-muted);
+    font-size: 13px;
+}
+
+/* One paginator, at the foot of the table.
+
+   PrimeFaces emits a container above the table and another below it and fills
+   whichever the position asks for; the theme does not hide the other one. Left
+   alone that is either a blank band the height of a paginator above every
+   table, or the same page links twice. The bottom one is the PrimeFaces
+   default and the one readers look for after the last row. */
+body .ui-datatable .ui-paginator-top {
+    display: none;
+}
+
+/* ==========================================================================
+   Chrome: breadcrumbs, the sidebar's icons, and the table's own figure
+   ========================================================================== */
+
+/* --- breadcrumbs ----------------------------------------------------------
+   One line, small, above the first block. Not a bar: it takes the page's own
+   gutter so its left edge lines up with the heading under it, and it carries
+   no background of its own, so it reads as the top of the page rather than as
+   a second piece of chrome. */
+/* The trail, in the reference's shape: the parts behind the reader are quiet
+   and the page they are on is the bold one, with a chevron between them.
+
+   No underline anywhere, including under the pointer. A breadcrumb is a quiet
+   line above the content, and underlining a part of it turns the top of every
+   page into a row of links competing with the heading under them. */
+.tm-breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--tm-space-sm);
+    margin-bottom: var(--tm-space-base);
+    color: var(--tm-color-muted);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.33;
+    letter-spacing: 0.32px;
+    text-transform: uppercase;
+}
+
+.tm-crumb,
+.tm-crumb:visited {
+    color: var(--tm-color-muted);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.tm-crumb:hover,
+.tm-crumb:focus-visible {
+    color: var(--tm-color-ink);
+    text-decoration: none;
+}
+
+.tm-crumb-sep {
+    color: var(--tm-color-muted-soft);
+    font-size: 12px;
+}
+
+.tm-crumb-sep::before {
+    content: "\203A";
+}
+
+.tm-crumb-current {
+    color: var(--tm-color-ink);
+    font-weight: 700;
+}
+
+/* --- the sidebar's rows ---------------------------------------------------
+   An icon and a label, spaced by the row's own gap rather than by a margin on
+   either, so the two do not drift apart when the label's size changes. */
+.tm-sidebar-label {
+    margin: 0 0 var(--tm-space-xs);
+    padding: 0 var(--tm-space-md);
+    color: var(--tm-color-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.tm-sidebar-nav .tm-nav-link,
+.tm-nav-panel .tm-nav-link,
+.tm-sidebar-link {
+    gap: var(--tm-space-md);
+}
+
+.tm-sidebar-nav .tm-nav-link i,
+.tm-nav-panel .tm-nav-link i,
+.tm-sidebar-link i {
+    flex: 0 0 auto;
+    width: 18px;
+    color: var(--tm-color-muted);
+    font-size: 15px;
+    text-align: center;
+}
+
+.tm-sidebar-nav .tm-nav-link.tm-nav-link-active i,
+.tm-nav-panel .tm-nav-link.tm-nav-link-active i {
+    color: var(--tm-color-ink);
+}
+
+.tm-nav-link-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The drawer's brand block, above its first row. */
+.tm-nav-panel .tm-nav-panel-brand {
+    margin-bottom: var(--tm-space-base);
+    padding: 0 var(--tm-space-md);
+}
+
+/* --- the paginator ---------------------------------------------------------
+   A rule above it, the count on the left, the controls on the right. The
+   theme's default is a centred row of small squares with no separation from
+   the table, which reads as another row of data. */
+body .ui-datatable .ui-paginator {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--tm-space-sm);
+    margin-top: var(--tm-space-base);
+    padding: var(--tm-space-base) 0 0;
+    border: none;
+    border-top: 1px solid var(--tm-color-hairline-soft);
+    background-color: transparent;
+    color: var(--tm-color-muted);
+    font-size: 13px;
+}
+
+body .ui-paginator .ui-paginator-current {
+    margin-right: auto;
+    color: var(--tm-color-muted);
+    font-size: 13px;
+}
+
+body .ui-paginator .ui-paginator-rpp-options {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--tm-space-sm);
+    margin: 0 var(--tm-space-sm);
+}
+
+body .ui-paginator .ui-paginator-rpp-options .ui-selectonemenu {
+    min-width: 5rem;
+}
+
+body .ui-paginator a.ui-paginator-page,
+body .ui-paginator a.ui-paginator-first,
+body .ui-paginator a.ui-paginator-prev,
+body .ui-paginator a.ui-paginator-next,
+body .ui-paginator a.ui-paginator-last {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 var(--tm-space-sm);
+    border: none;
+    border-radius: var(--tm-radius-sm);
+    background-color: transparent;
+    color: var(--tm-color-muted);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+body .ui-paginator a.ui-paginator-page:hover,
+body .ui-paginator a.ui-paginator-first:hover,
+body .ui-paginator a.ui-paginator-prev:hover,
+body .ui-paginator a.ui-paginator-next:hover,
+body .ui-paginator a.ui-paginator-last:hover {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+body .ui-paginator a.ui-state-active {
+    background-color: var(--tm-color-surface-strong);
+    color: var(--tm-color-ink);
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Tooltips
+
+   One bubble for the whole application, driven from the `title` attributes
+   that are already in the markup.
+
+   Native tooltips cannot be reached from a stylesheet, cannot be positioned,
+   and on a dark page arrive as the operating system's own light box a second
+   after the pointer stops. The title is moved off the element on the way in
+   and put back on the way out, which is what suppresses the native one: the
+   text lives in data-tm-tip while the bubble is up, and an element with no
+   title has nothing for the browser to draw.
+   ========================================================================== */
+.tm-tip {
+    position: fixed;
+    z-index: 2000;
+    max-width: 22rem;
+    padding: 6px 10px;
+    border-radius: var(--tm-radius-sm);
+    background-color: var(--tm-color-ink);
+    color: var(--tm-color-canvas);
+    font-family: var(--tm-font-sans);
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(2px);
+    transition: opacity var(--tm-motion-fast) var(--tm-motion-ease),
+                transform var(--tm-motion-fast) var(--tm-motion-ease);
+}
+
+.tm-tip-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.tm-tip::after {
+    position: absolute;
+    left: 50%;
+    bottom: -4px;
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
+    background-color: inherit;
+    content: "";
+    transform: rotate(45deg);
+}
+
+.tm-tip-below::after {
+    top: -4px;
+    bottom: auto;
+}
+
+/* ==========================================================================
+   Rows, serial numbers, and the columns that carry neither
+   ========================================================================== */
+
+/* The row number. Narrow, quiet, and not sortable: it says where you are in
+   the list, which the paginator's count cannot do for a row in the middle. */
+body .ui-datatable th.tm-col-sn,
+body .ui-datatable td.tm-col-sn {
+    width: 3.5rem;
+    color: var(--tm-color-muted-soft);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* The chevron at the end of a row that opens something. Not a control of its
+   own: the row's own link is the control, and a second target beside it would
+   be one more thing to aim at for the same result. */
+body .ui-datatable th.tm-col-open,
+body .ui-datatable td.tm-col-open {
+    width: 3rem;
+    color: var(--tm-color-muted-soft);
+    text-align: right;
+}
+
+/* The whole row answers the pointer, and the element under it is still the
+   link. `position: relative` on the row makes it the containing block for the
+   stretched pseudo-element, so the link's hit area is the row rather than the
+   words. Everything else in the row stays where it is. */
+body .ui-datatable tbody tr {
+    position: relative;
+}
+
+body .ui-datatable tbody td .tm-row-link {
+    color: var(--tm-color-ink);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+body .ui-datatable tbody td .tm-row-link::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+}
+
+body .ui-datatable tbody tr:hover td .tm-row-link {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+body .ui-datatable tbody td .tm-row-link:focus-visible::after {
+    border-radius: var(--tm-radius-sm);
+    outline: 2px solid var(--tm-color-primary);
+    outline-offset: -2px;
+}
+
+/* ==========================================================================
+   Dialogs: a wider box, and a body that uses it
+   ========================================================================== */
+
+/* Two columns fit at this width, which is what makes a dialog look even: the
+   same amount of content in half the height. */
+body .ui-dialog.tm-dialog {
+    max-width: min(680px, calc(100vw - 2 * var(--tm-space-base)));
+}
+
+/* The fields in two columns, the full-width ones below them. */
+.tm-dialog-body-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--tm-space-base);
+    align-items: start;
+}
+
+.tm-dialog-body-2 > .tm-field {
+    margin-bottom: 0;
+}
+
+/* The recipient list, under the choice that reveals it, in the same column. */
+.tm-recipient-block {
+    margin-top: var(--tm-space-base);
+}
+
+.tm-recipient-block .tm-field-label {
+    display: block;
+    margin-bottom: var(--tm-space-xs);
+}
+
+/* The error spans both columns when the body is a grid. */
+.tm-dialog-body-2 > .tm-form-error {
+    grid-column: 1 / -1;
+    margin-top: 0;
+}
+
+/* The label and value pairs of the summary panel, side by side once there is
+   room for two, so the panel is not a narrow tall list. */
+@media (min-width: 480px) {
+    .tm-facts {
+        grid-template-columns: auto 1fr auto 1fr;
+    }
+}
+
+/* ==========================================================================
+   The remaining reported details
+   ========================================================================== */
+
+/* A quiet button: no outline, no fill until the pointer is on it. Used where
+   two buttons sit in a row and only one of them is the decision. */
+body .tm-dialog .ui-button.tm-button-quiet {
+    border: 1px solid transparent;
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+body .tm-dialog .ui-button.tm-button-quiet:hover,
+body .tm-dialog .ui-button.tm-button-quiet.ui-state-hover {
+    background-color: var(--tm-color-surface-strong);
+    color: var(--tm-color-ink);
+}
+
+/* The danger row's copy takes the whole width when it is the only thing in it.
+   With the leave button withdrawn there is nothing on the right, and the
+   sentence stayed in a 60ch column against a full-width panel above it, which
+   is what read as unbalanced. */
+.tm-danger-zone .tm-danger-copy:only-child,
+.tm-danger-zone .tm-danger-copy:only-child p {
+    max-width: none;
+}
+
+/* The people in an expense's split, and the category label beside them. */
+.tm-split-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tm-split-list li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--tm-space-base);
+    padding: 2px 0;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.tm-split-name {
+    min-width: 8rem;
+    color: var(--tm-color-body);
+}
+
+.tm-split-amount {
+    color: var(--tm-color-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+/* The category, as a chip.
+
+   A category is one of a fixed set, so the colour is a key rather than a
+   quantity: it says which one this is, the same way the position chips beside
+   a balance say which way it runs. The icon repeats the distinction for a
+   reader who cannot separate the hues. */
+.tm-cat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid var(--tm-cat-border, var(--tm-color-hairline));
+    border-radius: var(--tm-radius-full);
+    background-color: var(--tm-cat-soft, var(--tm-color-surface-soft));
+    color: var(--tm-cat-ink, var(--tm-color-body));
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.tm-cat i {
+    font-size: 12px;
+}
+
+/* One tone per category, from the same six slots the charts use, so a category
+   is the same colour wherever it appears. */
+.tm-cat-food          { --tm-cat-ink: var(--tm-cat-1); --tm-cat-soft: var(--tm-cat-1-soft); --tm-cat-border: var(--tm-cat-1-border); }
+.tm-cat-transport     { --tm-cat-ink: var(--tm-cat-2); --tm-cat-soft: var(--tm-cat-2-soft); --tm-cat-border: var(--tm-cat-2-border); }
+.tm-cat-accommodation { --tm-cat-ink: var(--tm-cat-3); --tm-cat-soft: var(--tm-cat-3-soft); --tm-cat-border: var(--tm-cat-3-border); }
+.tm-cat-activity      { --tm-cat-ink: var(--tm-cat-4); --tm-cat-soft: var(--tm-cat-4-soft); --tm-cat-border: var(--tm-cat-4-border); }
+.tm-cat-shopping      { --tm-cat-ink: var(--tm-cat-5); --tm-cat-soft: var(--tm-cat-5-soft); --tm-cat-border: var(--tm-cat-5-border); }
+.tm-cat-other         { --tm-cat-ink: var(--tm-cat-6); --tm-cat-soft: var(--tm-cat-6-soft); --tm-cat-border: var(--tm-cat-6-border); }
+
+/* The table's own type, a step up. The figures are the page's content and were
+   set smaller than the prose around them. */
+body .ui-datatable tbody td {
+    font-size: 15px;
+}
+
+/* --- the ends of a table ---------------------------------------------------
+   The first column hugs the left edge and the last one the right, so the two
+   outermost columns take up whatever width the table has spare rather than
+   leaving a ragged gap after the final one. Everything between them keeps its
+   own alignment. */
+body .ui-datatable thead tr > th:first-child,
+body .ui-datatable tbody tr > td:first-child {
+    text-align: left;
+}
+
+body .ui-datatable thead tr > th:last-child,
+body .ui-datatable tbody tr > td:last-child {
+    text-align: center;
+}
+
+/* The serial number is the exception to the first column being left. It is a
+   number under a heading that names it, so it is centred with it. This rule
+   used to send it right, and being one class heavier than the rule that
+   centres it, it won: the column was right-aligned however it was styled. */
+body .ui-datatable thead tr > th.tm-col-sn,
+body .ui-datatable tbody tr > td.tm-col-sn {
+    text-align: center;
+}
+
+/* ==========================================================================
+   Tables inside a panel, the paginator's controls, and narrow screens
+   ========================================================================== */
+
+/* A table in a panel runs to the panel's edges.
+
+   The panel's padding is right for its heading and its prose, and wrong for
+   the table under them: it insets the header band by the same amount again,
+   so the first column starts twice as far in as the words above it. The table
+   is pulled back out and the cells' own padding supplies the inset, which is
+   what makes the header band line up with the panel's edge. */
+.tm-panel > .ui-datatable {
+    margin-right: 0;
+    margin-left: 0;
+}
+
+/* The count of days beside a date range, a step quieter than the dates. */
+.tm-cell-muted {
+    color: var(--tm-color-muted);
+}
+
+/* --- the paginator's rows-per-page control ---------------------------------
+   It is a select like every other select in the application, and it was
+   arriving as the theme's own: a different height, a different radius and a
+   different arrow from the ones on the forms. */
+body .ui-paginator .ui-selectonemenu {
+    height: var(--tm-control-height-sm);
+    min-height: var(--tm-control-height-sm);
+    border: 1px solid var(--tm-color-hairline);
+    border-radius: var(--tm-radius-sm);
+    background-color: var(--tm-color-canvas);
+}
+
+body .ui-paginator .ui-selectonemenu .ui-selectonemenu-label {
+    padding: 0 var(--tm-space-sm);
+    color: var(--tm-color-ink);
+    font-size: 13px;
+    line-height: var(--tm-control-height-sm);
+}
+
+body .ui-paginator .ui-selectonemenu .ui-selectonemenu-trigger {
+    width: 24px;
+    border: none;
+    background-color: transparent;
+    color: var(--tm-color-muted);
+}
+
+/* --- narrow screens --------------------------------------------------------
+   Reflow turns each row into a stack of labelled cells below the breakpoint,
+   which is what stops a seven-column table clipping its own contents on a
+   phone. The label above each value is the column heading. */
+@media (max-width: 743px) {
+    body .ui-datatable-reflow .ui-datatable-data > tr > td {
+        display: block;
+        width: auto;
+        height: auto;
+        padding: var(--tm-space-sm) var(--tm-space-base) var(--tm-space-sm) 45%;
+        text-align: left;
+    }
+
+    body .ui-datatable-reflow .ui-datatable-data > tr > td::before {
+        position: absolute;
+        top: var(--tm-space-sm);
+        left: var(--tm-space-base);
+        width: 40%;
+        color: var(--tm-color-muted);
+        font-size: 12px;
+        font-weight: 600;
+        content: attr(data-label);
+    }
+
+    body .ui-datatable-reflow .ui-datatable-data > tr > td {
+        position: relative;
+        border-bottom: none;
+    }
+
+    body .ui-datatable-reflow .ui-datatable-data > tr {
+        display: block;
+        margin-bottom: var(--tm-space-base);
+        border: 1px solid var(--tm-color-hairline);
+        border-radius: var(--tm-radius-sm);
+    }
+
+    /* The open-chevron and the menu have no heading of their own. */
+    body .ui-datatable-reflow .ui-datatable-data > tr > td.tm-col-open,
+    body .ui-datatable-reflow .ui-datatable-data > tr > td.tm-col-menu {
+        padding-left: var(--tm-space-base);
+        text-align: left;
+    }
+
+    body .ui-datatable-reflow .ui-datatable-data > tr > td.tm-col-open::before,
+    body .ui-datatable-reflow .ui-datatable-data > tr > td.tm-col-menu::before {
+        content: none;
+    }
+}
+
+/* The row's menu button: a quiet control that only shows itself as a button
+   when the pointer is on the row. Three dots repeated down a table are
+   furniture, and furniture that lights up on every row competes with the data
+   it sits beside. */
+body .ui-datatable th.tm-col-menu,
+body .ui-datatable td.tm-col-menu {
+    width: 3.5rem;
+    text-align: center;
+}
+
+/* The class is on the widget; the button is inside it. A compound selector
+   asked for both on the same element and matched nothing, so every row's menu
+   came out in the theme's default fill. */
+:root body .ui-datatable .tm-row-menu > .ui-button {
+    width: var(--tm-control-height-sm);
+    height: var(--tm-control-height-sm);
+    min-height: var(--tm-control-height-sm);
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--tm-radius-full);
+    background-color: transparent;
+    color: var(--tm-color-muted);
+    box-shadow: none;
+}
+
+:root body .ui-datatable tr:hover .tm-row-menu > .ui-button,
+:root body .ui-datatable .tm-row-menu > .ui-button.ui-state-hover,
+:root body .ui-datatable .tm-row-menu > .ui-button:focus-visible {
+    border-color: var(--tm-color-hairline);
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+:root body .ui-datatable .tm-row-menu > .ui-button .ui-button-icon-left {
+    margin: 0;
+}
+
+/* The breadcrumb's links are not underlined, including the parts of the trail
+   behind the reader. `body .tm-page a` underlines every link in the page and
+   carries one more element in its selector than `.tm-crumb` does, so the rule
+   above it was losing and every crumb came out underlined. */
+:root body .tm-page a.tm-crumb,
+:root body .tm-page a.tm-crumb:visited,
+:root body .tm-page a.tm-crumb:hover,
+:root body .tm-page a.tm-crumb:focus-visible {
+    text-decoration: none;
+}
+
+/* One paginator, at the foot of the table. Stated at this weight because the
+   theme's own rule for the top one is a class heavier. */
+:root body .ui-datatable .ui-paginator-top {
+    display: none;
+}
+
+/* ==========================================================================
+   The reported details on buttons, tables and menu panels
+   ========================================================================== */
+
+/* The bar above a table, and the table under it, are one block.
+
+   The panel's own top padding and the table's first row were stacking, so a
+   table sat a long way under the heading that introduced it. The heading keeps
+   the panel's padding; what follows it starts straight away. */
+.tm-panel > .ui-datatable:first-child,
+.tm-panel > .tm-toolbar + .ui-datatable {
+    margin-top: var(--tm-space-xs);
+}
+
+/* A table is framed by the card or the panel holding it, so it draws no edge
+   of its own. That is what makes every table in the application look the same:
+   the reports page's table sat in a card and the trip page's sat in a panel,
+   and only the second one had a frame of its own around it. */
+.tm-panel > .ui-datatable {
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+}
+
+/* --- the row menu ----------------------------------------------------------
+   The panel came out in the theme's own light colours on a dark page, which is
+   the one surface in the application that did not follow the theme. */
+body .ui-menu.ui-menu-dynamic,
+body .ui-menu.tm-row-menu-panel {
+    padding: var(--tm-space-xs);
+    border: 1px solid var(--tm-color-hairline);
+    border-radius: var(--tm-radius-sm);
+    background-color: var(--tm-color-surface-card);
+    box-shadow: var(--tm-elevation-2);
+}
+
+body .ui-menu .ui-menuitem-link {
+    display: flex;
+    align-items: center;
+    gap: var(--tm-space-sm);
+    padding: var(--tm-space-sm) var(--tm-space-md);
+    border-radius: var(--tm-radius-sm);
+    color: var(--tm-color-ink);
+    font-size: 14px;
+    text-decoration: none;
+}
+
+body .ui-menu .ui-menuitem-link:hover {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+body .ui-menu .ui-menuitem-icon {
+    width: 16px;
+    color: var(--tm-color-muted);
+    font-size: 13px;
+}
+
+/* Deleting is not the same act as editing, and the two sat side by side in the
+   same colour. The destructive one takes the danger tone, in the menu and on
+   the trip's own row. */
+body .ui-menu .ui-menuitem-link.tm-menuitem-danger,
+body .ui-menu .tm-menuitem-danger .ui-menuitem-text,
+body .ui-menu .tm-menuitem-danger .ui-menuitem-icon {
+    color: var(--tm-color-danger-ink);
+}
+
+body .ui-menu .ui-menuitem-link.tm-menuitem-danger:hover {
+    background-color: var(--tm-color-danger-soft);
+    color: var(--tm-color-danger-ink);
+}
+
+/* The trip's own two controls: one edits, one destroys. They were the same
+   fill, which made the more common action and the irreversible one look like
+   the same kind of thing. */
+:root body .tm-hero-actions .ui-button.tm-button-danger-icon {
+    border: 1px solid transparent;
+    background-color: var(--tm-color-danger);
+    color: var(--tm-color-on-primary);
+}
+
+:root body .tm-hero-actions .ui-button.tm-button-danger-icon:hover,
+:root body .tm-hero-actions .ui-button.tm-button-danger-icon.ui-state-hover {
+    border-color: var(--tm-color-error-hover);
+    background-color: var(--tm-color-error-hover);
+    color: var(--tm-color-on-primary);
+}
+
+/* --- the serial number ------------------------------------------------------
+   Centred under a heading that says what it is. It was a bare "#" against the
+   right edge of its column, which reads as a footnote rather than as a
+   column. */
+body .ui-datatable th.tm-col-sn,
+body .ui-datatable td.tm-col-sn {
+    width: 4rem;
+    text-align: center;
+}
+
+/* The row actions' heading sits over its buttons rather than at the far left
+   of a column they are centred in. */
+body .ui-datatable th.tm-col-actions {
+    text-align: center;
+}
+
+/* --- the split, as names ----------------------------------------------------
+   The list carried each person's share beside their name in a column too
+   narrow for both, so the figures were clipped to "NP". The share of each
+   split is on the expense's own page; here the question is who shared it. */
+.tm-split-list li {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.tm-split-name {
+    min-width: 0;
+    color: var(--tm-color-ink);
+}
+
+.tm-split-amount {
+    display: none;
+}
+
+/* ==========================================================================
+   The stat tiles, the row menu's panel, and the table section's spacing
+   ========================================================================== */
+
+/* The icon and the label share the first row.
+
+   The icon was pinned to the corner with `position: absolute`, so it sat on
+   whatever else reached that corner: with five tiles across, the label ran
+   under it, and on a tile whose label wrapped it landed on the figure. A grid
+   puts them side by side and nothing can overlap, whatever the label says. */
+.tm-stat {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--tm-space-xs) var(--tm-space-sm);
+}
+
+.tm-stat-icon {
+    position: static;
+    grid-row: 1;
+    grid-column: 2;
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+}
+
+.tm-stat-label {
+    grid-row: 1;
+    grid-column: 1;
+    align-self: center;
+    padding-right: 0;
+}
+
+.tm-stat-value {
+    grid-row: 2;
+    grid-column: 1 / -1;
+}
+
+.tm-stat-note {
+    grid-row: 3;
+    grid-column: 1 / -1;
+}
+
+/* --- the row menu's panel --------------------------------------------------
+   The theme's hover band is a light grey with the label turned white, which on
+   a dark menu is white on white. The item's own colours, at a weight the
+   theme does not outrank. */
+body .ui-menu.ui-menu-dynamic {
+    padding: var(--tm-space-xs);
+    border: 1px solid var(--tm-color-hairline);
+    border-radius: var(--tm-radius-sm);
+    background-color: var(--tm-color-surface-card);
+    box-shadow: var(--tm-elevation-2);
+}
+
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link .ui-menuitem-text {
+    color: var(--tm-color-ink);
+}
+
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link .ui-menuitem-icon {
+    color: var(--tm-color-muted);
+}
+
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link:hover,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.ui-state-hover,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link:focus {
+    background-color: var(--tm-color-surface-soft);
+}
+
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link:hover .ui-menuitem-text,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link:hover .ui-menuitem-icon,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.ui-state-hover .ui-menuitem-text,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.ui-state-hover .ui-menuitem-icon {
+    color: var(--tm-color-ink);
+}
+
+/* Deleting is not editing. The destructive item and its icon take the danger
+   tone, in the menu and on the trip's own row. */
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger .ui-menuitem-text,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger .ui-menuitem-icon {
+    color: var(--tm-color-danger-ink);
+}
+
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger:hover,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger.ui-state-hover {
+    background-color: var(--tm-color-danger-soft);
+}
+
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger:hover .ui-menuitem-text,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger:hover .ui-menuitem-icon,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger.ui-state-hover .ui-menuitem-text,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger.ui-state-hover .ui-menuitem-icon {
+    color: var(--tm-color-danger-ink);
+}
+
+/* --- the space around a table ----------------------------------------------
+   The heading, the table and whatever follows it are one block, so the gap
+   above the table is the heading's own and the gap under it belongs to the
+   section that comes next. */
+.tm-panel > .tm-toolbar {
+    margin-bottom: var(--tm-space-base);
+}
+
+.tm-panel > .ui-datatable {
+    margin-top: 0;
+}
+
+/* ==========================================================================
+   Buttons, the row menu's colours, and the sections inside a tab
+   ========================================================================== */
+
+/* The neutral button, at the weight the stylesheet's own base rule needs.
+
+   Every button was the brand pink, which made a page of ordinary actions look
+   like a page of primary ones. The brand is kept for the one action a section
+   is for; everything else takes the neutral, which is dark enough for white
+   text in both themes. Destructive buttons keep their own tone. */
+:root body .ui-button.ui-button {
+    background-color: var(--tm-color-button);
+    color: var(--tm-color-on-button);
+}
+
+:root body .ui-button.ui-button.ui-state-hover,
+:root body .ui-button.ui-button:hover {
+    background-color: #4a4646;
+    color: var(--tm-color-on-button);
+}
+
+/* The button beside the one that commits. It keeps the outline it had in the
+   light theme; on the dark one the outline and the label are the light grey
+   the reader asked for, because the card behind it is not far off the floor
+   and a hairline round a transparent button is hard to find. */
+:root body .ui-button.ui-button-secondary {
+    border: 1px solid var(--tm-color-ink);
+    background-color: var(--tm-color-button-quiet);
+    color: var(--tm-color-button-quiet-ink);
+}
+
+:root body .ui-button.ui-button-secondary.ui-state-hover,
+:root body .ui-button.ui-button-secondary:hover {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-button-quiet-ink);
+}
+
+/* Destructive actions are not the neutral and not the brand. */
+:root body .ui-button.tm-button-danger,
+:root body .ui-button.tm-button-danger-icon {
+    border-color: var(--tm-color-danger);
+    background-color: var(--tm-color-danger);
+    color: var(--tm-color-on-primary);
+}
+
+/* The one action a section is for keeps the brand tone. */
+:root body .ui-button.tm-button-primary {
+    background-color: var(--tm-color-primary);
+    color: var(--tm-color-on-primary);
+}
+
+/* --- the row menu ----------------------------------------------------------
+   The theme's hover band turns the label white, which on a dark panel is a
+   white label on a white row. The colour is on the icon only: the words stay
+   the page's ink and the icon says which item it is. */
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link:hover,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.ui-state-hover,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link:focus,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.ui-state-focus {
+    background-color: var(--tm-color-surface-soft);
+}
+
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link .ui-menuitem-text,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link:hover .ui-menuitem-text,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.ui-state-hover .ui-menuitem-text,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link:focus .ui-menuitem-text {
+    color: var(--tm-color-ink);
+}
+
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link .ui-menuitem-icon {
+    color: var(--tm-color-primary);
+}
+
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger .ui-menuitem-icon {
+    color: var(--tm-color-danger-ink);
+}
+
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger .ui-menuitem-text {
+    color: var(--tm-color-ink);
+}
+
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger:hover,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger.ui-state-hover,
+body .ui-menu.ui-menu-dynamic .ui-menuitem-link.tm-menuitem-danger:focus {
+    background-color: var(--tm-color-danger-soft);
+}
+
+/* --- the value in an opened row --------------------------------------------
+   The link that opens a row carries the table's own type. It was set a weight
+   up from the cells around it, which made the one column a reader scans first
+   the one that looked different. */
+:root body .ui-datatable tbody td .tm-row-link {
+    color: var(--tm-color-ink);
+    font-size: inherit;
+    font-weight: inherit;
+    text-decoration: none;
 }

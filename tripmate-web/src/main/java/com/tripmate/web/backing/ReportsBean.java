@@ -104,6 +104,27 @@ public class ReportsBean implements Serializable {
         }
     }
 
+    /**
+     * Reports on one trip, without leaving the page.
+     *
+     * <p>The selector used to be a set of links back to this page with a
+     * different parameter. That is a navigation: it repaints the whole page and
+     * loses the reader's place, to change one section of it. Choosing a trip
+     * asks the same bean for a different report instead.
+     *
+     * @param id the trip to report on
+     */
+    public void selectTrip(Long id) {
+        this.tripId = id;
+        load();
+    }
+
+    /** Reports on every trip again. */
+    public void showAllTrips() {
+        this.tripId = null;
+        load();
+    }
+
     // ------------------------------------------------------------------
     // The all-trips view
     // ------------------------------------------------------------------
@@ -124,7 +145,15 @@ public class ReportsBean implements Serializable {
                 .limit(8)
                 .toList();
 
-        tripChart = Charts.horizontalBar(
+        // The same trap as the per-member chart, one level up: a list with rows
+        // in it is not the same as a list with something to plot. A user who
+        // belongs to trips and has spent nothing on any of them gets one row
+        // per trip, every total zero, so the chart was built and drew an axis
+        // running 0 to 1 with no bars against it.
+        boolean anySpending = ranked.stream()
+                .anyMatch(row -> row.getTotal() != null && row.getTotal().signum() > 0);
+
+        tripChart = (!anySpending) ? null : Charts.horizontalBar(
                 ranked.stream().map(TripTotalDTO::getTripName).toList(),
                 ranked.stream().map(TripTotalDTO::getTotal).toList(),
                 ChartPalette.seriesColours(ranked.size()));
@@ -196,7 +225,15 @@ public class ReportsBean implements Serializable {
                 dailyTotals.stream().map(DailyTotalDTO::getTotal).toList(),
                 ChartPalette.series(0));
 
-        memberChart = memberBalances.isEmpty() ? null : Charts.groupedBar(
+        // Also null when the trip has no expenses, which is not the same test as
+        // an empty balance list. A trip with members and nothing spent returns
+        // one balance row per member, all of them zero, so this chart was built
+        // and drew a pair of axes running 0 to 1 with no bars against them: a
+        // chart that looks broken rather than one that says there is nothing to
+        // show. The category chart is the honest test of "has anything been
+        // recorded on this trip", and it is already computed by this point.
+        memberChart = (memberBalances.isEmpty() || tripCategories.isEmpty())
+                ? null : Charts.groupedBar(
                 memberBalances.stream().map(MemberBalanceDTO::getFullName).toList(),
                 List.of("Paid", "Their share"),
                 List.of(

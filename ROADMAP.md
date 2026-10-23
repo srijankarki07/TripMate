@@ -768,7 +768,36 @@ flowchart TD
     Reports --> TripDetail
 ```
 
-### 11.4 Wireframes (for the Wireframe Viva)
+### 11.4 Responsive Behaviour
+
+The breakpoints are 744, 1024 and 1440 pixels, and the interesting question at each is what
+happens to a table, because a data application is mostly tables.
+
+| Width | What changes |
+| --- | --- |
+| Under 744px | The navigation collapses into an off-canvas panel opened by a menu button. Tables become stacked cards, one per row, each field labelled by its own column header. Multi-column forms become one column. Charts drop their label density. |
+| 744 to 1023px | The navigation keeps its links and drops the account name. Tables keep their columns and scroll inside their own wrapper rather than dragging the page. Forms use two columns. |
+| 1024px and above | Full navigation, two-column page layouts, charts beside their tables. |
+| 1440px and above | Content caps at 1280px and the gutters absorb the rest. |
+
+Two rules hold at every width: **the page never scrolls horizontally**, and **every
+interactive target is at least 44 by 44 pixels**. Both were measured rather than eyeballed,
+by reading `scrollWidth` against `innerWidth` and listing any element extending past the
+viewport.
+
+### 11.5 Accessibility
+
+| Concern | Approach |
+| --- | --- |
+| Keyboard | A skip link is the first tab stop on every page. Focus is visible on every stop, verified by tabbing through the application. |
+| Focus rings | A ring is drawn for `:focus-visible` only, so a mouse click leaves nothing behind and a keyboard user keeps the indicator. |
+| Colour | Contrast is at least 4.5:1 for text. The chart palette was chosen by validating candidate orderings for colourblind separation, and every chart carries a legend and a table of the same figures, so identity is never carried by colour alone. |
+| State | Every status chip carries an icon or a dot and a word, not only a tint. |
+| Motion | All durations collapse under `prefers-reduced-motion: reduce`; the state change still happens. |
+| Screen readers | Toasts are announced with a role that matches their severity. The closed navigation panel is removed from the accessibility tree rather than merely moved off-screen. |
+| Forms | Every field has a visible label, and validation messages render beside the field they belong to. |
+
+### 11.6 Wireframes (for the Wireframe Viva)
 
 The viva for "Customer Requirement Validation" requires wireframes. Include **5 wireframes** in the report:
 
@@ -973,6 +1002,31 @@ Each phase ends with a **verifiable milestone**. Do not skip ahead.
 - Prepare viva answers (§18).
 - **Milestone:** Confident demo.
 
+### Phase 13 — Delivery
+- Extend `DESIGN.md` with semantic states, a three-tier elevation scale, gradients, a
+  motion scale and a validated chart palette.
+- Rebuild the application shell: responsive navigation, a footer that sits at the bottom,
+  per-page metadata, generated icons.
+- Rebuild the form controls: date picker, select, and one focus policy.
+- Add the feedback layer: toasts, one confirmation dialog, empty and error states.
+- Make tables sortable, and turn each row into a labelled card below the mobile breakpoint.
+- Rework every page onto the new shell and components.
+- Add status and state chips, so a trip's lifecycle and a balance's direction are readable
+  at a glance.
+- **Milestone:** The application presents as a product. (`docs/phase-13-delivery.md`)
+
+### Phase 14 — Notifications, Invitations and Security
+- Add transactional email, with a logging fallback when no SMTP host is configured.
+- Replace the member picker with an exact-email invitation, and add promote, demote and
+  leave so the last-administrator rule is followable.
+- Add forgotten-password, with hashed single-use tokens and a reply that does not reveal
+  whether an address has an account.
+- Email everyone a closing summary of a trip.
+- Close the authorization gaps in the itinerary, report and user services, rotate the
+  session id on sign-in, and stop rendering raw failures into the page.
+- **Milestone:** The application can reach the people who use it, and refuse the people who
+  should not. (`docs/phase-14-notifications-and-security.md`, `docs/phase-15-security.md`)
+
 ---
 
 ## 15. Part One — Serverless Evaluation Report (40 Marks)
@@ -1147,7 +1201,7 @@ A: As a SaaS platform for small travel groups — free for up to 3 trips, paid t
 
 - Deployed EAR running on GlassFish.
 - PostgreSQL with seed data loaded.
-- Printed or on-screen wireframes (§11.4).
+- Printed or on-screen wireframes (§11.6).
 - This roadmap.
 - Both reports.
 

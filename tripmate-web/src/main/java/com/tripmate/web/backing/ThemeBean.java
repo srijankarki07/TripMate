@@ -18,7 +18,8 @@ import jakarta.servlet.http.Cookie;
  * to be picked before the response is written, so the decision has to reach the
  * server either way.
  *
- * <p>Once it does, reading it from a cookie is strictly better than a media
+ * <p>
+ * Once it does, reading it from a cookie is strictly better than a media
  * query, for two reasons. The correct colours are in the first byte of HTML, so
  * there is no flash of the wrong theme while a script runs. And the choice
  * outlives the session, which a session-scoped bean would not: somebody who
@@ -38,7 +39,10 @@ import jakarta.servlet.http.Cookie;
 @RequestScoped
 public class ThemeBean {
 
-    /** The cookie the choice is kept in. Named for the application, not the app server. */
+    /**
+     * The cookie the choice is kept in. Named for the application, not the app
+     * server.
+     */
     public static final String COOKIE_NAME = "tm-theme";
 
     /** A year. The preference is not a session and should outlive one. */
@@ -50,7 +54,8 @@ public class ThemeBean {
     /**
      * The theme to render, as the value of the {@code data-theme} attribute.
      *
-     * <p>Returns one of exactly two literals, never the raw cookie. The cookie
+     * <p>
+     * Returns one of exactly two literals, never the raw cookie. The cookie
      * is attacker-controlled in the sense that anyone can edit it in a browser,
      * and a value reflected straight into an attribute is how a markup
      * injection starts. Anything that is not the literal {@code "dark"} is
@@ -79,7 +84,8 @@ public class ThemeBean {
     /**
      * The other theme, for the toggle button's accessible label.
      *
-     * <p>The label names what the button will do rather than what is currently
+     * <p>
+     * The label names what the button will do rather than what is currently
      * true, which is the convention a screen reader user expects from a
      * control: "Switch to dark theme" is an instruction, "Dark theme" is a
      * state the listener then has to work out the direction of.
@@ -87,13 +93,14 @@ public class ThemeBean {
      * @return a sentence fragment naming the theme this button selects
      */
     public String getToggleLabel() {
-        return isDark() ? "Switch to light theme" : "Switch to dark theme";
+        return isDark() ? "Light Mode" : "Dark Mode";
     }
 
     /**
      * The icon the toggle shows: the theme it switches to, not the one in use.
      *
-     * <p>A moon on a light page reads as "go dark", which is the action, and is
+     * <p>
+     * A moon on a light page reads as "go dark", which is the action, and is
      * what people expect from the control in every other application that has
      * one.
      *

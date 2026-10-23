@@ -5,7 +5,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.tripmate.dto.CalendarSyncResultDTO;
 import com.tripmate.dto.ExpenseDTO;
+import com.tripmate.dto.GoogleConnectionDTO;
 import com.tripmate.dto.ItineraryItemDTO;
 import com.tripmate.dto.MemberBalanceDTO;
 import com.tripmate.dto.SettlementDTO;
@@ -15,18 +17,27 @@ import com.tripmate.dto.TripSummaryEmailDTO;
 import com.tripmate.entity.TripRole;
 import com.tripmate.entity.TripStatus;
 import com.tripmate.entity.TripSummaryKind;
+import com.tripmate.remote.CalendarServiceRemote;
+import com.tripmate.remote.GoogleCalendarRemote;
 import com.tripmate.remote.ExpenseServiceRemote;
 import com.tripmate.remote.ItineraryServiceRemote;
 import com.tripmate.remote.ReportServiceRemote;
 import com.tripmate.remote.TripServiceRemote;
 import com.tripmate.remote.UserServiceRemote;
+import com.tripmate.web.calendar.CalendarFeedServlet;
+import com.tripmate.web.calendar.GoogleCalendarConnectServlet;
+import com.tripmate.web.calendar.CalendarServlet;
+import com.tripmate.web.support.ExternalAddress;
 import com.tripmate.web.support.Messages;
 import com.tripmate.web.support.Toasts;
 
 import jakarta.ejb.EJB;
+import jakarta.faces.context.FacesContext;
 import jakarta.faces.view.ViewScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 /**
  * One trip: its itinerary, expenses, balances and members.
@@ -46,6 +57,9 @@ public class TripDetailBean implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    private static final java.util.logging.Logger LOG =
+            java.util.logging.Logger.getLogger(TripDetailBean.class.getName());
+
     @EJB
     private TripServiceRemote tripService;
 
@@ -61,8 +75,22 @@ public class TripDetailBean implements Serializable {
     @EJB
     private UserServiceRemote userService;
 
+    @EJB
+    private CalendarServiceRemote calendarService;
+
+    @EJB
+    private GoogleCalendarRemote googleCalendar;
+
     @Inject
     private CurrentUser currentUser;
+
+    /**
+     * Read for the one deployment fact this page needs: whether the forwarded
+     * headers behind a proxy may be believed when the calendar address is
+     * written out.
+     */
+    @Inject
+    private SiteBean siteBean;
 
     private Long tripId;
 
@@ -221,6 +249,70 @@ public class TripDetailBean implements Serializable {
         itinerary = new ArrayList<>(itineraryService.getItineraryForTrip(tripId));
         expenses = new ArrayList<>(expenseService.getExpensesForTrip(tripId));
         refreshBalances();
+        loadGoogleConnection();
+        raiseGoogleNotice();
+    }
+
+    /**
+     * Reads this reader's Google Calendar connection.
+     *
+     * <p>Loaded with the page rather than with the dialog, because whether the
+     * connection is offered at all is a deployment fact and the dialog is
+     * rendered as part of the page. Reading it lazily left the section deciding
+     * from a null, so it was drawn on a deployment with no Google client and
+     * offered a button whose only possible answer was a refusal.
+     *
+     * <p>One lookup by primary key. The subscribe address is still read when the
+     * dialog opens, because unlike this it is a secret, and there is no reason to
+     * hold one for the life of a page that is not about calendars.
+     */
+    private void loadGoogleConnection() {
+        googleConnection = null;
+        try {
+            googleConnection = googleCalendar.status(currentUser.getUserId());
+        } catch (RuntimeException ex) {
+            // Left null, which reads as "not offered". A trip page must not fail
+            // to render because a calendar connection could not be read.
+            LOG.log(java.util.logging.Level.WARNING,
+                    "Could not read the Google Calendar connection for this page", ex);
+        }
+    }
+
+    /**
+     * Turns what the Google callback left in the session into a message.
+     *
+     * <p>The callback is a servlet, and a servlet cannot raise a toast: the
+     * toast machinery needs a Faces context, and that request has none. So the
+     * callback leaves a sentence in the session and redirects here, and this
+     * reads it on the way in. Reading clears it, so it is shown once.
+     *
+     * <p>Doing it here rather than in a view parameter is what lets a refusal
+     * carry a sentence written for a person. A parameter would carry a code the
+     * page then had to translate, and the translation would live somewhere other
+     * than the failure.
+     */
+    private void raiseGoogleNotice() {
+        Object notice = popSession(GoogleCalendarConnectServlet.NOTICE_ATTRIBUTE);
+        if (notice == null || notice.toString().isBlank()) {
+            return;
+        }
+        Object failed = popSession(GoogleCalendarConnectServlet.NOTICE_FAILED_ATTRIBUTE);
+        if (Boolean.TRUE.equals(failed)) {
+            Toasts.error(notice.toString());
+        } else {
+            Toasts.success(notice.toString());
+        }
+    }
+
+    private static Object popSession(String key) {
+        Object request = FacesContext.getCurrentInstance().getExternalContext().getRequest();
+        if (!(request instanceof HttpServletRequest http) || http.getSession(false) == null) {
+            return null;
+        }
+        HttpSession session = http.getSession(false);
+        Object value = session.getAttribute(key);
+        session.removeAttribute(key);
+        return value;
     }
 
     /**
@@ -344,6 +436,7 @@ public class TripDetailBean implements Serializable {
 
     /** Opens the item dialog with an empty form. */
     public void openAddItem() {
+        closeCalendar();
         itemForm = new ItineraryItemDTO();
         editingItemId = null;
         itemDialogError = null;
@@ -352,6 +445,7 @@ public class TripDetailBean implements Serializable {
 
     /** Opens the item dialog on one of the plan's items. */
     public void openEditItem(Long itemId) {
+        closeCalendar();
         ItineraryItemDTO item = itineraryService.getItem(itemId);
         if (item == null) {
             Toasts.error("That item no longer exists.");
@@ -397,6 +491,7 @@ public class TripDetailBean implements Serializable {
             // The table, the count above it and the summary tiles all read from
             // this list, so one reload keeps the whole page telling one story.
             itinerary = new ArrayList<>(itineraryService.getItineraryForTrip(tripId));
+            syncAfterPlanChange();
         } catch (RuntimeException ex) {
             itemDialogError = Messages.describe(ex);
         }
@@ -420,6 +515,7 @@ public class TripDetailBean implements Serializable {
                 closeItemDialog();
             }
             itinerary = new ArrayList<>(itineraryService.getItineraryForTrip(tripId));
+            syncAfterPlanChange();
         } catch (RuntimeException ex) {
             Toasts.error(Messages.describe(ex));
         }
@@ -461,6 +557,295 @@ public class TripDetailBean implements Serializable {
     /** @return why the last item save was refused, or null */
     public String getItemDialogError() {
         return itemDialogError;
+    }
+
+    // ------------------------------------------------------------------
+    // Sending the plan to a calendar
+    // ------------------------------------------------------------------
+
+    /** The "add to a calendar" dialog on the Itinerary tab. */
+    private boolean calendarDialogOpen;
+
+    /**
+     * The token of this trip's subscribe address, or null when it has none.
+     *
+     * <p>Loaded when the dialog opens rather than with the rest of the page.
+     * Most visits to a trip are not about its calendar, and this is one more
+     * query and one more secret held in memory for as long as the view lives.
+     */
+    private String subscribeToken;
+
+    /** Why the subscribe address could not be read, created or replaced, or null. */
+    private String subscribeError;
+
+    /**
+     * This reader's Google Calendar connection, or null before the dialog asks.
+     *
+     * <p>Loaded with the subscribe token rather than with the page, for the same
+     * reason: most visits to a trip are not about its calendar.
+     */
+    private GoogleConnectionDTO googleConnection;
+
+    /**
+     * Opens the dialog, and reads whatever subscribe address the trip already has.
+     *
+     * <p>The read is allowed to fail without stopping the dialog from opening.
+     * A trip with no address and a trip whose address could not be read look the
+     * same in the dialog, which offers to make one, and making one reports its
+     * own failure. Refusing to open the dialog at all because a convenience
+     * could not be loaded would take the download away with it.
+     */
+    public void openCalendar() {
+        // The two dialogs are in one form, so each opener closes the other.
+        // The reason is the one written beside the trip settings dialog: a
+        // reader who dismisses a dialog with its own close icon is handled in
+        // the browser and tells the server nothing, so the flag stays set and
+        // the next re-render of this form reopens a dialog nobody asked for.
+        // Closing the item editor here, and the calendar there, is what keeps
+        // the server's idea of what is open in step.
+        closeItemDialog();
+        calendarDialogOpen = true;
+        subscribeError = null;
+        subscribeToken = null;
+        try {
+            subscribeToken = calendarService.subscribeToken(tripId, currentUser.getUserId());
+        } catch (RuntimeException ex) {
+            subscribeError = Messages.describe(ex);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // The Google Calendar connection
+    // ------------------------------------------------------------------
+
+    /** @return true when this deployment has been given a Google client */
+    public boolean isGoogleAvailable() {
+        return googleConnection != null && googleConnection.isAvailable();
+    }
+
+    /** @return true when this reader has connected their calendar */
+    public boolean isGoogleConnected() {
+        return googleConnection != null && googleConnection.isConnected();
+    }
+
+    /** @return the connected Google account, or null */
+    public String getGoogleEmail() {
+        return googleConnection == null ? null : googleConnection.getGoogleEmail();
+    }
+
+    /**
+     * Where the reader goes to give permission.
+     *
+     * <p>A path rather than an action, because it is a redirect to Google and
+     * not something this application does: the reader's own browser has to be
+     * the one that asks, with their own Google session, and no amount of
+     * server-side work substitutes for that.
+     *
+     * @return a context-relative address the view prefixes, or null when the
+     *         connection is not offered
+     */
+    public String getGoogleConnectPath() {
+        return isGoogleAvailable() && !isGoogleConnected()
+                ? GoogleCalendarConnectServlet.PATH + "?tripId=" + tripId
+                : null;
+    }
+
+    /**
+     * Forgets the connection, and asks Google to forget it too.
+     *
+     * <p>Both halves are in the service. The reader is told what happened to the
+     * calendar they are entitled to keep, which is why the message says the
+     * events already written are still there rather than implying they are not.
+     */
+    public void disconnectGoogleCalendar() {
+        subscribeError = null;
+        try {
+            googleCalendar.disconnect(currentUser.getUserId());
+            loadGoogleConnection();
+            Toasts.success("Google Calendar disconnected. Events already added stay in it.");
+        } catch (RuntimeException ex) {
+            subscribeError = Messages.describe(ex);
+        }
+    }
+
+    /**
+     * Writes the plan into the connected calendars, on the reader's instruction.
+     *
+     * <p>The same work the automatic sync does. It exists because the automatic
+     * one only runs when the plan changes, and a reader who has just connected
+     * has a calendar that is empty and a plan that has not changed, so nothing
+     * would ever be written until they happened to edit something.
+     *
+     * @return the sentence describing what happened, which the view shows
+     */
+    public String syncGoogleCalendarNow() {
+        subscribeError = null;
+        try {
+            CalendarSyncResultDTO result =
+                    googleCalendar.syncTrip(tripId, currentUser.getUserId());
+            if (result.isNobodyConnected()) {
+                Toasts.warning(result.describe());
+            } else if (result.getFailed() > 0) {
+                Toasts.warning(result.describe());
+            } else {
+                Toasts.success(result.describe());
+            }
+            loadGoogleConnection();
+        } catch (RuntimeException ex) {
+            Toasts.error(Messages.describe(ex));
+        }
+        return null;
+    }
+
+    /**
+     * Writes the plan into the connected calendars, after the plan changed.
+     *
+     * <p>Handed off rather than waited on. The reader pressed Save, and Save
+     * succeeded; the calendar is a second thing, it is the slowest thing this
+     * application does, and making the reader wait for it was what made adding a
+     * stop to a plan feel like the application had hung.
+     *
+     * <p>So nothing is said here, and that is a real trade rather than an
+     * oversight. It used to warn when the sync failed, which a reader who does
+     * not see the event in their calendar does need to know. The warning has
+     * moved to the server log, and "Sync now" in the calendar dialog is the way
+     * to get an answer on demand. The alternative, keeping the warning, means
+     * keeping the wait.
+     */
+    private void syncAfterPlanChange() {
+        try {
+            googleCalendar.syncTripLater(tripId, currentUser.getUserId());
+        } catch (RuntimeException ex) {
+            // Only the hand-off can throw here; the sync itself cannot reach
+            // this thread. A refusal at this point means the container would not
+            // accept the work at all, which is worth saying out loud.
+            LOG.log(java.util.logging.Level.WARNING,
+                    "Could not hand the calendar sync to the background", ex);
+        }
+    }
+
+    /** @return true when there is a connected calendar this page could write to */
+    public boolean isGoogleSyncable() {
+        return isGoogleAvailable() && !itinerary.isEmpty();
+    }
+
+    public void closeCalendar() {
+        calendarDialogOpen = false;
+        subscribeError = null;
+    }
+
+    public boolean isCalendarDialogOpen() {
+        return calendarDialogOpen;
+    }
+
+    /** Gives the trip a subscribe address, or shows the one it already has. */
+    public void createSubscribeLink() {
+        subscribeError = null;
+        try {
+            subscribeToken = calendarService.subscribe(tripId, currentUser.getUserId());
+            Toasts.success("The calendar address is ready.");
+        } catch (RuntimeException ex) {
+            subscribeError = Messages.describe(ex);
+        }
+    }
+
+    /**
+     * Issues a new address, which stops the old one working.
+     *
+     * <p>Says so in the toast, because the reader is about to have a calendar
+     * that stops updating and needs to know that this is what did it.
+     */
+    public void resetSubscribeLink() {
+        subscribeError = null;
+        try {
+            subscribeToken = calendarService.resetFeed(tripId, currentUser.getUserId());
+            Toasts.success("A new address was issued. The old one no longer works.");
+        } catch (RuntimeException ex) {
+            subscribeError = Messages.describe(ex);
+        }
+    }
+
+    /**
+     * Whether this trip's plan can be sent to a calendar.
+     *
+     * <p>Asks the same question the service asks, so the control appears exactly
+     * when the work would be done rather than when the reader presses it and is
+     * refused. The service asks again for its own sake: this is what makes the
+     * page honest, and that is what makes the endpoint safe, and neither of them
+     * is a substitute for the other.
+     *
+     * <p>Live rather than being planned, so a trip under way keeps its calendar.
+     * That is when the plan is most wanted: on the day, in a pocket, rather than
+     * only in the weeks before.
+     *
+     * @return true when the trip is still to come or under way, and has
+     *         something in it
+     */
+    public boolean isCalendarAvailable() {
+        return trip != null
+                && trip.getStatus().isLive()
+                && !itinerary.isEmpty();
+    }
+
+    /**
+     * Where the download lives.
+     *
+     * <p>A path rather than a URL, because the context the application is
+     * deployed under is not known here; the view prefixes it with the request's
+     * own context path, as it does for the icons in the page head.
+     *
+     * @return a context-relative address for the calendar file
+     */
+    public String getCalendarPath() {
+        return CalendarServlet.PATH + "?tripId=" + tripId;
+    }
+
+    /** @return true when the trip has a subscribe address to show */
+    public boolean isHasSubscribeLink() {
+        return subscribeToken != null;
+    }
+
+    /**
+     * The subscribe address, in full.
+     *
+     * <p>Absolute rather than relative, because it is going to be pasted into
+     * another product, which has no idea what this application's host is.
+     * {@link ExternalAddress} builds it, including the case where the
+     * application is behind a tunnel or a proxy and the request the container
+     * sees is not the one the reader made.
+     *
+     * @return the address to paste, or null when there is no subscribe address
+     */
+    public String getSubscribeUrl() {
+        if (subscribeToken == null) {
+            return null;
+        }
+        String path = CalendarFeedServlet.PATH + "/" + subscribeToken + ".ics";
+        Object request = FacesContext.getCurrentInstance().getExternalContext().getRequest();
+        if (!(request instanceof HttpServletRequest http)) {
+            return path;
+        }
+        return ExternalAddress.base(http, siteBean.isTrustProxy()) + http.getContextPath() + path;
+    }
+
+    /**
+     * Whether the address is one a calendar application could actually fetch.
+     *
+     * <p>Answered by {@link ExternalAddress}, which is also what decides what
+     * the address is. Asking a different question of a different value is how
+     * the note and the address it is about come to disagree.
+     *
+     * @return true when the address might be reachable from the internet
+     */
+    public boolean isSubscribeAddressReachable() {
+        Object request = FacesContext.getCurrentInstance().getExternalContext().getRequest();
+        return request instanceof HttpServletRequest http
+                && ExternalAddress.isReachableFromInternet(http, siteBean.isTrustProxy());
+    }
+
+    /** @return why the subscribe address could not be used, or null */
+    public String getSubscribeError() {
+        return subscribeError;
     }
 
     // ------------------------------------------------------------------
@@ -666,6 +1051,38 @@ public class TripDetailBean implements Serializable {
 
     public List<TripStatus> getStatuses() {
         return List.of(TripStatus.values());
+    }
+
+    /**
+     * The zones a trip can be planned in.
+     *
+     * <p>A short list rather than the six hundred this runtime knows. The field
+     * answers one question, "where is this trip", and a list that long is a
+     * search problem rather than a choice; these are the zones a group leaving
+     * Kathmandu is likely to need, the server's own first so the common answer
+     * is at the top, and anything else is a one-line addition here.
+     *
+     * @return zone ids, never empty
+     */
+    public List<String> getTimezones() {
+        List<String> zones = new ArrayList<>();
+        zones.add(java.time.ZoneId.systemDefault().getId());
+        for (String id : List.of(
+                "Asia/Kathmandu", "Asia/Kolkata", "Asia/Dubai", "Asia/Bangkok",
+                "Asia/Singapore", "Asia/Shanghai", "Asia/Tokyo", "Asia/Seoul",
+                "Asia/Dhaka", "Asia/Colombo", "Asia/Tashkent",
+                "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Rome",
+                "Europe/Madrid", "Europe/Istanbul", "Europe/Moscow",
+                "Africa/Cairo", "Africa/Nairobi",
+                "America/New_York", "America/Chicago", "America/Denver",
+                "America/Los_Angeles", "America/Sao_Paulo",
+                "Australia/Sydney", "Australia/Perth", "Pacific/Auckland",
+                "UTC")) {
+            if (!zones.contains(id)) {
+                zones.add(id);
+            }
+        }
+        return zones;
     }
 
     public BigDecimal getExpenseTotal() {

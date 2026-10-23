@@ -50,4 +50,47 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <!--
+                        web.xml is taken out of the ordinary webapp copy and put
+                        back by the filtered resource below, so that the build
+                        produces exactly one web.xml and it is the substituted
+                        one.
+
+                        The exclusion is what makes this work. The main webapp
+                        tree is copied after the extra resources, so without it
+                        the unfiltered file simply overwrites the filtered one
+                        and the placeholder arrives in the archive unfilled,
+                        with nothing anywhere reporting a problem. Excluding it
+                        here removes the ordering question rather than relying
+                        on it.
+                    -->
+                    <warSourceExcludes>WEB-INF/web.xml</warSourceExcludes>
+                    <webResources>
+                        <!--
+                            The directory is the webapp root and not WEB-INF,
+                            because an extra resource is copied to a path
+                            relative to its own directory. Pointing at WEB-INF
+                            would put web.xml in the root of the archive, where
+                            the container does not look for it, rather than in
+                            WEB-INF.
+                        -->
+                        <resource>
+                            <directory>src/main/webapp</directory>
+                            <filtering>true</filtering>
+                            <includes>
+                                <include>WEB-INF/web.xml</include>
+                            </includes>
+                        </resource>
+                    </webResources>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

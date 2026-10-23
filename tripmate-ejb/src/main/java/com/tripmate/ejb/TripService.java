@@ -1,5 +1,7 @@
 package com.tripmate.ejb;
 
+import java.time.DateTimeException;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.math.BigDecimal;
@@ -106,6 +108,11 @@ public class TripService implements TripServiceRemote {
         entity.setDescription(trip.getDescription());
         entity.setStatus(trip.getStatus() == null ? TripStatus.PLANNING : trip.getStatus());
         entity.setCreatedBy(creator);
+        // The zone the plan's times will be read in. Given the server's own
+        // when the caller named none, rather than left null: null reads as the
+        // server's zone anyway, and a value the reader can see and correct is
+        // better than a fallback nobody knows is being applied.
+        entity.setTimezone(normaliseZone(trip.getTimezone(), ZoneId.systemDefault().getId()));
 
         em.persist(entity);
 
@@ -177,6 +184,10 @@ public class TripService implements TripServiceRemote {
         entity.setStartDate(trip.getStartDate());
         entity.setEndDate(trip.getEndDate());
         entity.setDescription(trip.getDescription());
+        // Deliberately set rather than merged like the name: the trip settings
+        // dialog always carries a zone, and a blank one means "back to the
+        // server's", which is a choice a reader is allowed to make.
+        entity.setTimezone(normaliseZone(trip.getTimezone(), null));
         if (trip.getStatus() != null) {
             entity.setStatus(trip.getStatus());
         }
@@ -780,6 +791,32 @@ public class TripService implements TripServiceRemote {
                     .getSingleResult();
         } catch (jakarta.persistence.NoResultException none) {
             return null;
+        }
+    }
+
+    /**
+     * A zone id that this runtime recognises, or the fallback.
+     *
+     * <p>Accepted and stored as an IANA id so the value means the same thing to
+     * every reader of it. A caller that sends something this runtime cannot
+     * resolve gets the fallback rather than an error, because the zone is
+     * metadata about the plan and refusing to create a trip over it would be
+     * the wrong trade; the dialog offers a list, so a bad value means a
+     * hand-written request.
+     *
+     * @param requested what was asked for, possibly null or blank
+     * @param fallback  what to use instead, possibly null to store nothing
+     * @return a resolved zone id, or the fallback
+     */
+    private static String normaliseZone(String requested, String fallback) {
+        if (requested == null || requested.isBlank()) {
+            return fallback;
+        }
+        String candidate = requested.trim();
+        try {
+            return ZoneId.of(candidate).getId();
+        } catch (DateTimeException unknownZone) {
+            return fallback;
         }
     }
 }

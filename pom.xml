@@ -46,6 +46,32 @@
         <maven-ear-plugin.version>3.3.0</maven-ear-plugin.version>
         <maven-install-plugin.version>3.1.2</maven-install-plugin.version>
         <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+
+        <!--
+            Deployment-shape settings, substituted into web.xml and
+            persistence.xml at build time.
+
+            They exist as properties rather than as literals in the descriptors
+            because the right value is different on a laptop and on a server,
+            and the descriptors cannot tell which one they are being built for.
+            The defaults below are the server's: Production, and quiet. The
+            `dev` profile switches all three to the development settings, so
+
+                mvn -Pdev clean package
+
+            builds the artifact you want while working on the application and a
+            plain `mvn clean package` builds the one you want to deploy.
+
+            This matters more than it looks. Mojarra's Development stage turns
+            off Facelets template caching, so every request re-checks and may
+            re-parse every XHTML view it renders, and EclipseLink's FINE logging
+            writes every SQL statement and its bound parameters to the server
+            log on every query. Both are the right defaults to develop against
+            and exactly the wrong ones to serve from: the log alone reached 95 MB.
+        -->
+        <tripmate.projectStage>Production</tripmate.projectStage>
+        <tripmate.eclipselink.logging.level>WARNING</tripmate.eclipselink.logging.level>
+        <tripmate.eclipselink.logging.parameters>false</tripmate.eclipselink.logging.parameters>
     </properties>
 
     <dependencyManagement>
@@ -133,5 +159,28 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <profiles>
+        <!--
+            The development build: Development project stage, and EclipseLink
+            logging every SQL statement with its parameters.
+
+            Nothing here is compiled differently; the profile only changes the
+            three values substituted into the descriptors. It is activated by
+            name and never automatically, so a plain build is always the one
+            worth deploying.
+
+                mvn -Pdev clean package
+                ./scripts/deploy.sh -Pdev
+        -->
+        <profile>
+            <id>dev</id>
+            <properties>
+                <tripmate.projectStage>Development</tripmate.projectStage>
+                <tripmate.eclipselink.logging.level>FINE</tripmate.eclipselink.logging.level>
+                <tripmate.eclipselink.logging.parameters>true</tripmate.eclipselink.logging.parameters>
+            </properties>
+        </profile>
+    </profiles>
 
 </project>

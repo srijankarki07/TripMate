@@ -2,7 +2,10 @@ package com.tripmate.ejb;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import com.tripmate.dto.ExpenseDTO;
 import com.tripmate.dto.SettlementDTO;
@@ -124,6 +127,56 @@ public class ExpenseService implements ExpenseServiceRemote {
                                 + "ORDER BY e.expenseDate DESC, e.expenseId DESC",
                         Expense.class)
                 .setParameter("tripId", tripId)
+                .getResultList()
+                .stream()
+                .map(ExpenseDTO::from)
+                .toList();
+    }
+
+    @Override
+    public List<ExpenseDTO> getRecentExpensesForUser(Long userId, int limit) {
+        if (userId == null || limit <= 0) {
+            return List.of();
+        }
+
+        // The ids first, then the rows. Two queries rather than one, and the
+        // reason is the fetch join below.
+        //
+        // An expense has a collection of splits, so a query that fetch-joins
+        // them returns one row per split. setMaxResults counts those rows, not
+        // expenses, so asking for the newest eight of a trip where expenses
+        // have four participants each would return two expenses, and the last
+        // one could come back with only some of its splits attached. Selecting
+        // the ids first makes the limit mean what it says; the second query then
+        // loads exactly those rows, with everything the DTO needs already
+        // joined.
+        List<Long> ids = em.createQuery(
+                        "SELECT e.expenseId FROM Expense e "
+                                + "WHERE e.trip.tripId IN ("
+                                + "    SELECT m.trip.tripId FROM TripMember m"
+                                + "    WHERE m.user.userId = :userId) "
+                                + "ORDER BY e.expenseDate DESC, e.expenseId DESC",
+                        Long.class)
+                .setParameter("userId", userId)
+                .setMaxResults(limit)
+                .getResultList();
+
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+
+        // The trip is fetched as well as the payer, because ExpenseDTO.from
+        // reads the trip id and a lazy load there would be one query per
+        // expense, which is the pattern this method exists to avoid.
+        return em.createQuery(
+                        "SELECT DISTINCT e FROM Expense e "
+                                + "LEFT JOIN FETCH e.splits "
+                                + "LEFT JOIN FETCH e.paidBy "
+                                + "LEFT JOIN FETCH e.trip "
+                                + "WHERE e.expenseId IN :ids "
+                                + "ORDER BY e.expenseDate DESC, e.expenseId DESC",
+                        Expense.class)
+                .setParameter("ids", ids)
                 .getResultList()
                 .stream()
                 .map(ExpenseDTO::from)
@@ -368,6 +421,31 @@ public class ExpenseService implements ExpenseServiceRemote {
     private void replaceSplits(Expense expense, List<SplitDTO> splits) {
         expense.getSplits().clear();
 
+        // Every user any split names, in one query, before the loop that
+        // validates them.
+        //
+        // This used to be an em.find inside the loop, which is one select per
+        // participant: an expense split eight ways cost eight of them, on the
+        // write path, and the message-driven consumer multiplies that by however
+        // many messages are queued behind it. Nulls are filtered here because
+        // they cannot be looked up, and the loop below reports them as their own
+        // problem.
+        List<Long> wanted = splits.stream()
+                .map(SplitDTO::getUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, User> users = new HashMap<>();
+        if (!wanted.isEmpty()) {
+            for (User user : em.createQuery(
+                            "SELECT u FROM User u WHERE u.userId IN :ids", User.class)
+                    .setParameter("ids", wanted)
+                    .getResultList()) {
+                users.put(user.getUserId(), user);
+            }
+        }
+
         List<String> problems = new ArrayList<>();
         for (SplitDTO split : splits) {
             if (split.getUserId() == null) {
@@ -382,7 +460,7 @@ public class ExpenseService implements ExpenseServiceRemote {
                 problems.add("a split for user " + split.getUserId() + " is negative");
                 continue;
             }
-            User user = em.find(User.class, split.getUserId());
+            User user = users.get(split.getUserId());
             if (user == null) {
                 problems.add("no such user: " + split.getUserId());
                 continue;

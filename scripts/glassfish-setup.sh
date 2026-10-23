@@ -109,11 +109,23 @@ echo
 # once they exist, so it is followed by a set that puts the current values in;
 # both are quiet, because either one failing alone is the normal case.
 "${ASADMIN}" create-system-properties \
-    "tripmate.showDiagnostics=${TM_SHOW_DIAGNOSTICS}:tripmate.footerStack=${TM_FOOTER_STACK}" \
+    "tripmate.showDiagnostics=${TM_SHOW_DIAGNOSTICS}:tripmate.footerStack=${TM_FOOTER_STACK}:tripmate.trustProxy=${TM_TRUST_PROXY}:tripmate.google.clientId=${TM_GOOGLE_CLIENT_ID}:tripmate.google.clientSecret=${TM_GOOGLE_CLIENT_SECRET}:tripmate.credentialsKey=${TM_CREDENTIALS_KEY}" \
     >/dev/null 2>&1 || true
 "${ASADMIN}" set \
     "configs.config.server-config.system-property.tripmate.showDiagnostics.value=${TM_SHOW_DIAGNOSTICS}" \
     "configs.config.server-config.system-property.tripmate.footerStack.value=${TM_FOOTER_STACK}" \
+    "configs.config.server-config.system-property.tripmate.trustProxy.value=${TM_TRUST_PROXY}" \
+    "configs.config.server-config.system-property.tripmate.google.clientId.value=${TM_GOOGLE_CLIENT_ID}" \
+    "configs.config.server-config.system-property.tripmate.google.clientSecret.value=${TM_GOOGLE_CLIENT_SECRET}" \
+    "configs.config.server-config.system-property.tripmate.credentialsKey.value=${TM_CREDENTIALS_KEY}" \
     >/dev/null 2>&1 || true
 
-echo "==> Site: diagnostics ${TM_SHOW_DIAGNOSTICS}, footer '${TM_FOOTER_STACK}'"
+echo "==> Site: diagnostics ${TM_SHOW_DIAGNOSTICS}, footer '${TM_FOOTER_STACK}', trust proxy ${TM_TRUST_PROXY}"
+
+# Said as a fact about the deployment rather than about the values, which are
+# secrets and do not belong in output that ends up pasted into a report.
+if [[ -n "${TM_GOOGLE_CLIENT_ID}" && -n "${TM_CREDENTIALS_KEY}" ]]; then
+    echo "==> Google Calendar connection: configured"
+else
+    echo "==> Google Calendar connection: not configured (no client id, or no credential key)"
+fi

@@ -20,6 +20,7 @@ import com.tripmate.ejb.PersistenceSmokeTest;
 import com.tripmate.ejb.QueryVerificationSmokeTest;
 import com.tripmate.ejb.SessionBeanSmokeTest;
 import com.tripmate.entity.TripRole;
+import com.tripmate.remote.CalendarServiceRemote;
 import com.tripmate.remote.ExpenseServiceRemote;
 import com.tripmate.remote.ReportServiceRemote;
 import com.tripmate.remote.TripServiceRemote;
@@ -75,6 +76,9 @@ public class DiagnosticsBean implements Serializable {
 
     @EJB
     private ReportServiceRemote reportService;
+
+    @EJB
+    private CalendarServiceRemote calendarService;
 
     private List<String> report;
     private String error;
@@ -313,6 +317,15 @@ public class DiagnosticsBean implements Serializable {
         expectRejected(lines, "Authorization",
                 "a plain member cannot delete the trip",
                 () -> tripService.deleteTrip(pokhara.getTripId(), bob.getUserId()));
+
+        // The calendar feed's address is a credential that reads the trip
+        // without a session, so handing out a new one is the half that takes
+        // something away from whoever holds the old one. A member may ask for
+        // an address, which grants nothing they could not already read; only an
+        // administrator may revoke one.
+        expectRejected(lines, "Authorization",
+                "a plain member cannot reset a trip's calendar address",
+                () -> calendarService.resetFeed(pokhara.getTripId(), bob.getUserId()));
 
         // Alice is Pokhara's only administrator, so she cannot leave it.
         expectRejected(lines, "Authorization",

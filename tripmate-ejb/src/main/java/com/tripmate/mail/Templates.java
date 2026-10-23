@@ -87,11 +87,86 @@ public final class Templates {
     }
 
     // ------------------------------------------------------------------
+    // Confirm an address
+    // ------------------------------------------------------------------
+
+    /**
+     * The message carrying the code that confirms a new account's address.
+     *
+     * <h2>A code rather than a link</h2>
+     *
+     * The password reset sends a link and this sends six digits, which is not
+     * an inconsistency. A reset link is opened once, on whatever device is to
+     * hand, and can carry 256 bits of unguessable token. A code has to be read
+     * off one screen and typed into another, so it has to be short enough to
+     * hold in the head for the few seconds that takes, and short means
+     * guessable. The defence against guessing is not the length of the code but
+     * the attempt limit behind it, which the message states.
+     *
+     * <p>The code is set as large, spaced, monospaced digits rather than set
+     * into a sentence: it is read once, character by character, and a code that
+     * looks like prose is transcribed wrongly.
+     *
+     * @param toEmail      the address the code was sent to
+     * @param fullName     the name on the account
+     * @param code         the six digits, already formatted
+     * @param validMinutes how long the code lasts, said in the message so the
+     *                     reader knows whether it is worth typing
+     * @param maxAttempts  how many wrong tries the code accepts before it is
+     *                     spent, also said in the message
+     * @return the rendered message
+     */
+    public static Email verificationCode(String toEmail, String fullName, String code,
+            int validMinutes, int maxAttempts) {
+        String greeting = firstNameOr(fullName, "there");
+        String heading = "Confirm your email address, " + escape(greeting);
+
+        String body = paragraph("Enter this code on the TripMate page you came from to "
+                + "finish setting up your account.")
+                + codeBlock(escape(code))
+                + paragraph("The code works for " + validMinutes + " minutes, and for "
+                        + maxAttempts + " tries. If it runs out, ask for another one from the "
+                        + "same page: nothing you have already filled in is lost, and your "
+                        + "account is not affected either way.")
+                + note("If you did not create a TripMate account, nothing has happened and "
+                        + "nothing needs doing. Ignore this message and the code will expire "
+                        + "on its own, and no account will be usable without it.");
+
+        String html = layout(
+                "Confirm your email address",
+                "Your code is " + code + ". It lasts " + validMinutes + " minutes.",
+                heading,
+                body,
+                "You are receiving this because this address was used to register at TripMate.");
+
+        String text = greeting + ",\n\n"
+                + "Enter this code on the TripMate page you came from to finish setting up\n"
+                + "your account:\n\n"
+                + "    " + code + "\n\n"
+                + "The code works for " + validMinutes + " minutes, and for " + maxAttempts
+                + " tries.\n"
+                + "If it runs out, ask for another one from the same page: nothing you have\n"
+                + "already filled in is lost, and your account is not affected either way.\n\n"
+                + "If you did not create a TripMate account, nothing has happened and nothing\n"
+                + "needs doing. Ignore this message and the code will expire on its own, and\n"
+                + "no account will be usable without it.\n\n"
+                + "--\n"
+                + "You are receiving this because this address was used to register at\n"
+                + "TripMate.\n";
+
+        return new Email(toEmail, "Your TripMate confirmation code", html, text);
+    }
+
+    // ------------------------------------------------------------------
     // Welcome
     // ------------------------------------------------------------------
 
     /**
-     * The message sent when somebody registers.
+     * The message sent once an address has been confirmed.
+     *
+     * <p>Held back until then rather than sent at registration. The previous
+     * arrangement congratulated somebody on an account they could not yet use,
+     * and told them to sign in to a page that would refuse them.
      *
      * @param toEmail   the address to send to
      * @param fullName  the name they gave, used in the greeting
@@ -623,6 +698,33 @@ public final class Templates {
                 + "address at TripMate.\n";
 
         return new Email(toEmail, "Reset your TripMate password", html, text);
+    }
+
+    /**
+     * A short code, set large and spaced so it can be read off and typed in.
+     *
+     * <p>
+     * The letter spacing and the monospaced stack are the whole point: digits
+     * copied from a paragraph are misread, and {@code 0} against {@code O} and
+     * {@code 1} against {@code l} are the usual victims. The block is styled
+     * rather than in a {@code <code>} element because Outlook's renderer
+     * ignores the element's default styling and would set the code in the same
+     * body font as everything else.
+     *
+     * @param escapedCode the digits, already escaped
+     */
+    private static String codeBlock(String escapedCode) {
+        return "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" "
+                + "width=\"100%\" style=\"margin:0 0 16px;\"><tr>"
+                + "<td align=\"center\" style=\"padding:20px 14px;background-color:"
+                + SURFACE_SOFT + ";border:1px solid " + HAIRLINE + ";border-radius:8px;"
+                + "font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace;"
+                + "font-size:34px;line-height:1.2;font-weight:700;letter-spacing:8px;"
+                + "color:" + INK + ";\">"
+                // The trailing letter-spacing of the last digit would push the
+                // block off centre, so it is taken back on the right.
+                + "<span style=\"margin-right:-8px;\">" + escapedCode + "</span>"
+                + "</td></tr></table>";
     }
 
     /**

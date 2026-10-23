@@ -33,6 +33,7 @@ public class TripDTO implements Serializable {
     private String tripName;
     private String destination;
     private String description;
+    private String timezone;
     private LocalDate startDate;
     private LocalDate endDate;
     private TripStatus status;
@@ -43,12 +44,13 @@ public class TripDTO implements Serializable {
     }
 
     public TripDTO(Long tripId, String tripName, String destination, String description,
-                   LocalDate startDate, LocalDate endDate, TripStatus status,
+                   String timezone, LocalDate startDate, LocalDate endDate, TripStatus status,
                    String adminName, int memberCount) {
         this.tripId = tripId;
         this.tripName = tripName;
         this.destination = destination;
         this.description = description;
+        this.timezone = timezone;
         this.startDate = startDate;
         this.endDate = endDate;
         this.status = status;
@@ -72,6 +74,7 @@ public class TripDTO implements Serializable {
                 trip.getTripName(),
                 trip.getDestination(),
                 trip.getDescription(),
+                trip.getTimezone(),
                 trip.getStartDate(),
                 trip.getEndDate(),
                 trip.getStatus(),
@@ -128,6 +131,21 @@ public class TripDTO implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    /**
+     * The zone this trip's wall-clock times are in, as an IANA id, or null.
+     *
+     * <p>Null is not "UTC"; it means nobody has said, and a reader of the times
+     * should fall back the way {@link com.tripmate.entity.Trip#effectiveZone()}
+     * does. Nothing outside the entity decides this for itself.
+     */
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public void setTimezone(String timezone) {
+        this.timezone = timezone;
     }
 
     public LocalDate getStartDate() {

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:tm="jakarta.faces.composite/tm"
+      lang="en"
+      data-theme="#{themeBean.theme}"
+      data-tm-context-path="#{request.contextPath}">
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Confirm your email · TripMate</title>
+    <meta name="description" content="Enter the code sent to your email address to finish setting up your TripMate account."/>
+    <meta name="theme-color" content="#ff385c"/>
+    <!-- Nothing here is worth finding from a search engine, and a page that
+         sends codes should not be one. -->
+    <meta name="robots" content="noindex, nofollow"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.svg" type="image/svg+xml"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.ico" sizes="16x16 32x32 48x48"/>
+    <link rel="apple-touch-icon" href="#{request.contextPath}/img/apple-touch-icon.png"/>
+    <h:outputStylesheet library="css" name="tripmate.css"/>
+
+    <!-- In the head and not deferred, so a visitor whose desktop is dark
+         does not get a white flash before the theme resolves. See theme.js. -->
+    <h:outputScript library="js" name="theme.js" target="head"/>
+    <h:outputScript library="js" name="tripmate.js" target="body"/>
+</h:head>
+
+<h:body>
+    <tm:toast/>
+
+    <!-- Form first, product second, as on the registration page this one
+         continues. -->
+    <main class="tm-auth-page">
+        <div class="tm-auth-shell">
+
+            <section class="tm-auth-panel">
+                <div class="tm-auth-card">
+
+                    <f:metadata>
+                        <f:viewAction action="#{verifyEmailBean.requirePendingAccount}"/>
+                    </f:metadata>
+
+                    <p class="tm-eyebrow">One more step</p>
+                    <h1 class="tm-display-lg">Confirm your email</h1>
+
+                    <!--
+                        The address in full, not masked. This is the one screen
+                        where a typo in it can still be caught: a code that never
+                        arrives is otherwise indistinguishable from a code that
+                        was filtered, and the person reading their own address
+                        back is the only one who can tell. See PendingVerification.
+                    -->
+                    <p class="tm-body-sm tm-text-muted">
+                        Enter the six-digit code we sent to
+                        <strong><h:outputText value="#{verifyEmailBean.email}"/></strong>.
+                    </p>
+
+                    <h:form>
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="code">Confirmation code</label>
+                            <!-- Not marked required: the resend button posts
+                                 this same form, and a validation error on an
+                                 empty code box would stop it sending the very
+                                 code that is missing. The bean answers for an
+                                 empty field instead. -->
+                            <p:inputText id="code"
+                                         styleClass="tm-input-full tm-input-code"
+                                         value="#{verifyEmailBean.code}"
+                                         maxlength="6"
+                                         inputmode="numeric"
+                                         autocomplete="one-time-code"/>
+                            <p:message for="code" display="text" styleClass="tm-field-error"/>
+                        </div>
+
+                        <!-- Read from the service on each render, so a code that
+                             expires while this tab sits open says so rather than
+                             promising minutes it no longer has. -->
+                        <p class="tm-body-sm tm-text-muted tm-auth-hint">
+                            <h:outputText value="#{verifyEmailBean.codeState}"/>
+                        </p>
+
+                        <div class="tm-actions">
+                            <p:commandButton value="Confirm and continue"
+                                             action="#{verifyEmailBean.verify}"
+                                             ajax="false"
+                                             styleClass="tm-button-block"/>
+                        </div>
+
+                        <div class="tm-actions">
+                            <p:commandButton value="Send a new code"
+                                             action="#{verifyEmailBean.resend}"
+                                             ajax="false"
+                                             styleClass="tm-button-block ui-button-secondary"/>
+                        </div>
+                    </h:form>
+
+                    <p class="tm-body-sm tm-text-muted tm-auth-alt">
+                        Wrong address, or no email coming?
+                        <h:link outcome="/register.xhtml" value="Start again"/>
+                        ·
+                        <h:link outcome="/login.xhtml" value="Sign in"/>
+                    </p>
+                </div>
+            </section>
+
+            <section class="tm-auth-pitch">
+                <ui:include src="/WEB-INF/includes/auth-pitch.xhtml"/>
+            </section>
+
+        </div>
+    </main>
+</h:body>
+</html>

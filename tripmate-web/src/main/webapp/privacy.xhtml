@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:tm="jakarta.faces.composite/tm"
+      lang="en"
+      data-theme="#{themeBean.theme}"
+      data-tm-context-path="#{request.contextPath}">
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Privacy policy · TripMate</title>
+    <meta name="description" content="What TripMate collects, what it does with it, and how to have it deleted."/>
+    <meta name="theme-color" content="#ff385c"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.svg" type="image/svg+xml"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.ico" sizes="16x16 32x32 48x48"/>
+    <link rel="apple-touch-icon" href="#{request.contextPath}/img/apple-touch-icon.png"/>
+    <h:outputStylesheet library="css" name="tripmate.css"/>
+    <h:outputScript library="js" name="theme.js" target="head"/>
+</h:head>
+
+<h:body>
+    <tm:toast/>
+
+    <!--
+        A public page. It has to be reachable without signing in, both because a
+        person deciding whether to make an account needs to read it first, and
+        because Google's reviewers fetch it with no session at all.
+
+        It is written to be true of this application rather than to read like a
+        template. Every claim below is something the code either does or does
+        not do, and the ones that are easy to overstate are the ones stated most
+        narrowly.
+    -->
+    <main class="tm-doc">
+        <header class="tm-doc-header">
+            <a class="tm-doc-brand" href="#{request.contextPath}/index.xhtml">
+                <img src="#{request.contextPath}/img/favicon.svg" alt=""/>
+                TripMate
+            </a>
+            <a href="#{request.contextPath}/terms.xhtml">Terms of service</a>
+        </header>
+
+        <h1>Privacy policy</h1>
+        <p class="tm-doc-meta">
+            Applies to the TripMate application at this address. Last updated
+            2 October 2026.
+        </p>
+
+        <h2>1. What TripMate is</h2>
+        <p>
+            TripMate is an application for planning a trip with a small group of
+            people: a shared itinerary, a record of what everybody spent, and a
+            running answer to who owes whom. It is operated as a student
+            project, not by a company, and it is not a commercial service.
+        </p>
+
+        <h2>2. What is collected</h2>
+
+        <h3>When you create an account</h3>
+        <ul>
+            <li>Your name, your email address and, if you give one, your phone number.</li>
+            <li>
+                Your password, stored only as a PBKDF2-SHA256 digest with a
+                per-account random salt. The password itself is never written
+                anywhere and cannot be recovered from what is stored.
+            </li>
+        </ul>
+
+        <h3>When you use a trip</h3>
+        <ul>
+            <li>
+                The trips you belong to and your role on each, the itinerary
+                items, the expenses and how they were split, repayments recorded
+                between members, and the summaries that have been emailed.
+            </li>
+            <li>
+                The times at which you do these things, which is what lets the
+                application show a trip's history in order.
+            </li>
+        </ul>
+
+        <h3>When you connect Google Calendar</h3>
+        <p>
+            This is optional and the application works without it. If you choose
+            to connect it, you are asked for permission by Google and may
+            decline. Section 4 describes exactly what is then received and done.
+        </p>
+
+        <h2>3. What it is used for</h2>
+        <p>
+            To run the application you asked for: to show you your trips and
+            theirs to the people on them, to work out what each person owes, to
+            send the emails the application sends, and to keep your calendar in
+            step if you connected one. Nothing is used for advertising, nothing
+            is sold, and there is no analytics or tracking of any kind.
+        </p>
+
+        <h2>4. Google Calendar</h2>
+
+        <p>
+            TripMate asks for one permission on your calendar, together with the
+            basic information needed to know which Google account it is talking
+            to:
+        </p>
+        <ul>
+            <li>
+                <strong>Calendar events</strong>
+                (<code>https://www.googleapis.com/auth/calendar.events</code>),
+                which is what lets it put your trips into a calendar.
+            </li>
+            <li>
+                <strong>Your basic profile and email address</strong>
+                (<code>openid</code>, <code>email</code>), which is what lets it
+                show you which account you connected, rather than leaving you to
+                remember.
+            </li>
+        </ul>
+
+        <h3>What TripMate does with it</h3>
+        <ul>
+            <li>
+                It writes the itinerary items of the trips you belong to into
+                your Google Calendar as events, and adds the trip's time zone so
+                the times are right.
+            </li>
+            <li>
+                When an item is edited, it updates the event it created earlier
+                rather than adding a second one. When an item is deleted, it
+                deletes the event.
+            </li>
+            <li>It records which Google account you connected, so it can show you.</li>
+        </ul>
+
+        <h3>What TripMate does not do with it</h3>
+        <ul>
+            <li>
+                It does not read the events already in your calendar. The
+                permission is used to create, update and delete the events this
+                application itself created, and for nothing else.
+            </li>
+            <li>
+                It does not write anything anywhere except the calendar of the
+                account that granted it. In particular, nothing is ever written
+                into another member's calendar on your behalf unless they
+                connected their own.
+            </li>
+            <li>
+                It does not share your calendar data with anybody, does not use
+                it for advertising, and does not use it to decide anything about
+                you.
+            </li>
+            <li>
+                It does not transfer it to anyone else, except as needed to
+                provide the feature itself, to comply with the law, or as part of
+                a merger or acquisition if there ever were one.
+            </li>
+        </ul>
+
+        <div class="tm-doc-callout">
+            <p>
+                TripMate's use of information received from Google APIs adheres
+                to the
+                <a href="https://developers.google.com/terms/api-services-user-data-policy"
+                   rel="noopener">Google API Services User Data Policy</a>,
+                including the Limited Use requirements.
+            </p>
+        </div>
+
+        <h3>What is stored, and for how long</h3>
+        <p>
+            To keep the connection working after you leave the page, Google gives
+            the application a <em>refresh token</em>. That value is stored in the
+            application's database <strong>encrypted</strong>, using AES-GCM with
+            a key held in the server's own configuration rather than in the
+            database, so a copy of the database alone does not contain a working
+            credential. The short-lived access token is used and discarded and is
+            never stored.
+        </p>
+        <p>
+            The refresh token is kept for as long as the connection exists and no
+            longer. Disconnecting deletes it, and the application also asks
+            Google to revoke the grant, which makes any copy of it useless.
+        </p>
+
+        <h3>How to withdraw it</h3>
+        <ul>
+            <li>
+                In the application: open the trip, choose
+                <strong>Send to a calendar</strong>, and press
+                <strong>Disconnect</strong>. This deletes the stored token and
+                tells Google to revoke it.
+            </li>
+            <li>
+                At Google: remove TripMate's access at
+                <a href="https://myaccount.google.com/permissions" rel="noopener">myaccount.google.com/permissions</a>.
+                This works even if you have stopped using TripMate.
+            </li>
+        </ul>
+        <p>
+            Events already written into your calendar are yours and stay there
+            after disconnecting. They are ordinary events and you can delete them
+            in Google Calendar like any other.
+        </p>
+
+        <h2>5. Cookies and sessions</h2>
+        <p>
+            One cookie, containing a session identifier, is set when you sign in.
+            It is what keeps you signed in, it is marked HttpOnly so that no
+            script can read it, and it is deleted when you sign out. There are no
+            advertising, analytics or third-party cookies, and the application
+            does not embed anything from another site.
+        </p>
+
+        <h2>6. Who else sees any of it</h2>
+        <p>
+            The people on your trips see your name, the itinerary, the expenses
+            and the balances. That is the point of the application. Beyond them:
+        </p>
+        <ul>
+            <li>
+                Your email provider and Google, in the course of sending you an
+                email or of the calendar connection you asked for.
+            </li>
+            <li>
+                Nobody else. There is no analytics provider, no advertising
+                network, no error-tracking service and no data broker. Nothing is
+                sold or rented, and no data is used to train anything.
+            </li>
+        </ul>
+
+        <h2>7. Where it is kept</h2>
+        <p>
+            On the server this application runs on, in a PostgreSQL database. That
+            server belongs to whoever is operating this deployment of TripMate.
+            Data is not transferred to another country by the application itself.
+        </p>
+
+        <h2>8. Deleting your data</h2>
+        <p>
+            You can ask for your account and its data to be deleted at any time by
+            writing to the address in section 11. Deletion is carried out within
+            30 days, and it removes:
+        </p>
+        <ul>
+            <li>your account, your name, your email address and your phone number;</li>
+            <li>your password digest and any outstanding password-reset links;</li>
+            <li>your membership of every trip, and your calendar connection and its stored token.</li>
+        </ul>
+        <p>
+            It does not remove the trips themselves. A trip belongs to everybody
+            on it, and deleting your account would otherwise destroy records
+            other people are relying on to settle up. Your name is removed from
+            the expenses you paid, which stay in the trip without you.
+        </p>
+        <p>
+            Before you ask, it is worth disconnecting Google Calendar in the
+            application if you connected it, since that withdraws the permission
+            at Google as well as deleting the stored token.
+        </p>
+
+        <h2>9. Security</h2>
+        <p>
+            Passwords are stored as digests, never in readable form. Calendar
+            refresh tokens are encrypted at rest. Sign-in issues a new session
+            identifier, and signing out invalidates the session on the server.
+            Traffic should be served over HTTPS in any deployment that is
+            reachable from the internet.
+        </p>
+        <p>
+            No application can promise to be perfectly secure, and this one is a
+            student project. It is built to hold trip plans and shared expenses,
+            and it is a poor place for anything more sensitive than that.
+        </p>
+
+        <h2>10. Children</h2>
+        <p>
+            TripMate is not intended for children under 13, and accounts are not
+            knowingly created for them.
+        </p>
+
+        <h2>11. Contact</h2>
+        <p>
+            Questions about this policy, and requests to delete your data, go to
+            <strong>privacy@tripmate.example</strong>.
+        </p>
+
+        <h2>12. Changes to this policy</h2>
+        <p>
+            If this policy changes, the date at the top changes with it. If a
+            change affects what is done with your Google data, you will be asked
+            to reconnect, which means seeing and agreeing to the new permission
+            rather than having it changed underneath you.
+        </p>
+
+        <p class="tm-doc-footer">
+            <a href="#{request.contextPath}/terms.xhtml">Terms of service</a>
+            &#160;·&#160;
+            <a href="#{request.contextPath}/index.xhtml">Back to TripMate</a>
+        </p>
+    </main>
+</h:body>
+</html>

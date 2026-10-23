@@ -55,6 +55,21 @@ public class User implements Serializable {
     @Column(name = "phone", length = 20)
     private String phone;
 
+    /**
+     * When the address was proved to belong to this person.
+     *
+     * <p>Null means the account exists but has not been confirmed. Such an
+     * account can supply the right password and still not be signed in: see
+     * {@code LoginBean}, which sends the holder to the verification page
+     * instead of the dashboard.
+     *
+     * <p>A timestamp rather than a boolean, so the record answers when as well
+     * as whether. The cost of the extra column is nothing and a boolean cannot
+     * be turned back into a date later.
+     */
+    @Column(name = "email_verified_at")
+    private LocalDateTime emailVerifiedAt;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -130,6 +145,20 @@ public class User implements Serializable {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public LocalDateTime getEmailVerifiedAt() {
+        return emailVerifiedAt;
+    }
+
+    /** Marks the address confirmed. There is no un-verify: nothing calls that. */
+    public void setEmailVerifiedAt(LocalDateTime emailVerifiedAt) {
+        this.emailVerifiedAt = emailVerifiedAt;
+    }
+
+    /** @return whether this account's address has been confirmed */
+    public boolean isEmailVerified() {
+        return emailVerifiedAt != null;
     }
 
     public LocalDateTime getCreatedAt() {

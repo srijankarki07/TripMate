@@ -1,49 +1,59 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:f="jakarta.faces.core"
-      xmlns:h="jakarta.faces.html"
-      xmlns:p="http://primefaces.org/ui"
-      xmlns:pt="jakarta.faces.passthrough"
-      xmlns:tm="jakarta.faces.composite/tm"
-      xmlns:ui="jakarta.faces.facelets"
-      lang="en">
-<h:head>
-    <meta charset="UTF-8"/>
-</h:head>
-<h:body>
+<html
+  xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:f="jakarta.faces.core"
+  xmlns:h="jakarta.faces.html"
+  xmlns:p="http://primefaces.org/ui"
+  xmlns:pt="jakarta.faces.passthrough"
+  xmlns:tm="jakarta.faces.composite/tm"
+  xmlns:ui="jakarta.faces.facelets"
+  lang="en"
+>
+  <h:head>
+    <meta charset="UTF-8" />
+  </h:head>
+  <h:body>
+    <ui:composition template="/WEB-INF/templates/layout.xhtml">
+      <f:metadata>
+        <f:viewParam name="tripId" value="#{tripDetailBean.tripId}" />
+        <f:viewAction action="#{tripDetailBean.load}" />
+      </f:metadata>
 
-<ui:composition template="/WEB-INF/templates/layout.xhtml">
+      <ui:define name="title">#{tripDetailBean.trip.tripName}</ui:define>
+      <ui:define name="breadcrumbs">
+        <h:link
+          outcome="/dashboard.xhtml"
+          value="Dashboard"
+          styleClass="tm-crumb"
+        />
+        <span class="tm-crumb-sep" aria-hidden="true"></span>
+        <h:link
+          outcome="/trips/list.xhtml"
+          value="Trips"
+          styleClass="tm-crumb"
+        />
+        <span class="tm-crumb-sep" aria-hidden="true"></span>
+        <span class="tm-crumb-current">#{tripDetailBean.trip.tripName}</span>
+      </ui:define>
 
-    <f:metadata>
-        <f:viewParam name="tripId" value="#{tripDetailBean.tripId}"/>
-        <f:viewAction action="#{tripDetailBean.load}"/>
-    </f:metadata>
-
-    <ui:define name="title">#{tripDetailBean.trip.tripName}</ui:define>
-        <ui:define name="breadcrumbs">
-            <h:link outcome="/dashboard.xhtml" value="Dashboard" styleClass="tm-crumb"/>
-            <span class="tm-crumb-sep" aria-hidden="true"></span>
-            <h:link outcome="/trips/list.xhtml" value="Trips" styleClass="tm-crumb"/>
-            <span class="tm-crumb-sep" aria-hidden="true"></span>
-            <span class="tm-crumb-current">#{tripDetailBean.trip.tripName}</span>
-        </ui:define>
-
-
-    <ui:define name="content">
-        <tm:error title="This page could not be loaded"
-                  text="#{tripDetailBean.loadError}"
-                  rendered="#{not empty tripDetailBean.loadError}">
-            <f:facet name="action">
-                <p:button icon="pi pi-arrow-left" outcome="/trips/list.xhtml" value="Back to your trips"
-                          styleClass="ui-button-secondary"/>
-            </f:facet>
+      <ui:define name="content">
+        <tm:error
+          title="This page could not be loaded"
+          text="#{tripDetailBean.loadError}"
+          rendered="#{not empty tripDetailBean.loadError}"
+        >
+          <f:facet name="action">
+            <p:button
+              icon="pi pi-arrow-left"
+              outcome="/trips/list.xhtml"
+              value="Back to your trips"
+              styleClass="ui-button-secondary"
+            />
+          </f:facet>
         </tm:error>
 
-
-
         <ui:fragment rendered="#{tripDetailBean.loaded}">
-
-            <!--
+          <!--
                 The trip's own settings live behind the pencil, in a dialog,
                 rather than in a card at the bottom of the page.
 
@@ -55,155 +65,247 @@
                 available when wanted and out of the way when not, and the
                 destructive part is only reachable by deliberately opening it.
             -->
-            <header class="tm-hero">
-                <div class="tm-hero-top">
-                    <div class="tm-hero-heading">
-                        <p class="tm-eyebrow">
-                            <h:outputText value="#{tripDetailBean.trip.destination}"/>
-                        </p>
-                        <h1 class="tm-title">
-                            <h:outputText value="#{tripDetailBean.trip.tripName}"/>
-                            <span class="tm-status tm-status-#{tripDetailBean.trip.status.name().toLowerCase()}">
-                                <h:outputText value="#{tripDetailBean.trip.status}"/>
-                            </span>
-                        </h1>
-                        <p class="tm-lede">
-                            <h:outputText value="#{tripDetailBean.trip.startDate}"/>
-                            <h:outputText value=" to "/>
-                            <h:outputText value="#{tripDetailBean.trip.endDate}"/>
-                            <h:outputText value=" · administered by "/>
-                            <h:outputText value="#{tripDetailBean.trip.adminName}"/>
-                            <h:outputText value=" · "/>
-                            <h:outputText value="#{tripDetailBean.trip.memberCount}"/>
-                            <h:outputText value=" members"/>
-                        </p>
-                    </div>
+          <header class="tm-hero">
+            <div class="tm-hero-top">
+              <div class="tm-hero-heading">
+                <p class="tm-eyebrow">
+                  <h:outputText value="#{tripDetailBean.trip.destination}" />
+                </p>
+                <h1 class="tm-title">
+                  <h:outputText value="#{tripDetailBean.trip.tripName}" />
+                  <span
+                    class="tm-status tm-status-#{tripDetailBean.trip.status.name().toLowerCase()}"
+                  >
+                    <h:outputText value="#{tripDetailBean.trip.status}" />
+                  </span>
+                </h1>
+                <p class="tm-lede">
+                  <h:outputText value="#{tripDetailBean.trip.startDate}" />
+                  <h:outputText value=" to " />
+                  <h:outputText value="#{tripDetailBean.trip.endDate}" />
+                  <h:outputText value=" · administered by " />
+                  <h:outputText value="#{tripDetailBean.trip.adminName}" />
+                  <h:outputText value=" · " />
+                  <h:outputText value="#{tripDetailBean.trip.memberCount}" />
+                  <h:outputText value=" members" />
+                </p>
+              </div>
 
-                    <h:form id="tripActionsForm" rendered="#{tripDetailBean.admin}">
-                        <div class="tm-hero-actions">
-                            <p:commandButton icon="pi pi-pencil" value=""
-                                             styleClass="ui-button-secondary ui-button-icon-only"
-                                             title="Trip settings"
-                                             pt:aria-label="Trip settings"
-                                             action="#{tripDetailBean.openSettings}"
-                                             update="@form"
-                                             ajax="true"/>
-                            <p:commandButton icon="pi pi-trash" value=""
-                                             styleClass="ui-button-secondary ui-button-icon-only tm-button-danger-icon"
-                                             title="Delete this trip"
-                                             pt:aria-label="Delete this trip"
-                                             action="#{tripDetailBean.openDelete}"
-                                             update="@form"
-                                             ajax="true"/>
-                        </div>
+              <h:form id="tripActionsForm" rendered="#{tripDetailBean.admin}">
+                <div class="tm-hero-actions">
+                  <p:commandButton
+                    icon="pi pi-pencil"
+                    value=""
+                    styleClass="ui-button-secondary ui-button-icon-only"
+                    title="Trip settings"
+                    pt:aria-label="Trip settings"
+                    action="#{tripDetailBean.openSettings}"
+                    update="@form"
+                    ajax="true"
+                  />
+                  <p:commandButton
+                    icon="pi pi-trash"
+                    value=""
+                    styleClass="ui-button-secondary ui-button-icon-only tm-button-danger-icon"
+                    title="Delete this trip"
+                    pt:aria-label="Delete this trip"
+                    action="#{tripDetailBean.openDelete}"
+                    update="@form"
+                    ajax="true"
+                  />
+                </div>
 
-                        <!-- ================================================
+                <!-- ================================================
                              Trip settings
                              ================================================ -->
-                        <p:dialog id="settingsDialog"
-                                  widgetVar="tripSettingsDialog"
-                                  visible="#{tripDetailBean.settingsOpen}"
-                                  header="Trip settings"
-                                  modal="true"
-                                  draggable="false"
-                                  resizable="false"
-                                  responsive="true"
-                                  styleClass="tm-dialog">
-                            <div class="tm-dialog-body">
-                                <p class="tm-dialog-lede">
-                                    These details appear on the trip, in everyone's
-                                    list, and in any summary email that is sent.
-                                </p>
+                <p:dialog
+                  id="settingsDialog"
+                  widgetVar="tripSettingsDialog"
+                  visible="#{tripDetailBean.settingsOpen}"
+                  header="Trip settings"
+                  modal="true"
+                  draggable="false"
+                  resizable="false"
+                  responsive="true"
+                  styleClass="tm-dialog"
+                >
+                  <div class="tm-dialog-body">
+                    <p class="tm-dialog-lede">
+                      These details appear on the trip, in everyone's list, and
+                      in any summary email that is sent.
+                    </p>
 
-                                <div class="tm-form-grid tm-form-grid-2">
-                                    <div class="tm-field">
-                                        <label class="tm-field-label" for="tripName">Name</label>
-                                        <p:inputText id="tripName" styleClass="tm-input-full"
-                                                     value="#{tripDetailBean.trip.tripName}"/>
-                                    </div>
-                                    <div class="tm-field">
-                                        <label class="tm-field-label" for="destination">Destination</label>
-                                        <p:inputText id="destination" styleClass="tm-input-full"
-                                                     value="#{tripDetailBean.trip.destination}"/>
-                                    </div>
-                                    <div class="tm-field">
-                                        <label class="tm-field-label" for="status">State</label>
-                                        <p:selectOneMenu id="status" styleClass="tm-input-full"
-                                                         value="#{tripDetailBean.trip.status}">
-                                            <f:selectItems value="#{tripDetailBean.statuses}" var="s"
-                                                           itemLabel="#{s}" itemValue="#{s}"/>
-                                        </p:selectOneMenu>
-                                    </div>
-                                    <div class="tm-field">
-                                        <label class="tm-field-label" for="startDate">Start date</label>
-                                        <p:datePicker styleClass="tm-input-full" id="startDate" pattern="yyyy-MM-dd"
-                                                      value="#{tripDetailBean.trip.startDate}"/>
-                                    </div>
-                                    <div class="tm-field">
-                                        <label class="tm-field-label" for="endDate">End date</label>
-                                        <p:datePicker styleClass="tm-input-full" id="endDate" pattern="yyyy-MM-dd"
-                                                      value="#{tripDetailBean.trip.endDate}"/>
-                                    </div>
-                                </div>
+                    <div class="tm-form-grid tm-form-grid-2">
+                      <div class="tm-field">
+                        <label class="tm-field-label" for="tripName"
+                          >Name</label
+                        >
+                        <p:inputText
+                          id="tripName"
+                          styleClass="tm-input-full"
+                          value="#{tripDetailBean.trip.tripName}"
+                        />
+                      </div>
+                      <div class="tm-field">
+                        <label class="tm-field-label" for="destination"
+                          >Destination</label
+                        >
+                        <p:inputText
+                          id="destination"
+                          styleClass="tm-input-full"
+                          value="#{tripDetailBean.trip.destination}"
+                        />
+                      </div>
+                      <div class="tm-field">
+                        <label class="tm-field-label" for="status">State</label>
+                        <p:selectOneMenu
+                          id="status"
+                          styleClass="tm-input-full"
+                          value="#{tripDetailBean.trip.status}"
+                        >
+                          <f:selectItems
+                            value="#{tripDetailBean.statuses}"
+                            var="s"
+                            itemLabel="#{s}"
+                            itemValue="#{s}"
+                          />
+                        </p:selectOneMenu>
+                      </div>
+                      <!--
+                        The zone the itinerary's times are in. It matters
+                        outside this application: a calendar application has to
+                        place 07:00 on a timeline, and it cannot do that from a
+                        wall clock alone. The first option stores null, which
+                        reads as the server's own zone.
+                      -->
+                      <div class="tm-field">
+                        <label class="tm-field-label" for="timezone"
+                          >Time zone</label
+                        >
+                        <p:selectOneMenu
+                          id="timezone"
+                          styleClass="tm-input-full"
+                          value="#{tripDetailBean.trip.timezone}"
+                        >
+                          <f:selectItem
+                            itemLabel="Use the server's zone"
+                            itemValue="#{null}"
+                          />
+                          <f:selectItems
+                            value="#{tripDetailBean.timezones}"
+                            var="z"
+                            itemLabel="#{z}"
+                            itemValue="#{z}"
+                          />
+                        </p:selectOneMenu>
+                        <span class="tm-field-hint">
+                          The zone the itinerary's times are in, so a calendar
+                          application can place them on a timeline.
+                        </span>
+                      </div>
+                      <div class="tm-field">
+                        <label class="tm-field-label" for="startDate"
+                          >Start date</label
+                        >
+                        <p:datePicker
+                          styleClass="tm-input-full"
+                          id="startDate"
+                          pattern="yyyy-MM-dd"
+                          value="#{tripDetailBean.trip.startDate}"
+                        />
+                      </div>
+                      <div class="tm-field">
+                        <label class="tm-field-label" for="endDate"
+                          >End date</label
+                        >
+                        <p:datePicker
+                          styleClass="tm-input-full"
+                          id="endDate"
+                          pattern="yyyy-MM-dd"
+                          value="#{tripDetailBean.trip.endDate}"
+                        />
+                      </div>
+                    </div>
 
-                                <div class="tm-field">
-                                    <label class="tm-field-label" for="description">Notes</label>
-                                    <p:inputTextarea id="description" styleClass="tm-input-full" rows="3"
-                                                     value="#{tripDetailBean.trip.description}"/>
-                                </div>
+                    <div class="tm-field">
+                      <label class="tm-field-label" for="description"
+                        >Notes</label
+                      >
+                      <p:inputTextarea
+                        id="description"
+                        styleClass="tm-input-full"
+                        rows="3"
+                        value="#{tripDetailBean.trip.description}"
+                      />
+                    </div>
 
-                                <!--
+                    <!--
                                     Shown inside the dialog rather than as a
                                     toast, because a toast appears in the corner
                                     of the page behind the modal the reader is
                                     looking at. The dialog stays open on a
                                     refusal, with every field as it was left.
                                 -->
-                                <h:panelGroup layout="block" styleClass="tm-field-error tm-form-error" rendered="#{not empty tripDetailBean.dialogError}">
-                                    <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
-                                    <h:outputText value="#{tripDetailBean.dialogError}"/>
-                                </h:panelGroup>
-                            </div>
+                    <h:panelGroup
+                      layout="block"
+                      styleClass="tm-field-error tm-form-error"
+                      rendered="#{not empty tripDetailBean.dialogError}"
+                    >
+                      <i
+                        class="pi pi-exclamation-circle"
+                        aria-hidden="true"
+                      ></i>
+                      <h:outputText value="#{tripDetailBean.dialogError}" />
+                    </h:panelGroup>
+                  </div>
 
-                            <f:facet name="footer">
-                                <div class="tm-dialog-actions">
-                                    <!-- A round trip rather than a client-side
+                  <f:facet name="footer">
+                    <div class="tm-dialog-actions">
+                      <!-- A round trip rather than a client-side
                                          hide, so the bean knows the dialog is
                                          closed and a later re-render of this
                                          form cannot bring it back. -->
-                                    <p:commandButton value="Cancel"
-                                                     styleClass="ui-button-secondary"
-                                                     action="#{tripDetailBean.closeSettings}"
-                                                     update="@form"
-                                                     ajax="true"/>
-                                    <p:commandButton icon="pi pi-check" value="Save changes"
-                                                     action="#{tripDetailBean.save}"
-                                                     update="@form tmToasts"
-                                                     ajax="true"/>
-                                </div>
-                            </f:facet>
-                        </p:dialog>
+                      <p:commandButton
+                        value="Cancel"
+                        styleClass="ui-button-secondary"
+                        action="#{tripDetailBean.closeSettings}"
+                        process="@this"
+                        update="@form"
+                        ajax="true"
+                      />
+                      <p:commandButton
+                        icon="pi pi-check"
+                        value="Save changes"
+                        action="#{tripDetailBean.save}"
+                        update="@form tmToasts"
+                        ajax="true"
+                      />
+                    </div>
+                  </f:facet>
+                </p:dialog>
 
-                        <!-- ================================================
+                <!-- ================================================
                              Delete the trip
                              ================================================ -->
-                        <p:dialog id="deleteDialog"
-                                  widgetVar="deleteTripDialog"
-                                  visible="#{tripDetailBean.deleteOpen}"
-                                  header="Delete this trip"
-                                  modal="true"
-                                  draggable="false"
-                                  resizable="false"
-                                  responsive="true"
-                                  styleClass="tm-dialog tm-dialog-danger">
-                            <div class="tm-dialog-body">
-                                <p class="tm-dialog-lede">
-                                    This removes the itinerary, every expense and split,
-                                    and all recorded repayments. The people themselves
-                                    are not deleted. <strong>It cannot be undone.</strong>
-                                </p>
+                <p:dialog
+                  id="deleteDialog"
+                  widgetVar="deleteTripDialog"
+                  visible="#{tripDetailBean.deleteOpen}"
+                  header="Delete this trip"
+                  modal="true"
+                  draggable="false"
+                  resizable="false"
+                  responsive="true"
+                  styleClass="tm-dialog tm-dialog-danger"
+                >
+                  <div class="tm-dialog-body">
+                    <p class="tm-dialog-lede">
+                      This removes the itinerary, every expense and split, and
+                      all recorded repayments. The people themselves are not
+                      deleted. <strong>It cannot be undone.</strong>
+                    </p>
 
-                                <!--
+                    <!--
                                     The typed confirmation, which used to sit at
                                     the bottom of the page as a permanent red
                                     panel. It belongs with the action, and the
@@ -211,30 +313,43 @@
                                     name is the step that makes the reader look
                                     at which trip they are about to destroy.
                                 -->
-                                <div class="tm-field">
-                                    <label class="tm-field-label" for="deleteConfirm">
-                                        Type <strong>#{tripDetailBean.trip.tripName}</strong> to confirm
-                                    </label>
-                                    <p:inputText id="deleteConfirm"
-                                                 styleClass="tm-input-full"
-                                                 autocomplete="off"
-                                                 value="#{tripDetailBean.deleteConfirmName}"/>
-                                </div>
+                    <div class="tm-field">
+                      <label class="tm-field-label" for="deleteConfirm">
+                        Type <strong>#{tripDetailBean.trip.tripName}</strong> to
+                        confirm
+                      </label>
+                      <p:inputText
+                        id="deleteConfirm"
+                        styleClass="tm-input-full"
+                        autocomplete="off"
+                        value="#{tripDetailBean.deleteConfirmName}"
+                      />
+                    </div>
 
-                                <h:panelGroup layout="block" styleClass="tm-field-error tm-form-error" rendered="#{not empty tripDetailBean.dialogError}">
-                                    <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
-                                    <h:outputText value="#{tripDetailBean.dialogError}"/>
-                                </h:panelGroup>
-                            </div>
+                    <h:panelGroup
+                      layout="block"
+                      styleClass="tm-field-error tm-form-error"
+                      rendered="#{not empty tripDetailBean.dialogError}"
+                    >
+                      <i
+                        class="pi pi-exclamation-circle"
+                        aria-hidden="true"
+                      ></i>
+                      <h:outputText value="#{tripDetailBean.dialogError}" />
+                    </h:panelGroup>
+                  </div>
 
-                            <f:facet name="footer">
-                                <div class="tm-dialog-actions">
-                                    <p:commandButton value="Keep the trip"
-                                                     styleClass="ui-button-secondary"
-                                                     action="#{tripDetailBean.closeDelete}"
-                                                     update="@form"
-                                                     ajax="true"/>
-                                    <!--
+                  <f:facet name="footer">
+                    <div class="tm-dialog-actions">
+                      <p:commandButton
+                        value="Keep the trip"
+                        styleClass="ui-button-secondary"
+                        action="#{tripDetailBean.closeDelete}"
+                        process="@this"
+                        update="@form"
+                        ajax="true"
+                      />
+                      <!--
                                         The final step. The button refuses on
                                         the server when the typed name does not
                                         match, keeps the dialog open, and says
@@ -244,69 +359,76 @@
                                         about the trip rather than about their
                                         typing.
                                     -->
-                                    <p:commandButton id="deleteTripButton"
-                                                     icon="pi pi-trash"
-                                                     value="Delete trip"
-                                                     styleClass="tm-button-danger"
-                                                     action="#{tripDetailBean.delete}"
-                                                     update="@form tmToasts"
-                                                     ajax="true">
-                                        <p:confirm header="Delete this trip?"
-                                                   message="This removes the itinerary, every expense and split, and all recorded repayments. It cannot be undone. The people themselves are not deleted."/>
-                                    </p:commandButton>
-                                </div>
-                            </f:facet>
-                        </p:dialog>
-                    </h:form>
-                </div>
+                      <p:commandButton
+                        id="deleteTripButton"
+                        icon="pi pi-trash"
+                        value="Delete trip"
+                        styleClass="tm-button-danger"
+                        action="#{tripDetailBean.delete}"
+                        update="@form tmToasts"
+                        ajax="true"
+                      >
+                        <p:confirm
+                          header="Delete this trip?"
+                          message="This removes the itinerary, every expense and split, and all recorded repayments. It cannot be undone. The people themselves are not deleted."
+                        />
+                      </p:commandButton>
+                    </div>
+                  </f:facet>
+                </p:dialog>
+              </h:form>
+            </div>
 
-                <h:panelGroup layout="block" rendered="#{not empty tripDetailBean.trip.description}">
-                    <p class="tm-body-md tm-text-body">
-                        <h:outputText value="#{tripDetailBean.trip.description}"/>
-                    </p>
-                </h:panelGroup>
-            </header>
+            <h:panelGroup
+              layout="block"
+              rendered="#{not empty tripDetailBean.trip.description}"
+            >
+              <p class="tm-body-md tm-text-body">
+                <h:outputText value="#{tripDetailBean.trip.description}" />
+              </p>
+            </h:panelGroup>
+          </header>
 
-
-            <!-- ============================================================
+          <!-- ============================================================
                  Summary tiles
                  ============================================================ -->
-            <section class="tm-stats">
-                <div class="tm-stat">
-                    <p class="tm-stat-label">Itinerary</p>
-                    <p class="tm-stat-value">#{tripDetailBean.itinerary.size()}</p>
-                    <p class="tm-stat-note">scheduled items</p>
-                </div>
-                <div class="tm-stat">
-                    <p class="tm-stat-label">Spent</p>
-                    <p class="tm-stat-value">NPR #{tripDetailBean.expenseTotal}</p>
-                    <p class="tm-stat-note">
-                        across #{tripDetailBean.expenses.size()} expenses
-                    </p>
-                </div>
-                <div class="tm-stat">
-                    <p class="tm-stat-label">Repaid</p>
-                    <p class="tm-stat-value">NPR #{tripDetailBean.settlementTotal}</p>
-                    <p class="tm-stat-note">
-                        #{tripDetailBean.settlements.size()} settlements
-                    </p>
-                </div>
-                <div class="tm-stat">
-                    <p class="tm-stat-label">You</p>
-                    <p class="tm-stat-value">#{tripDetailBean.admin ? 'Admin' : 'Member'}</p>
-                    <p class="tm-stat-note">your role on this trip</p>
-                </div>
-            </section>
+          <section class="tm-stats">
+            <div class="tm-stat">
+              <p class="tm-stat-label">Itinerary</p>
+              <p class="tm-stat-value">#{tripDetailBean.itinerary.size()}</p>
+              <p class="tm-stat-note">scheduled items</p>
+            </div>
+            <div class="tm-stat">
+              <p class="tm-stat-label">Spent</p>
+              <p class="tm-stat-value">NPR #{tripDetailBean.expenseTotal}</p>
+              <p class="tm-stat-note">
+                across #{tripDetailBean.expenses.size()} expenses
+              </p>
+            </div>
+            <div class="tm-stat">
+              <p class="tm-stat-label">Repaid</p>
+              <p class="tm-stat-value">NPR #{tripDetailBean.settlementTotal}</p>
+              <p class="tm-stat-note">
+                #{tripDetailBean.settlements.size()} settlements
+              </p>
+            </div>
+            <div class="tm-stat">
+              <p class="tm-stat-label">You</p>
+              <p class="tm-stat-value">
+                #{tripDetailBean.admin ? 'Admin' : 'Member'}
+              </p>
+              <p class="tm-stat-note">your role on this trip</p>
+            </div>
+          </section>
 
-            <!-- ============================================================
+          <!-- ============================================================
                  Tabs
                  ============================================================ -->
-            <section class="tm-card">
-                <p:tabView>
-
-                    <!-- ================================================ -->
-                    <p:tab title="Itinerary">
-                        <!--
+          <section class="tm-card-srijan">
+            <p:tabView>
+              <!-- ================================================ -->
+              <p:tab title="Itinerary">
+                <!--
                             The dialog's fields are required, and the controls
                             that open it are in the same form as them. Without
                             `process="@this"` on those controls, pressing one
@@ -317,191 +439,650 @@
                             the control that sent it, so the dialog opens and
                             the fields are still checked when it is saved.
                         -->
-                        <h:form id="itineraryTabForm">
+                <h:form id="itineraryTabForm">
+                  <section class="tm-panel">
+                    <div class="tm-toolbar">
+                      <h3 class="tm-display-sm no-margin">What is planned</h3>
+                      <div class="tm-toolbar-actions">
+                        <!--
+                                    Offered only while the trip is being
+                                    planned and only when there is something to
+                                    send. That is the same pair of questions
+                                    the service asks before it will build the
+                                    file, asked here so the button is not shown
+                                    for a download that would be refused.
+                                -->
+                        <p:commandButton
+                          rendered="#{tripDetailBean.calendarAvailable}"
+                          icon="pi pi-calendar-plus"
+                          value="Send to a calendar"
+                          styleClass="ui-button-secondary"
+                          action="#{tripDetailBean.openCalendar}"
+                          process="@this"
+                          update="@form"
+                          ajax="true"
+                        />
+                        <p:commandButton
+                          icon="pi pi-plus"
+                          value="Add an item"
+                          styleClass="ui-button-secondary"
+                          action="#{tripDetailBean.openAddItem}"
+                          process="@this"
+                          update="@form"
+                          ajax="true"
+                        />
+                      </div>
+                    </div>
 
-                        <section class="tm-panel">
-                            <div class="tm-toolbar">
-                                <h3 class="tm-display-sm">What is planned</h3>
-                                <p:commandButton icon="pi pi-plus" value="Add an item"
-                                                
-                                                 action="#{tripDetailBean.openAddItem}"
-                                                 process="@this"
-                                                 update="@form"
-                                                 ajax="true"/>
-                            </div>
-
-                            <p:dataTable reflow="true" rowHover="true" value="#{tripDetailBean.itinerary}" var="item"
-                                         rendered="#{tripDetailBean.hasItinerary}" emptyMessage=""
-                                         paginator="true"
-                                         rows="10"
-                                         paginatorAlwaysVisible="false"
-                                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
-                                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
-                                         rowsPerPageTemplate="10,25,50">
-                                <p:column headerText="SN" styleClass="tm-col-sn">
-                                    <h:outputText value="#{tripDetailBean.itinerary.indexOf(item) + 1}"/>
-                                </p:column>
-                                <p:column headerText="Day" sortBy="#{item.itemDate}">
-                                    <h:outputText value="#{item.itemDate}"/>
-                                </p:column>
-                                <p:column headerText="Time">
-                                    <h:outputText value="#{item.startTime}"/>
-                                    <h:outputText value=" - " rendered="#{not empty item.endTime}"/>
-                                    <h:outputText value="#{item.endTime}"/>
-                                </p:column>
-                                <!--
+                    <p:dataTable
+                      reflow="true"
+                      rowHover="true"
+                      value="#{tripDetailBean.itinerary}"
+                      var="item"
+                      rendered="#{tripDetailBean.hasItinerary}"
+                      emptyMessage=""
+                      paginator="true"
+                      rows="10"
+                      paginatorAlwaysVisible="false"
+                      paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+                      currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
+                      rowsPerPageTemplate="10,25,50"
+                    >
+                      <p:column headerText="SN" styleClass="tm-col-sn">
+                        <h:outputText
+                          value="#{tripDetailBean.itinerary.indexOf(item) + 1}"
+                        />
+                      </p:column>
+                      <p:column headerText="Day" sortBy="#{item.itemDate}">
+                        <h:outputText value="#{item.itemDate}" />
+                      </p:column>
+                      <p:column headerText="Time">
+                        <h:outputText value="#{item.startTime}" />
+                        <h:outputText
+                          value=" - "
+                          rendered="#{not empty item.endTime}"
+                        />
+                        <h:outputText value="#{item.endTime}" />
+                      </p:column>
+                      <!--
                                     The row is opened by its own first word. The
                                     link is stretched over the row by CSS, so the
                                     target is the row and the element is still a
                                     link: a reader who tabs reaches it, and the
                                     whole row answers the pointer.
                                 -->
-                                <p:column headerText="What" sortBy="#{item.title}">
-                                    <p:commandLink styleClass="tm-row-link"
-                                                   action="#{tripDetailBean.openEditItem(item.itemId)}"
-                                                   process="@this"
-                                                   update="@form"
-                                                   ajax="true">
-                                        <h:outputText value="#{item.title}"/>
-                                    </p:commandLink>
-                                </p:column>
-                                <p:column headerText="Where">
-                                    <h:outputText value="#{item.location}"/>
-                                </p:column>
-                                <p:column headerText="Added by">
-                                    <h:outputText value="#{item.authorName}"/>
-                                </p:column>
-                                <!-- The dots open a menu rather than
+                      <p:column headerText="What" sortBy="#{item.title}">
+                        <p:commandLink
+                          styleClass="tm-row-link"
+                          action="#{tripDetailBean.openEditItem(item.itemId)}"
+                          process="@this"
+                          update="@form"
+                          ajax="true"
+                        >
+                          <h:outputText value="#{item.title}" />
+                        </p:commandLink>
+                      </p:column>
+                      <p:column headerText="Where">
+                        <h:outputText value="#{item.location}" />
+                      </p:column>
+                      <p:column headerText="Added by">
+                        <h:outputText value="#{item.authorName}" />
+                      </p:column>
+                      <!-- The dots open a menu rather than
                                      navigating. The row already opens the item
                                      when it is clicked, so an arrow said the
                                      same thing twice; what was missing was a
                                      way to remove one without opening it. -->
-                                <p:column headerText="" styleClass="tm-col-menu">
-                                    <p:menuButton value="" icon="pi pi-ellipsis-v"
-                                                  styleClass="tm-row-menu"
-                                                  appendTo="@(body)"
-                                                  pt:aria-label="Actions for this item">
-                                        <p:menuitem value="Edit" icon="pi pi-pencil"
-                                                    action="#{tripDetailBean.openEditItem(item.itemId)}"
-                                                    process="@this"
-                                                    update="@form"/>
-                                        <p:menuitem value="Delete" icon="pi pi-trash"
-                                                    styleClass="tm-menuitem-danger"
-                                                    action="#{tripDetailBean.deleteRowItem(item.itemId)}"
-                                                    process="@this"
-                                                    update="@form tmToasts">
-                                            <p:confirm header="Remove this itinerary item?"
-                                                       message="The item is removed from the plan. This cannot be undone."/>
-                                        </p:menuitem>
-                                    </p:menuButton>
-                                </p:column>
-                            </p:dataTable>
+                      <p:column headerText="" styleClass="tm-col-menu">
+                        <p:menuButton
+                          value=""
+                          icon="pi pi-ellipsis-v"
+                          styleClass="tm-row-menu"
+                          appendTo="@(body)"
+                          pt:aria-label="Actions for this item"
+                        >
+                          <p:menuitem
+                            value="Edit"
+                            icon="pi pi-pencil"
+                            action="#{tripDetailBean.openEditItem(item.itemId)}"
+                            process="@this"
+                            update="@form"
+                          />
+                          <p:menuitem
+                            value="Delete"
+                            icon="pi pi-trash"
+                            styleClass="tm-menuitem-danger"
+                            action="#{tripDetailBean.deleteRowItem(item.itemId)}"
+                            process="@this"
+                            update="@form tmToasts"
+                          >
+                            <p:confirm
+                              header="Remove this itinerary item?"
+                              message="The item is removed from the plan. This cannot be undone."
+                            />
+                          </p:menuitem>
+                        </p:menuButton>
+                      </p:column>
+                    </p:dataTable>
 
-                            <tm:empty icon="pi-calendar"
-                                      title="Nothing planned yet"
-                                      text="Add the first item and it appears here for everyone on the trip, in date order."
-                                      rendered="#{not tripDetailBean.hasItinerary}">
-                                <f:facet name="action">
-                                    <p:commandButton icon="pi pi-plus" value="Plan something"
-                                                    
-                                                     action="#{tripDetailBean.openAddItem}"
-                                                     process="@this"
-                                                     update="@form"
-                                                     ajax="true"/>
-                                </f:facet>
-                            </tm:empty>
+                    <tm:empty
+                      icon="pi-calendar"
+                      title="Nothing planned yet"
+                      text="Add the first item and it appears here for everyone on the trip, in date order."
+                      rendered="#{not tripDetailBean.hasItinerary}"
+                    >
+                      <f:facet name="action">
+                        <p:commandButton
+                          icon="pi pi-plus"
+                          value="Plan something"
+                          styleClass="ui-button-secondary"
+                          action="#{tripDetailBean.openAddItem}"
+                          process="@this"
+                          update="@form"
+                          ajax="true"
+                        />
+                      </f:facet>
+                    </tm:empty>
+                  </section>
+
+                  <p:dialog
+                    id="itemDialog"
+                    widgetVar="itemDialogWidget"
+                    visible="#{tripDetailBean.itemDialogOpen}"
+                    header="#{tripDetailBean.itemDialogHeader}"
+                    modal="true"
+                    draggable="false"
+                    resizable="false"
+                    responsive="true"
+                    styleClass="tm-dialog"
+                  >
+                    <div class="tm-dialog-body">
+                      <div class="tm-form-grid tm-form-grid-2">
+                        <div class="tm-field">
+                          <label class="tm-field-label" for="itemTitle"
+                            >What</label
+                          >
+                          <p:inputText
+                            id="itemTitle"
+                            styleClass="tm-input-full"
+                            value="#{tripDetailBean.itemForm.title}"
+                            required="true"
+                            requiredMessage="Say what the item is."
+                          />
+                          <p:message
+                            for="itemTitle"
+                            display="text"
+                            styleClass="tm-field-error"
+                          />
+                        </div>
+                        <div class="tm-field">
+                          <label class="tm-field-label" for="itemDate"
+                            >Day</label
+                          >
+                          <p:datePicker
+                            styleClass="tm-input-full"
+                            id="itemDate"
+                            pattern="yyyy-MM-dd"
+                            value="#{tripDetailBean.itemForm.itemDate}"
+                            required="true"
+                            requiredMessage="Choose a day."
+                          />
+                          <p:message
+                            for="itemDate"
+                            display="text"
+                            styleClass="tm-field-error"
+                          />
+                        </div>
+                        <div class="tm-field">
+                          <label class="tm-field-label" for="itemStart"
+                            >Starts</label
+                          >
+                          <p:selectOneMenu
+                            id="itemStart"
+                            styleClass="tm-input-full"
+                            converter="localTimeConverter"
+                            value="#{tripDetailBean.itemForm.startTime}"
+                          >
+                            <f:selectItem
+                              itemLabel="Not set"
+                              itemValue="#{null}"
+                            />
+                            <f:selectItems
+                              value="#{tripDetailBean.quarterHours}"
+                              var="t"
+                              itemLabel="#{t}"
+                              itemValue="#{t}"
+                            />
+                          </p:selectOneMenu>
+                        </div>
+                        <div class="tm-field">
+                          <label class="tm-field-label" for="itemEnd"
+                            >Ends</label
+                          >
+                          <p:selectOneMenu
+                            id="itemEnd"
+                            styleClass="tm-input-full"
+                            converter="localTimeConverter"
+                            value="#{tripDetailBean.itemForm.endTime}"
+                          >
+                            <f:selectItem
+                              itemLabel="Not set"
+                              itemValue="#{null}"
+                            />
+                            <f:selectItems
+                              value="#{tripDetailBean.quarterHours}"
+                              var="t"
+                              itemLabel="#{t}"
+                              itemValue="#{t}"
+                            />
+                          </p:selectOneMenu>
+                        </div>
+                        <div class="tm-field">
+                          <label class="tm-field-label" for="itemLocation"
+                            >Where</label
+                          >
+                          <p:inputText
+                            id="itemLocation"
+                            styleClass="tm-input-full"
+                            value="#{tripDetailBean.itemForm.location}"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="tm-field">
+                        <label class="tm-field-label" for="itemNotes"
+                          >Notes</label
+                        >
+                        <p:inputTextarea
+                          id="itemNotes"
+                          styleClass="tm-input-full"
+                          rows="2"
+                          value="#{tripDetailBean.itemForm.description}"
+                        />
+                      </div>
+
+                      <h:panelGroup
+                        layout="block"
+                        styleClass="tm-field-error tm-form-error"
+                        rendered="#{not empty tripDetailBean.itemDialogError}"
+                      >
+                        <i
+                          class="pi pi-exclamation-circle"
+                          aria-hidden="true"
+                        ></i>
+                        <h:outputText
+                          value="#{tripDetailBean.itemDialogError}"
+                        />
+                      </h:panelGroup>
+                    </div>
+
+                    <f:facet name="footer">
+                      <div class="tm-dialog-actions">
+                        <!--
+                                            `process="@this"` says the same thing
+                                            for a control that closes a dialog
+                                            as for one that opens it, and it is
+                                            needed for the same reason. Without
+                                            it the request covers the whole
+                                            form, so the fields this dialog
+                                            exists to fill are validated on the
+                                            way out: pressing Cancel on a form
+                                            with nothing in it failed the
+                                            required checks, the action never
+                                            ran, and the dialog sat there. It
+                                            looked like a dead button and was
+                                            really a validation failure
+                                            rendered into a dialog nobody had
+                                            open.
+                                        -->
+                        <p:commandButton
+                          value="Cancel"
+                          styleClass="ui-button-secondary"
+                          action="#{tripDetailBean.closeItemDialog}"
+                          process="@this"
+                          update="@form"
+                          ajax="true"
+                        />
+                        <p:commandButton
+                          icon="pi pi-check"
+                          value="#{tripDetailBean.editingItem ? 'Save changes' : 'Add to itinerary'}"
+                          action="#{tripDetailBean.saveItem}"
+                          update="@form tmToasts"
+                          ajax="true"
+                        />
+                      </div>
+                    </f:facet>
+                  </p:dialog>
+
+                  <!--
+                            Two ways out of the application, and the dialog
+                            offers the one that keeps working first. A
+                            subscription is what most people mean by "add it to
+                            my calendar": the address goes in once and the plan
+                            stays current. The download is the fallback, and it
+                            is the only one that needs nothing from anybody, so
+                            it is never wrong to offer it.
+
+                            The download itself is an anchor rather than a
+                            Faces button, because it is a plain GET whose whole
+                            response is a file. A p:commandButton would submit
+                            the form and re-render the page instead of handing
+                            the browser something to save. It carries the
+                            classes a p:button renders so that it looks like the
+                            buttons beside it.
+                        -->
+                  <p:dialog
+                    id="calendarDialog"
+                    widgetVar="calendarDialogWidget"
+                    rendered="#{tripDetailBean.calendarAvailable}"
+                    visible="#{tripDetailBean.calendarDialogOpen}"
+                    header="Send this plan to a calendar"
+                    modal="true"
+                    draggable="false"
+                    resizable="false"
+                    responsive="true"
+                    styleClass="tm-dialog"
+                  >
+                    <div class="tm-dialog-body">
+                      <p class="tm-dialog-lede">
+                        Every item in the plan becomes an event with its day,
+                        its times and its place, in Google Calendar, Apple
+                        Calendar or Outlook.
+                      </p>
+
+                      <!-- ======================= connected calendar -->
+                      <!--
+                        An `h:panelGroup`, not a `section` with a `rendered`
+                        attribute. A plain HTML element passes unknown attributes
+                        straight through to the browser, so `rendered="false"`
+                        on a `section` renders `<section rendered="false">` and
+                        hides nothing at all: the section was shown on every
+                        deployment, including ones with no Google client, which
+                        is the button-that-cannot-work this is meant to prevent.
+                      -->
+                      <h:panelGroup
+                        layout="block"
+                        styleClass="tm-calendar-option"
+                        rendered="#{tripDetailBean.googleAvailable}"
+                      >
+                        <h4 class="tm-calendar-option-title">
+                          Write it into my Google Calendar
+                        </h4>
+
+                        <h:panelGroup
+                          layout="block"
+                          rendered="#{tripDetailBean.googleConnected}"
+                        >
+                          <p class="tm-field-hint">
+                            Connected to
+                            <strong>#{tripDetailBean.googleEmail}</strong>. This
+                            trip can be written straight into that calendar.
+                          </p>
+                          <p class="tm-field-hint">
+                            Editing the plan writes to it on its own. Use this
+                            if something looks out of date.
+                          </p>
+                          <div class="tm-calendar-actions">
+                            <p:commandButton
+                              value="Sync now"
+                              icon="pi pi-refresh"
+                              action="#{tripDetailBean.syncGoogleCalendarNow}"
+                              process="@this"
+                              update="@form tmToasts"
+                              ajax="true"
+                            />
+                            <p:commandButton
+                              value="Disconnect"
+                              styleClass="ui-button-secondary"
+                              action="#{tripDetailBean.disconnectGoogleCalendar}"
+                              process="@this"
+                              update="@form tmToasts"
+                              ajax="true"
+                            />
+                          </div>
+                        </h:panelGroup>
+
+                        <h:panelGroup
+                          layout="block"
+                          rendered="#{not tripDetailBean.googleConnected}"
+                        >
+                          <p class="tm-field-hint">
+                            TripMate asks Google for permission once, then keeps
+                            the plan in step on its own. It writes this trip's
+                            itinerary into your calendar and updates it as the
+                            plan changes; it does not read the events already
+                            there. See the
+                            <a
+                              href="#{request.contextPath}/privacy.xhtml"
+                              target="_blank"
+                              rel="noopener"
+                              >privacy policy</a
+                            >.
+                          </p>
+                          <!--
+                            Said before the reader leaves rather than after they
+                            come back refusing. Google lists the permissions
+                            with a checkbox each and they arrive unticked, with
+                            no way for an application to preselect them, so the
+                            calendar box is the one that gets missed.
+                          -->
+                          <p class="tm-field-hint">
+                            Google will show a list of permissions. Tick
+                            <strong>every</strong> box, including the one for
+                            Calendar, or the connection cannot write anything.
+                          </p>
+                          <a
+                            class="ui-button ui-widget ui-state-default ui-corner-all ui-button-secondary ui-button-text-icon-left tm-calendar-download"
+                            href="#{request.contextPath}#{tripDetailBean.googleConnectPath}"
+                          >
+                            <span
+                              class="ui-button-icon-left ui-icon pi pi-google"
+                              aria-hidden="true"
+                            ></span>
+                            <span class="ui-button-text"
+                              >Connect Google Calendar</span
+                            >
+                          </a>
+                        </h:panelGroup>
+                      </h:panelGroup>
+
+                      <!--
+                        The subscribe address and the one-off download are
+                        hidden for now, so the dialog offers one thing instead of
+                        three. Both are still built, still tested and still
+                        reachable directly: the feed is served at
+                        /calendar/feed/<token>.ics and the download at
+                        /calendar/itinerary.ics?tripId=N. Removing this
+                        `ui:remove` element brings them back.
+
+                        `ui:remove` rather than an XML comment because both
+                        sections contain comments of their own, and XHTML cannot
+                        nest them.
+                      -->
+                      <ui:remove>
+                        <!-- ============================ subscribe -->
+                        <section class="tm-calendar-option">
+                          <h4 class="tm-calendar-option-title">
+                            Keep it up to date
+                          </h4>
+                          <p class="tm-field-hint">
+                            Add the plan once and it follows the trip. Edits
+                            made here appear in your calendar on their own,
+                            usually within a few hours.
+                          </p>
+
+                          <h:panelGroup
+                            layout="block"
+                            rendered="#{tripDetailBean.hasSubscribeLink}"
+                          >
+                            <div class="tm-subscribe-row">
+                              <input
+                                id="subscribeUrl"
+                                class="tm-input-full tm-subscribe-url"
+                                type="text"
+                                readonly="readonly"
+                                value="#{tripDetailBean.subscribeUrl}"
+                              />
+                              <button
+                                type="button"
+                                class="tm-subscribe-copy"
+                                data-tm-copy="subscribeUrl"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                            <ol class="tm-dialog-steps">
+                              <li>
+                                In Google Calendar, open
+                                <strong>Other calendars</strong> and choose
+                                <strong>Add by URL</strong>.
+                              </li>
+                              <li>Paste the address and add the calendar.</li>
+                            </ol>
+                          </h:panelGroup>
+
+                          <h:panelGroup
+                            layout="block"
+                            rendered="#{not tripDetailBean.hasSubscribeLink}"
+                          >
+                            <p class="tm-field-hint">
+                              This trip does not have one yet. Making an address
+                              gives a read-only copy of this trip's plan; anyone
+                              who has the address can read it, and replacing it
+                              later stops the old one working.
+                            </p>
+                            <p:commandButton
+                              value="Make a calendar address"
+                              icon="pi pi-link"
+                              styleClass="ui-button-secondary"
+                              action="#{tripDetailBean.createSubscribeLink}"
+                              process="@this"
+                              update="@form tmToasts"
+                              ajax="true"
+                            />
+                          </h:panelGroup>
+
+                          <!--
+                                    The address is on this machine until the
+                                    application is deployed somewhere a
+                                    calendar application can reach, and the
+                                    error Google reports for an address it
+                                    cannot fetch says nothing about why. Saying
+                                    so here is the difference between a feature
+                                    that does not work and a feature that needs
+                                    a hostname.
+                                -->
+                          <h:panelGroup
+                            layout="block"
+                            styleClass="tm-field-hint tm-subscribe-warning"
+                            rendered="#{tripDetailBean.hasSubscribeLink and not tripDetailBean.subscribeAddressReachable}"
+                          >
+                            <i
+                              class="pi pi-exclamation-triangle"
+                              aria-hidden="true"
+                            ></i>
+                            This address is on your own machine, and Google
+                            fetches a subscribed calendar from its own servers,
+                            so it cannot reach this one. It will work once the
+                            application is reachable from the internet.
+                          </h:panelGroup>
+
+                          <h:panelGroup
+                            layout="block"
+                            styleClass="tm-field-error tm-form-error"
+                            rendered="#{not empty tripDetailBean.subscribeError}"
+                          >
+                            <i
+                              class="pi pi-exclamation-circle"
+                              aria-hidden="true"
+                            ></i>
+                            <h:outputText
+                              value="#{tripDetailBean.subscribeError}"
+                            />
+                          </h:panelGroup>
+
+                          <!--
+                                    Administrators only, because this is the
+                                    half that takes something away. A member
+                                    can hand the address out; only an
+                                    administrator can revoke it.
+                                -->
+                          <p:commandLink
+                            rendered="#{tripDetailBean.hasSubscribeLink and tripDetailBean.admin}"
+                            styleClass="tm-subscribe-reset"
+                            value="Replace this address"
+                            action="#{tripDetailBean.resetSubscribeLink}"
+                            process="@this"
+                            update="@form tmToasts"
+                            ajax="true"
+                          >
+                            <p:confirm
+                              header="Replace the calendar address?"
+                              message="Anyone using the current address stops receiving updates, and has to add the new one. The old address will not work again."
+                              icon="pi pi-exclamation-triangle"
+                            />
+                          </p:commandLink>
                         </section>
 
-                        <p:dialog id="itemDialog"
-                                  widgetVar="itemDialogWidget"
-                                  visible="#{tripDetailBean.itemDialogOpen}"
-                                  header="#{tripDetailBean.itemDialogHeader}"
-                                  modal="true"
-                                  draggable="false"
-                                  resizable="false"
-                                  responsive="true"
-                                  styleClass="tm-dialog">
-                            <div class="tm-dialog-body">
-                                <div class="tm-form-grid tm-form-grid-2">
-                                    <div class="tm-field">
-                                        <label class="tm-field-label" for="itemTitle">What</label>
-                                        <p:inputText id="itemTitle" styleClass="tm-input-full"
-                                                     value="#{tripDetailBean.itemForm.title}"
-                                                     required="true"
-                                                     requiredMessage="Say what the item is."/>
-                                        <p:message for="itemTitle" display="text" styleClass="tm-field-error"/>
-                                    </div>
-                                    <div class="tm-field">
-                                        <label class="tm-field-label" for="itemDate">Day</label>
-                                        <p:datePicker styleClass="tm-input-full" id="itemDate" pattern="yyyy-MM-dd"
-                                                      value="#{tripDetailBean.itemForm.itemDate}"
-                                                      required="true"
-                                                      requiredMessage="Choose a day."/>
-                                        <p:message for="itemDate" display="text" styleClass="tm-field-error"/>
-                                    </div>
-                                    <div class="tm-field">
-                                        <label class="tm-field-label" for="itemStart">Starts</label>
-                                        <p:selectOneMenu id="itemStart" styleClass="tm-input-full"
-                                                         converter="localTimeConverter"
-                                                         value="#{tripDetailBean.itemForm.startTime}">
-                                            <f:selectItem itemLabel="Not set" itemValue="#{null}"/>
-                                            <f:selectItems value="#{tripDetailBean.quarterHours}" var="t"
-                                                           itemLabel="#{t}" itemValue="#{t}"/>
-                                        </p:selectOneMenu>
-                                    </div>
-                                    <div class="tm-field">
-                                        <label class="tm-field-label" for="itemEnd">Ends</label>
-                                        <p:selectOneMenu id="itemEnd" styleClass="tm-input-full"
-                                                         converter="localTimeConverter"
-                                                         value="#{tripDetailBean.itemForm.endTime}">
-                                            <f:selectItem itemLabel="Not set" itemValue="#{null}"/>
-                                            <f:selectItems value="#{tripDetailBean.quarterHours}" var="t"
-                                                           itemLabel="#{t}" itemValue="#{t}"/>
-                                        </p:selectOneMenu>
-                                    </div>
-                                    <div class="tm-field">
-                                        <label class="tm-field-label" for="itemLocation">Where</label>
-                                        <p:inputText id="itemLocation" styleClass="tm-input-full"
-                                                     value="#{tripDetailBean.itemForm.location}"/>
-                                    </div>
-                                </div>
+                        <!-- ============================ download -->
+                        <section class="tm-calendar-option">
+                          <h4 class="tm-calendar-option-title">
+                            Or download a copy once
+                          </h4>
+                          <ol class="tm-dialog-steps">
+                            <li>Download the file.</li>
+                            <li>
+                              In Google Calendar, open
+                              <strong>Settings</strong> and then
+                              <strong>Import &amp; export</strong>.
+                            </li>
+                            <li>
+                              Choose the file, and choose the calendar to put
+                              the plan in.
+                            </li>
+                          </ol>
+                        </section>
+                      </ui:remove>
 
-                                <div class="tm-field">
-                                    <label class="tm-field-label" for="itemNotes">Notes</label>
-                                    <p:inputTextarea id="itemNotes" styleClass="tm-input-full" rows="2"
-                                                     value="#{tripDetailBean.itemForm.description}"/>
-                                </div>
+                      <p class="tm-field-hint">
+                        An item with no time becomes a whole-day event. Timed
+                        items are written in the time zone the trip is planned
+                        in, which the trip's settings hold.
+                      </p>
+                    </div>
 
-                                <h:panelGroup layout="block" styleClass="tm-field-error tm-form-error"
-                                              rendered="#{not empty tripDetailBean.itemDialogError}">
-                                    <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
-                                    <h:outputText value="#{tripDetailBean.itemDialogError}"/>
-                                </h:panelGroup>
-                            </div>
+                    <f:facet name="footer">
+                      <div class="tm-dialog-actions">
+                        <p:commandButton
+                          value="Close"
+                          styleClass="ui-button-secondary"
+                          action="#{tripDetailBean.closeCalendar}"
+                          process="@this"
+                          update="@form"
+                          ajax="true"
+                        />
+                        <ui:remove>
+                          <a
+                            class="ui-button ui-widget ui-state-default ui-corner-all ui-button-secondary ui-button-text-icon-left tm-calendar-download"
+                            href="#{request.contextPath}#{tripDetailBean.calendarPath}"
+                          >
+                            <span
+                              class="ui-button-icon-left ui-icon pi pi-download"
+                              aria-hidden="true"
+                            ></span>
+                            <span class="ui-button-text">Download a copy</span>
+                          </a>
+                        </ui:remove>
+                      </div>
+                    </f:facet>
+                  </p:dialog>
+                </h:form>
+              </p:tab>
 
-                            <f:facet name="footer">
-                                <div class="tm-dialog-actions">
-                                    <p:commandButton value="Cancel"
-                                                     styleClass="ui-button-secondary"
-                                                     action="#{tripDetailBean.closeItemDialog}"
-                                                     update="@form"
-                                                     ajax="true"/>
-                                    <p:commandButton icon="pi pi-check"
-                                                     value="#{tripDetailBean.editingItem ? 'Save changes' : 'Add to itinerary'}"
-                                                     action="#{tripDetailBean.saveItem}"
-                                                     update="@form tmToasts"
-                                                     ajax="true"/>
-                                </div>
-                            </f:facet>
-                        </p:dialog>
-                        </h:form>
-                    </p:tab>
-
-                    <!-- ================================================ -->
-                    <p:tab title="Expenses">
-                        <h:form>
-
-                        <!--
+              <!-- ================================================ -->
+              <p:tab title="Expenses">
+                <h:form>
+                  <!--
                             Two panels rather than two headings in one. The
                             list of expenses and the summary of who is carrying
                             them are different things answering different
@@ -509,119 +1090,176 @@
                             read as one long table with a change of columns
                             halfway down.
                         -->
-                        <section class="tm-panel">
-                            <div class="tm-toolbar">
-                                <h3 class="tm-display-sm">What was spent</h3>
-                                <p:button icon="pi pi-plus" outcome="/trips/expenses.xhtml"
-                                          value="Add an expense"
-                                         >
-                                    <f:param name="tripId" value="#{tripDetailBean.tripId}"/>
-                                </p:button>
-                            </div>
+                  <section class="tm-panel">
+                    <div class="tm-toolbar">
+                      <h3 class="tm-display-sm no-margin">What was spent</h3>
+                      <p:button
+                        icon="pi pi-plus"
+                        outcome="/trips/expenses.xhtml"
+                        value="Add an expense"
+                        styleClass="ui-button-secondary"
+                      >
+                        <f:param
+                          name="tripId"
+                          value="#{tripDetailBean.tripId}"
+                        />
+                      </p:button>
+                    </div>
 
-                            <p:dataTable reflow="true" rowHover="true" value="#{tripDetailBean.expenses}" var="expense"
-                                         rendered="#{tripDetailBean.hasExpenses}" emptyMessage=""
-                          paginator="true"
-                         rows="10"
-                         paginatorAlwaysVisible="false"
-                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
-                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
-                            <p:column headerText="SN" styleClass="tm-col-sn">
-                                <h:outputText value="#{tripDetailBean.expenses.indexOf(expense) + 1}"/>
-                            </p:column>
-                                <p:column headerText="Date" sortBy="#{expense.expenseDate}">
-                                    <h:outputText value="#{expense.expenseDate}"/>
-                                </p:column>
-                                <p:column headerText="What" sortBy="#{expense.description}">
-                                    <h:outputText value="#{expense.description}"/>
-                                </p:column>
-                                <p:column headerText="Category" sortBy="#{expense.category}">
-                                    <span class="#{categoryChip.css(expense.category)}">
-                                        <i class="#{categoryChip.icon(expense.category)}" aria-hidden="true"></i>
-                                        <h:outputText value="#{expense.category}"/>
-                                    </span>
-                                </p:column>
-                                <p:column headerText="Paid by">
-                                    <h:outputText value="#{expense.paidByName}"/>
-                                </p:column>
-                                <!-- The names and figures rather than a count. "Split
+                    <p:dataTable
+                      reflow="true"
+                      rowHover="true"
+                      value="#{tripDetailBean.expenses}"
+                      var="expense"
+                      rendered="#{tripDetailBean.hasExpenses}"
+                      emptyMessage=""
+                      paginator="true"
+                      rows="10"
+                      paginatorAlwaysVisible="false"
+                      paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+                      rowsPerPageTemplate="10,25,50"
+                      currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
+                    >
+                      <p:column headerText="SN" styleClass="tm-col-sn">
+                        <h:outputText
+                          value="#{tripDetailBean.expenses.indexOf(expense) + 1}"
+                        />
+                      </p:column>
+                      <p:column
+                        headerText="Date"
+                        sortBy="#{expense.expenseDate}"
+                      >
+                        <h:outputText value="#{expense.expenseDate}" />
+                      </p:column>
+                      <p:column
+                        headerText="What"
+                        sortBy="#{expense.description}"
+                      >
+                        <h:outputText value="#{expense.description}" />
+                      </p:column>
+                      <p:column
+                        headerText="Category"
+                        sortBy="#{expense.category}"
+                      >
+                        <span class="#{categoryChip.css(expense.category)}">
+                          <i
+                            class="#{categoryChip.icon(expense.category)}"
+                            aria-hidden="true"
+                          ></i>
+                          <h:outputText value="#{expense.category}" />
+                        </span>
+                      </p:column>
+                      <p:column headerText="Paid by">
+                        <h:outputText value="#{expense.paidByName}" />
+                      </p:column>
+                      <!-- The names and figures rather than a count. "Split
                                      four ways" tells a reader nothing they need; who owes
                                      what is the whole question an expense breakdown answers. -->
-                                <p:column headerText="Split between">
-                                    <ul class="tm-split-list">
-                                        <ui:repeat value="#{expense.splits}" var="split">
-                                            <li>
-                                                <span class="tm-split-name">
-                                                    <h:outputText value="#{split.userName}"/>
-                                                </span>
-                                                <span class="tm-split-amount">
-                                                    <h:outputText value="NPR #{split.amountOwed}"/>
-                                                </span>
-                                            </li>
-                                        </ui:repeat>
-                                    </ul>
-                                </p:column>
-                                <p:column headerText="Amount" sortBy="#{expense.amount}">
-                                    <h:outputText value="NPR #{expense.amount}"/>
-                                </p:column>
-                            </p:dataTable>
+                      <p:column headerText="Split between">
+                        <ul class="tm-split-list">
+                          <ui:repeat value="#{expense.splits}" var="split">
+                            <li>
+                              <span class="tm-split-name">
+                                <h:outputText value="#{split.userName}" />
+                              </span>
+                              <span class="tm-split-amount">
+                                <h:outputText value="NPR #{split.amountOwed}" />
+                              </span>
+                            </li>
+                          </ui:repeat>
+                        </ul>
+                      </p:column>
+                      <p:column headerText="Amount" sortBy="#{expense.amount}">
+                        <h:outputText value="NPR #{expense.amount}" />
+                      </p:column>
+                    </p:dataTable>
 
-                            <tm:empty icon="pi-receipt"
-                                      title="No expenses recorded yet"
-                                      text="Once somebody logs what they paid, this tab shows the expense and exactly who owes what for it."
-                                      rendered="#{not tripDetailBean.hasExpenses}">
-                                <f:facet name="action">
-                                    <p:button icon="pi pi-plus" outcome="/trips/expenses.xhtml"
-                                              value="Log an expense"
-                                             >
-                                        <f:param name="tripId" value="#{tripDetailBean.tripId}"/>
-                                    </p:button>
-                                </f:facet>
-                            </tm:empty>
-                        </section>
+                    <tm:empty
+                      icon="pi-receipt"
+                      title="No expenses recorded yet"
+                      text="Once somebody logs what they paid, this tab shows the expense and exactly who owes what for it."
+                      rendered="#{not tripDetailBean.hasExpenses}"
+                    >
+                      <f:facet name="action">
+                        <p:button
+                          icon="pi pi-plus"
+                          outcome="/trips/expenses.xhtml"
+                          value="Log an expense"
+                          styleClass="ui-button-secondary"
+                        >
+                          <f:param
+                            name="tripId"
+                            value="#{tripDetailBean.tripId}"
+                          />
+                        </p:button>
+                      </f:facet>
+                    </tm:empty>
+                  </section>
 
-                        <h:panelGroup layout="block" styleClass="tm-panel" rendered="#{tripDetailBean.hasExpenses}">
-                            <div class="tm-toolbar">
-                                <h3 class="tm-display-sm">Who has spent what</h3>
-                            </div>
-                            <p class="tm-body-sm tm-text-muted tm-panel-lede">
-                                What each person has put in, against their share of the
-                                trip, with any repayments already recorded counted. A
-                                positive amount is money they should get back.
-                            </p>
+                  <h:panelGroup
+                    layout="block"
+                    styleClass="tm-panel"
+                    rendered="#{tripDetailBean.hasExpenses}"
+                  >
+                    <div class="tm-toolbar">
+                      <h3 class="tm-display-sm no-margin">
+                        Who has spent what
+                      </h3>
+                    </div>
+                    <p class="tm-body-sm tm-text-muted tm-panel-lede">
+                      What each person has put in, against their share of the
+                      trip, with any repayments already recorded counted. A
+                      positive amount is money they should get back.
+                    </p>
 
-                            <p:dataTable reflow="true" rowHover="true"
-                                         value="#{tripDetailBean.positions}" var="b"
-                                         sortMode="single" emptyMessage=""
-                          paginator="true"
-                         rows="10"
-                         paginatorAlwaysVisible="false"
-                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
-                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
-                            <p:column headerText="SN" styleClass="tm-col-sn">
-                                <h:outputText value="#{tripDetailBean.positions.indexOf(b) + 1}"/>
-                            </p:column>
-                                <p:column headerText="Person" sortBy="#{b.fullName}">
-                                    <span class="tm-split-person">
-                                        <span class="tm-avatar tm-avatar-sm" aria-hidden="true">
-                                            <h:outputText value="#{b.initials}"/>
-                                        </span>
-                                        <h:outputText value="#{b.fullName}"/>
-                                    </span>
-                                </p:column>
-                                <p:column headerText="Paid" sortBy="#{b.paid}">
-                                    <h:outputText value="NPR #{b.paid}"/>
-                                </p:column>
-                                <p:column headerText="Their share" sortBy="#{b.share}">
-                                    <h:outputText value="NPR #{b.share}"/>
-                                </p:column>
-                                <p:column headerText="Left to settle" sortBy="#{b.outstanding}">
-                                    <span class="#{b.outstanding.signum() >= 0 ? 'tm-positive' : 'tm-negative'}">
-                                        <h:outputText value="NPR #{b.outstanding}"/>
-                                    </span>
-                                </p:column>
-                                <p:column headerText="Position">
-                                    <!--
+                    <p:dataTable
+                      reflow="true"
+                      rowHover="true"
+                      value="#{tripDetailBean.positions}"
+                      var="b"
+                      sortMode="single"
+                      emptyMessage=""
+                      paginator="true"
+                      rows="10"
+                      paginatorAlwaysVisible="false"
+                      paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+                      rowsPerPageTemplate="10,25,50"
+                      currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
+                    >
+                      <p:column headerText="SN" styleClass="tm-col-sn">
+                        <h:outputText
+                          value="#{tripDetailBean.positions.indexOf(b) + 1}"
+                        />
+                      </p:column>
+                      <p:column headerText="Person" sortBy="#{b.fullName}">
+                        <span class="tm-split-person">
+                          <span
+                            class="tm-avatar tm-avatar-sm"
+                            aria-hidden="true"
+                          >
+                            <h:outputText value="#{b.initials}" />
+                          </span>
+                          <h:outputText value="#{b.fullName}" />
+                        </span>
+                      </p:column>
+                      <p:column headerText="Paid" sortBy="#{b.paid}">
+                        <h:outputText value="NPR #{b.paid}" />
+                      </p:column>
+                      <p:column headerText="Their share" sortBy="#{b.share}">
+                        <h:outputText value="NPR #{b.share}" />
+                      </p:column>
+                      <p:column
+                        headerText="Left to settle"
+                        sortBy="#{b.outstanding}"
+                      >
+                        <span
+                          class="#{b.outstanding.signum() >= 0 ? 'tm-positive' : 'tm-negative'}"
+                        >
+                          <h:outputText value="NPR #{b.outstanding}" />
+                        </span>
+                      </p:column>
+                      <p:column headerText="Position">
+                        <!--
                                         On the reader's own row the amount is a
                                         way into the settle page, filled in from
                                         this row. Somebody looking at what they
@@ -630,258 +1268,377 @@
                                         re-enter three figures is work the table
                                         has already done.
                                     -->
-                                    <h:panelGroup layout="block" rendered="#{b.debtor}">
-                                        <h:link rendered="#{tripDetailBean.isMyRow(b)}"
-                                                outcome="/trips/settle.xhtml"
-                                                styleClass="tm-status tm-status-debit tm-status-action"
-                                                title="Record a repayment for this">
-                                            <f:param name="tripId" value="#{tripDetailBean.tripId}"/>
-                                            <f:param name="payerId" value="#{b.userId}"/>
-                                            <h:outputText value="pays"/>
-                                        </h:link>
-                                        <h:outputText rendered="#{not tripDetailBean.isMyRow(b)}"
-                                                      value="pays"
-                                                      styleClass="tm-status tm-status-debit"/>
-                                    </h:panelGroup>
-                                    <h:outputText value="gets back"
-                                                  styleClass="tm-status tm-status-credit"
-                                                  rendered="#{b.creditor}"/>
-                                    <h:outputText value="even"
-                                                  styleClass="tm-status tm-status-square"
-                                                  rendered="#{b.square}"/>
-                                </p:column>
-                            </p:dataTable>
+                        <h:panelGroup layout="block" rendered="#{b.debtor}">
+                          <h:link
+                            rendered="#{tripDetailBean.isMyRow(b)}"
+                            outcome="/trips/settle.xhtml"
+                            styleClass="tm-status tm-status-debit tm-status-action"
+                            title="Record a repayment for this"
+                          >
+                            <f:param
+                              name="tripId"
+                              value="#{tripDetailBean.tripId}"
+                            />
+                            <f:param name="payerId" value="#{b.userId}" />
+                            <h:outputText value="pays" />
+                          </h:link>
+                          <h:outputText
+                            rendered="#{not tripDetailBean.isMyRow(b)}"
+                            value="pays"
+                            styleClass="tm-status tm-status-debit"
+                          />
                         </h:panelGroup>
-                        </h:form>
-                    </p:tab>
+                        <h:outputText
+                          value="gets back"
+                          styleClass="tm-status tm-status-credit"
+                          rendered="#{b.creditor}"
+                        />
+                        <h:outputText
+                          value="even"
+                          styleClass="tm-status tm-status-square"
+                          rendered="#{b.square}"
+                        />
+                      </p:column>
+                    </p:dataTable>
+                  </h:panelGroup>
+                </h:form>
+              </p:tab>
 
-                    <!-- ================================================ -->
-                    <p:tab title="Balances">
-                        <h:form>
-
-                        <!--
+              <!-- ================================================ -->
+              <p:tab title="Balances">
+                <h:form>
+                  <!--
                             Two panels, for the same reason the expenses tab
                             has two: the positions and the repayments are
                             different questions, and the repayments are what
                             make the positions what they are.
                         -->
-                        <section class="tm-panel">
-                            <div class="tm-toolbar">
-                                <h3 class="tm-display-sm">Who is up and who is down</h3>
-                                <div class="tm-toolbar-actions">
-                                    <p:button icon="pi pi-arrow-right-arrow-left" outcome="/trips/settle.xhtml"
-                                              value="Record a repayment"
-                                             >
-                                        <f:param name="tripId" value="#{tripDetailBean.tripId}"/>
-                                    </p:button>
-                                </div>
-                            </div>
+                  <section class="tm-panel">
+                    <div class="tm-toolbar">
+                      <h3 class="tm-display-sm no-margin">
+                        Who is up and who is down
+                      </h3>
+                      <div class="tm-toolbar-actions">
+                        <p:button
+                          icon="pi pi-arrow-right-arrow-left"
+                          outcome="/trips/settle.xhtml"
+                          value="Record a repayment"
+                          styleClass="ui-button-secondary"
+                        >
+                          <f:param
+                            name="tripId"
+                            value="#{tripDetailBean.tripId}"
+                          />
+                        </p:button>
+                      </div>
+                    </div>
 
-                            <p:dataTable reflow="true" rowHover="true"
-                                         value="#{tripDetailBean.positions}" var="balance"
-                                         sortMode="single" emptyMessage=""
-                          paginator="true"
-                         rows="10"
-                         paginatorAlwaysVisible="false"
-                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
-                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
-                            <p:column headerText="SN" styleClass="tm-col-sn">
-                                <h:outputText value="#{tripDetailBean.positions.indexOf(balance) + 1}"/>
-                            </p:column>
-                                <p:column headerText="Member" sortBy="#{balance.fullName}">
-                                    <span class="tm-split-person">
-                                        <span class="tm-avatar tm-avatar-sm" aria-hidden="true">
-                                            <h:outputText value="#{balance.initials}"/>
-                                        </span>
-                                        <h:outputText value="#{balance.fullName}"/>
-                                    </span>
-                                </p:column>
-                                <p:column headerText="Paid" sortBy="#{balance.paid}">
-                                    <h:outputText value="NPR #{balance.paid}"/>
-                                </p:column>
-                                <p:column headerText="Their share" sortBy="#{balance.share}">
-                                    <h:outputText value="NPR #{balance.share}"/>
-                                </p:column>
-                                <p:column headerText="Left to settle" sortBy="#{balance.outstanding}">
-                                    <span class="#{balance.outstanding.signum() >= 0 ? 'tm-positive' : 'tm-negative'}">
-                                        <h:outputText value="NPR #{balance.outstanding}"/>
-                                    </span>
-                                </p:column>
-                                <!-- Chips rather than words, in the same three
+                    <p:dataTable
+                      reflow="true"
+                      rowHover="true"
+                      value="#{tripDetailBean.positions}"
+                      var="balance"
+                      sortMode="single"
+                      emptyMessage=""
+                      paginator="true"
+                      rows="10"
+                      paginatorAlwaysVisible="false"
+                      paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+                      rowsPerPageTemplate="10,25,50"
+                      currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
+                    >
+                      <p:column headerText="SN" styleClass="tm-col-sn">
+                        <h:outputText
+                          value="#{tripDetailBean.positions.indexOf(balance) + 1}"
+                        />
+                      </p:column>
+                      <p:column
+                        headerText="Member"
+                        sortBy="#{balance.fullName}"
+                      >
+                        <span class="tm-split-person">
+                          <span
+                            class="tm-avatar tm-avatar-sm"
+                            aria-hidden="true"
+                          >
+                            <h:outputText value="#{balance.initials}" />
+                          </span>
+                          <h:outputText value="#{balance.fullName}" />
+                        </span>
+                      </p:column>
+                      <p:column headerText="Paid" sortBy="#{balance.paid}">
+                        <h:outputText value="NPR #{balance.paid}" />
+                      </p:column>
+                      <p:column
+                        headerText="Their share"
+                        sortBy="#{balance.share}"
+                      >
+                        <h:outputText value="NPR #{balance.share}" />
+                      </p:column>
+                      <p:column
+                        headerText="Left to settle"
+                        sortBy="#{balance.outstanding}"
+                      >
+                        <span
+                          class="#{balance.outstanding.signum() >= 0 ? 'tm-positive' : 'tm-negative'}"
+                        >
+                          <h:outputText value="NPR #{balance.outstanding}" />
+                        </span>
+                      </p:column>
+                      <!-- Chips rather than words, in the same three
                                      tones the balances page uses, so a direction
                                      reads the same wherever it appears. `rendered`
                                      needs a component, so these are outputText
                                      rather than bare spans. -->
-                                <p:column headerText="Position">
-                                    <h:panelGroup layout="block" rendered="#{balance.debtor}">
-                                        <h:link rendered="#{tripDetailBean.isMyRow(balance)}"
-                                                outcome="/trips/settle.xhtml"
-                                                styleClass="tm-status tm-status-debit tm-status-action"
-                                                title="Record a repayment for this">
-                                            <f:param name="tripId" value="#{tripDetailBean.tripId}"/>
-                                            <f:param name="payerId" value="#{balance.userId}"/>
-                                            <h:outputText value="pays"/>
-                                        </h:link>
-                                        <h:outputText rendered="#{not tripDetailBean.isMyRow(balance)}"
-                                                      value="pays"
-                                                      styleClass="tm-status tm-status-debit"/>
-                                    </h:panelGroup>
-                                    <h:outputText value="gets back"
-                                                  styleClass="tm-status tm-status-credit"
-                                                  rendered="#{balance.creditor}"/>
-                                    <h:outputText value="even"
-                                                  styleClass="tm-status tm-status-square"
-                                                  rendered="#{balance.square}"/>
-                                </p:column>
-                            </p:dataTable>
-
-                            <p class="tm-caption-sm tm-text-muted">
-                                <strong>Left to settle</strong> is what still has to move
-                                for everybody to be even: what each person paid, minus
-                                their share, plus what they have paid back, minus what
-                                they have received. A positive amount is money they
-                                should get back.
-                                <h:panelGroup layout="block" rendered="#{tripDetailBean.repaymentsAffectFigures}">
-                                    <h:outputText value="The repayments below are already
-                                        counted here, which is why these figures differ
-                                        from what the expenses alone would say."/>
-                                </h:panelGroup>
-                            </p>
-                        </section>
-
-                        <h:panelGroup layout="block" styleClass="tm-panel" rendered="#{tripDetailBean.hasSettlements}">
-                            <div class="tm-toolbar">
-                                <h3 class="tm-display-sm">Repayments recorded</h3>
-                                <p:button icon="pi pi-arrow-right-arrow-left" outcome="/trips/settle.xhtml"
-                                          value="Add a repayment"
-                                         >
-                                    <f:param name="tripId" value="#{tripDetailBean.tripId}"/>
-                                </p:button>
-                            </div>
-                            <p:dataTable reflow="true" rowHover="true" value="#{tripDetailBean.settlements}" var="s" emptyMessage=""
-                          paginator="true"
-                         rows="10"
-                         paginatorAlwaysVisible="false"
-                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
-                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
-                            <p:column headerText="SN" styleClass="tm-col-sn">
-                                <h:outputText value="#{tripDetailBean.settlements.indexOf(s) + 1}"/>
-                            </p:column>
-                                <p:column headerText="When" sortBy="#{s.settledAt}">
-                                    <h:outputText value="#{s.settledAt}" converter="localDateTimeConverter"/>
-                                </p:column>
-                                <p:column headerText="From">
-                                    <h:outputText value="#{s.payerName}"/>
-                                </p:column>
-                                <p:column headerText="To">
-                                    <h:outputText value="#{s.receiverName}"/>
-                                </p:column>
-                                <p:column headerText="Amount" sortBy="#{s.amount}">
-                                    <h:outputText value="NPR #{s.amount}"/>
-                                </p:column>
-                                <p:column headerText="Note">
-                                    <h:outputText value="#{s.note}"/>
-                                </p:column>
-                            </p:dataTable>
+                      <p:column headerText="Position">
+                        <h:panelGroup
+                          layout="block"
+                          rendered="#{balance.debtor}"
+                        >
+                          <h:link
+                            rendered="#{tripDetailBean.isMyRow(balance)}"
+                            outcome="/trips/settle.xhtml"
+                            styleClass="tm-status tm-status-debit tm-status-action"
+                            title="Record a repayment for this"
+                          >
+                            <f:param
+                              name="tripId"
+                              value="#{tripDetailBean.tripId}"
+                            />
+                            <f:param name="payerId" value="#{balance.userId}" />
+                            <h:outputText value="pays" />
+                          </h:link>
+                          <h:outputText
+                            rendered="#{not tripDetailBean.isMyRow(balance)}"
+                            value="pays"
+                            styleClass="tm-status tm-status-debit"
+                          />
                         </h:panelGroup>
+                        <h:outputText
+                          value="gets back"
+                          styleClass="tm-status tm-status-credit"
+                          rendered="#{balance.creditor}"
+                        />
+                        <h:outputText
+                          value="even"
+                          styleClass="tm-status tm-status-square"
+                          rendered="#{balance.square}"
+                        />
+                      </p:column>
+                    </p:dataTable>
 
-                        <!-- The at-a-glance bars and the suggested payments
+                    <p class="tm-caption-sm tm-text-muted">
+                      <strong>Left to settle</strong> is what still has to move
+                      for everybody to be even: what each person paid, minus
+                      their share, plus what they have paid back, minus what
+                      they have received. A positive amount is money they should
+                      get back.
+                      <h:panelGroup
+                        layout="block"
+                        rendered="#{tripDetailBean.repaymentsAffectFigures}"
+                      >
+                        <h:outputText
+                          value="The repayments below are already
+                                        counted here, which is why these figures differ
+                                        from what the expenses alone would say."
+                        />
+                      </h:panelGroup>
+                    </p>
+                  </section>
+
+                  <h:panelGroup
+                    layout="block"
+                    styleClass="tm-panel"
+                    rendered="#{tripDetailBean.hasSettlements}"
+                  >
+                    <div class="tm-toolbar">
+                      <h3 class="tm-display-sm">Repayments recorded</h3>
+                      <p:button
+                        icon="pi pi-arrow-right-arrow-left"
+                        outcome="/trips/settle.xhtml"
+                        value="Add a repayment"
+                        styleClass="ui-button-secondary"
+                      >
+                        <f:param
+                          name="tripId"
+                          value="#{tripDetailBean.tripId}"
+                        />
+                      </p:button>
+                    </div>
+                    <p:dataTable
+                      reflow="true"
+                      rowHover="true"
+                      value="#{tripDetailBean.settlements}"
+                      var="s"
+                      emptyMessage=""
+                      paginator="true"
+                      rows="10"
+                      paginatorAlwaysVisible="false"
+                      paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+                      rowsPerPageTemplate="10,25,50"
+                      currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
+                    >
+                      <p:column headerText="SN" styleClass="tm-col-sn">
+                        <h:outputText
+                          value="#{tripDetailBean.settlements.indexOf(s) + 1}"
+                        />
+                      </p:column>
+                      <p:column headerText="When" sortBy="#{s.settledAt}">
+                        <h:outputText
+                          value="#{s.settledAt}"
+                          converter="localDateTimeConverter"
+                        />
+                      </p:column>
+                      <p:column headerText="From">
+                        <h:outputText value="#{s.payerName}" />
+                      </p:column>
+                      <p:column headerText="To">
+                        <h:outputText value="#{s.receiverName}" />
+                      </p:column>
+                      <p:column headerText="Amount" sortBy="#{s.amount}">
+                        <h:outputText value="NPR #{s.amount}" />
+                      </p:column>
+                      <p:column headerText="Note">
+                        <h:outputText value="#{s.note}" />
+                      </p:column>
+                    </p:dataTable>
+                  </h:panelGroup>
+
+                  <!-- The at-a-glance bars and the suggested payments
                              were a page of their own that this tab linked to.
                              They answer the question this tab asks, so they
                              are here rather than one click away. -->
-                        <h:panelGroup layout="block" styleClass="tm-panel" rendered="#{tripDetailBean.hasPositionBar}">
-                            <div class="tm-toolbar">
-                                <h3 class="tm-display-sm">At a glance</h3>
-                            </div>
-                            <p class="tm-body-sm tm-text-muted tm-panel-lede">
-                                Each member's position, measured from the centre
-                                line. Bars to the right are money they should get
-                                back; bars to the left are money they still have
-                                to pay. Every bar is drawn against the largest
-                                position on the trip, so the lengths are
-                                comparable with each other.
-                            </p>
+                  <h:panelGroup
+                    layout="block"
+                    styleClass="tm-margin-srijan"
+                    rendered="#{tripDetailBean.hasPositionBar}"
+                  >
+                    <div class="tm-toolbar">
+                      <h3 class="tm-display-sm-srijan">At a glance</h3>
+                    </div>
+                    <p class="tm-body-sm tm-text-muted tm-panel-lede">
+                      Each member's position, measured from the centre line.
+                      Bars to the right are money they should get back; bars to
+                      the left are money they still have to pay. Every bar is
+                      drawn against the largest position on the trip, so the
+                      lengths are comparable with each other.
+                    </p>
 
-                            <div class="tm-diverging">
-                                <div class="tm-diverging-axis" aria-hidden="true">
-                                    <span class="tm-diverging-axis-track">
-                                        <span class="tm-diverging-axis-label tm-diverging-axis-label-pay">pays</span>
-                                        <span class="tm-diverging-axis-label tm-diverging-axis-label-receive">gets back</span>
-                                    </span>
-                                </div>
+                    <div class="tm-diverging">
+                      <div class="tm-diverging-axis" aria-hidden="true">
+                        <span class="tm-diverging-axis-track">
+                          <span
+                            class="tm-diverging-axis-label tm-diverging-axis-label-pay"
+                            >pays</span
+                          >
+                          <span
+                            class="tm-diverging-axis-label tm-diverging-axis-label-receive"
+                            >gets back</span
+                          >
+                        </span>
+                      </div>
 
-                                <ul class="tm-diverging-list">
-                                    <ui:repeat value="#{tripDetailBean.positions}" var="row">
-                                        <li class="tm-diverging-row">
-                                            <span class="tm-diverging-name">
-                                                <span class="tm-avatar tm-avatar-sm" aria-hidden="true">
-                                                    <h:outputText value="#{row.initials}"/>
-                                                </span>
-                                                <h:outputText value="#{row.fullName}"/>
-                                            </span>
+                      <ul class="tm-diverging-list">
+                        <ui:repeat
+                          value="#{tripDetailBean.positions}"
+                          var="row"
+                        >
+                          <li class="tm-diverging-row">
+                            <span class="tm-diverging-name">
+                              <span
+                                class="tm-avatar tm-avatar-sm"
+                                aria-hidden="true"
+                              >
+                                <h:outputText value="#{row.initials}" />
+                              </span>
+                              <h:outputText value="#{row.fullName}" />
+                            </span>
 
-                                            <span class="tm-diverging-track"
-                                                  role="img"
-                                                  aria-label="#{row.fullName} #{row.debtor ? 'pays' : (row.creditor ? 'gets back' : 'is even')} NPR #{row.outstandingMagnitude}">
-                                                <span class="tm-diverging-half tm-diverging-half-pay">
-                                                    <span class="tm-diverging-bar tm-diverging-bar-pay"
-                                                          style="width:#{row.debtor ? tripDetailBean.barWidth(row) : 0}%"></span>
-                                                </span>
-                                                <span class="tm-diverging-half tm-diverging-half-receive">
-                                                    <span class="tm-diverging-bar tm-diverging-bar-receive"
-                                                          style="width:#{row.creditor ? tripDetailBean.barWidth(row) : 0}%"></span>
-                                                </span>
-                                            </span>
+                            <span
+                              class="tm-diverging-track"
+                              role="img"
+                              aria-label="#{row.fullName} #{row.debtor ? 'pays' : (row.creditor ? 'gets back' : 'is even')} NPR #{row.outstandingMagnitude}"
+                            >
+                              <span
+                                class="tm-diverging-half tm-diverging-half-pay"
+                              >
+                                <span
+                                  class="tm-diverging-bar tm-diverging-bar-pay"
+                                  style="width:#{row.debtor ? tripDetailBean.barWidth(row) : 0}%"
+                                ></span>
+                              </span>
+                              <span
+                                class="tm-diverging-half tm-diverging-half-receive"
+                              >
+                                <span
+                                  class="tm-diverging-bar tm-diverging-bar-receive"
+                                  style="width:#{row.creditor ? tripDetailBean.barWidth(row) : 0}%"
+                                ></span>
+                              </span>
+                            </span>
 
-                                            <span class="tm-diverging-value">
-                                                <h:outputText value="NPR #{row.outstandingMagnitude}"
-                                                              styleClass="#{row.debtor ? 'tm-text-danger' : (row.creditor ? 'tm-text-success' : 'tm-text-muted')}"/>
-                                            </span>
-                                        </li>
-                                    </ui:repeat>
-                                </ul>
-                            </div>
-                        </h:panelGroup>
+                            <span class="tm-diverging-value">
+                              <h:outputText
+                                value="NPR #{row.outstandingMagnitude}"
+                                styleClass="#{row.debtor ? 'tm-text-danger' : (row.creditor ? 'tm-text-success' : 'tm-text-muted')}"
+                              />
+                            </span>
+                          </li>
+                        </ui:repeat>
+                      </ul>
+                    </div>
+                  </h:panelGroup>
 
-                        <h:panelGroup layout="block" styleClass="tm-panel" rendered="#{tripDetailBean.hasSuggestions}">
-                            <div class="tm-toolbar">
-                                <h3 class="tm-display-sm">What would settle it</h3>
-                            </div>
-                            <p class="tm-body-sm tm-text-muted tm-panel-lede">
-                                A short set of payments that would clear the trip.
-                                Nothing is recorded until you enter it on the
-                                settle page.
-                            </p>
+                  <h:panelGroup
+                    layout="block"
+                    styleClass="tm-margin-srijan"
+                    rendered="#{tripDetailBean.hasSuggestions}"
+                  >
+                    <div class="tm-toolbar">
+                      <h3 class="tm-display-sm no-margin">
+                        What would settle it
+                      </h3>
+                    </div>
+                    <p class="tm-body-sm tm-text-muted tm-panel-lede">
+                      A short set of payments that would clear the trip. Nothing
+                      is recorded until you enter it on the settle page.
+                    </p>
 
-                            <p:dataTable reflow="true" rowHover="true"
-                                         value="#{tripDetailBean.suggested}" var="t" emptyMessage=""
-                                         paginator="true"
-                                         rows="10"
-                                         paginatorAlwaysVisible="false"
-                                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
-                                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
-                                         rowsPerPageTemplate="10,25,50">
-                                <p:column headerText="SN" styleClass="tm-col-sn">
-                                    <h:outputText value="#{tripDetailBean.suggested.indexOf(t) + 1}"/>
-                                </p:column>
-                                <p:column headerText="Who pays">
-                                    <h:outputText value="#{t.from}"/>
-                                </p:column>
-                                <p:column headerText="To whom">
-                                    <h:outputText value="#{t.to}"/>
-                                </p:column>
-                                <p:column headerText="How much">
-                                    <h:outputText value="NPR #{t.amount}"/>
-                                </p:column>
-                            </p:dataTable>
-                        </h:panelGroup>
-                        </h:form>
-                    </p:tab>
+                    <p:dataTable
+                      reflow="true"
+                      rowHover="true"
+                      value="#{tripDetailBean.suggested}"
+                      var="t"
+                      emptyMessage=""
+                      paginator="true"
+                      rows="10"
+                      paginatorAlwaysVisible="false"
+                      paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+                      currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
+                      rowsPerPageTemplate="10,25,50"
+                    >
+                      <p:column headerText="SN" styleClass="tm-col-sn">
+                        <h:outputText
+                          value="#{tripDetailBean.suggested.indexOf(t) + 1}"
+                        />
+                      </p:column>
+                      <p:column headerText="Who pays">
+                        <h:outputText value="#{t.from}" />
+                      </p:column>
+                      <p:column headerText="To whom">
+                        <h:outputText value="#{t.to}" />
+                      </p:column>
+                      <p:column headerText="How much">
+                        <h:outputText value="NPR #{t.amount}" />
+                      </p:column>
+                    </p:dataTable>
+                  </h:panelGroup>
+                </h:form>
+              </p:tab>
 
-                    <!-- ================================================ -->
-                    <p:tab title="Members">
-
-                        <!--
+              <!-- ================================================ -->
+              <p:tab title="Members">
+                <!--
                             The heading and the button, the same shape as "Add
                             an expense" and "Add or edit items": the section's
                             name on the left, the one thing you can do to it on
@@ -889,107 +1646,149 @@
                             sitting above the table, which made the list of
                             members look like a footnote to a form.
                         -->
-                        <!-- Own form: the row buttons are commands and need a UIForm
+                <!-- Own form: the row buttons are commands and need a UIForm
                              ancestor, and their updates are scoped to this table so a
                              sort or a role change does not rebuild the other tabs. The
                              add dialog lives in it too, so "update this form" redraws
                              the table and the dialog together. -->
-                        <h:form id="memberListForm">
-                        <div class="tm-toolbar">
-                            <h3 class="tm-display-sm">On this trip</h3>
-                            <p:commandButton icon="pi pi-user-plus" value="Add someone"
-                                            
-                                             rendered="#{tripDetailBean.admin}"
-                                             action="#{tripDetailBean.openAddMember}"
-                                             update="@form"
-                                             ajax="true"/>
-                        </div>
-                        <h:panelGroup layout="block" styleClass="tm-body-sm tm-text-muted tm-panel-lede" rendered="#{tripDetailBean.admin}">
-                            An administrator can invite and remove people and change the
-                            trip's details. A trip needs at least one, so the last one
-                            cannot be removed or step down.
-                        </h:panelGroup>
+                <h:form id="memberListForm">
+                  <div class="tm-toolbar">
+                    <h3 class="tm-display-sm no-margin">On this trip</h3>
+                    <p:commandButton
+                      icon="pi pi-user-plus"
+                      value="Add someone"
+                      styleClass="ui-button-secondary"
+                      rendered="#{tripDetailBean.admin}"
+                      action="#{tripDetailBean.openAddMember}"
+                      update="@form"
+                      ajax="true"
+                    />
+                  </div>
+                  <h:panelGroup
+                    layout="block"
+                    styleClass="tm-body-sm tm-text-muted tm-panel-lede"
+                    rendered="#{tripDetailBean.admin}"
+                  >
+                    An administrator can invite and remove people and change the
+                    trip's details. A trip needs at least one, so the last one
+                    cannot be removed or step down.
+                  </h:panelGroup>
 
-                        <p:dialog id="addMemberDialog"
-                                  widgetVar="addMemberDialogWidget"
-                                  visible="#{tripDetailBean.addMemberDialogOpen}"
-                                  header="Add someone to this trip"
-                                  modal="true"
-                                  draggable="false"
-                                  resizable="false"
-                                  responsive="true"
-                                  styleClass="tm-dialog">
-                            <div class="tm-dialog-body">
-                                <p class="tm-dialog-lede">
-                                    Enter the full email address of someone who already
-                                    has a TripMate account. There is no list of users to
-                                    browse, on purpose: who else has an account here is
-                                    not something a trip organiser needs to know.
-                                </p>
+                  <p:dialog
+                    id="addMemberDialog"
+                    widgetVar="addMemberDialogWidget"
+                    visible="#{tripDetailBean.addMemberDialogOpen}"
+                    header="Add someone to this trip"
+                    modal="true"
+                    draggable="false"
+                    resizable="false"
+                    responsive="true"
+                    styleClass="tm-dialog"
+                  >
+                    <div class="tm-dialog-body">
+                      <p class="tm-dialog-lede">
+                        Enter the full email address of someone who already has
+                        a TripMate account. There is no list of users to browse,
+                        on purpose: who else has an account here is not
+                        something a trip organiser needs to know.
+                      </p>
 
-                                <div class="tm-field">
-                                    <label class="tm-field-label" for="inviteEmail">Their email address</label>
-                                    <p:inputText id="inviteEmail"
-                                                 styleClass="tm-input-full"
-                                                 type="email"
-                                                 autocomplete="off"
-                                                 value="#{tripDetailBean.newMemberEmail}"/>
-                                </div>
+                      <div class="tm-field">
+                        <label class="tm-field-label" for="inviteEmail"
+                          >Their email address</label
+                        >
+                        <p:inputText
+                          id="inviteEmail"
+                          styleClass="tm-input-full"
+                          type="email"
+                          autocomplete="off"
+                          value="#{tripDetailBean.newMemberEmail}"
+                        />
+                      </div>
 
-                                <!--
+                      <!--
                                     A refusal keeps the dialog open with the
                                     address still in the field, so the reader
                                     corrects a character rather than starting
                                     the sentence again.
                                 -->
-                                <h:panelGroup layout="block" styleClass="tm-field-error tm-form-error" rendered="#{not empty tripDetailBean.dialogError}">
-                                    <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
-                                    <h:outputText value="#{tripDetailBean.dialogError}"/>
-                                </h:panelGroup>
-                            </div>
+                      <h:panelGroup
+                        layout="block"
+                        styleClass="tm-field-error tm-form-error"
+                        rendered="#{not empty tripDetailBean.dialogError}"
+                      >
+                        <i
+                          class="pi pi-exclamation-circle"
+                          aria-hidden="true"
+                        ></i>
+                        <h:outputText value="#{tripDetailBean.dialogError}" />
+                      </h:panelGroup>
+                    </div>
 
-                            <f:facet name="footer">
-                                <div class="tm-dialog-actions">
-                                    <p:commandButton value="Cancel"
-                                                     styleClass="ui-button-secondary"
-                                                     action="#{tripDetailBean.closeAddMember}"
-                                                     update="@form"
-                                                     ajax="true"/>
-                                    <p:commandButton icon="pi pi-user-plus" value="Add to trip"
-                                                     action="#{tripDetailBean.inviteMember}"
-                                                     update="@form tmToasts"
-                                                     ajax="true"/>
-                                </div>
-                            </f:facet>
-                        </p:dialog>
+                    <f:facet name="footer">
+                      <div class="tm-dialog-actions">
+                        <p:commandButton
+                          value="Cancel"
+                          styleClass="ui-button-secondary"
+                          action="#{tripDetailBean.closeAddMember}"
+                          process="@this"
+                          update="@form"
+                          ajax="true"
+                        />
+                        <p:commandButton
+                          icon="pi pi-user-plus"
+                          value="Add to trip"
+                          action="#{tripDetailBean.inviteMember}"
+                          update="@form tmToasts"
+                          ajax="true"
+                        />
+                      </div>
+                    </f:facet>
+                  </p:dialog>
 
-                        <p:dataTable reflow="true" rowHover="true"
-                                     value="#{tripDetailBean.members}" var="m"
-                                     sortMode="single" emptyMessage=""
-                                     widgetVar="membersTable"
-                          paginator="true"
-                         rows="10"
-                         paginatorAlwaysVisible="false"
-                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
-                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
-                            <p:column headerText="SN" styleClass="tm-col-sn">
-                                <h:outputText value="#{tripDetailBean.members.indexOf(m) + 1}"/>
-                            </p:column>
-                            <p:column headerText="Member" sortBy="#{m.fullName}">
-                                <h:outputText value="#{m.fullName}"/>
-                            </p:column>
-                            <p:column headerText="Role" sortBy="#{m.role}">
-                                <span class="tm-status tm-status-#{m.role.name().toLowerCase()}">
-                                    <h:outputText value="#{m.role}"/>
-                                </span>
-                            </p:column>
-                            <p:column headerText="Joined" sortBy="#{m.joinedAt}">
-                                <h:outputText value="#{m.joinedAt}" converter="localDateTimeConverter"/>
-                            </p:column>
-                            <p:column headerText="Actions" rendered="#{tripDetailBean.admin}"
-                                      styleClass="tm-col-actions">
-                                <div class="tm-row-actions">
-                                    <!--
+                  <p:dataTable
+                    reflow="true"
+                    rowHover="true"
+                    value="#{tripDetailBean.members}"
+                    var="m"
+                    sortMode="single"
+                    emptyMessage=""
+                    widgetVar="membersTable"
+                    paginator="true"
+                    rows="10"
+                    paginatorAlwaysVisible="false"
+                    paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+                    rowsPerPageTemplate="10,25,50"
+                    currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
+                  >
+                    <p:column headerText="SN" styleClass="tm-col-sn">
+                      <h:outputText
+                        value="#{tripDetailBean.members.indexOf(m) + 1}"
+                      />
+                    </p:column>
+                    <p:column headerText="Member" sortBy="#{m.fullName}">
+                      <h:outputText value="#{m.fullName}" />
+                    </p:column>
+                    <p:column headerText="Role" sortBy="#{m.role}">
+                      <span
+                        class="tm-status tm-status-#{m.role.name().toLowerCase()}"
+                      >
+                        <h:outputText value="#{m.role}" />
+                      </span>
+                    </p:column>
+                    <p:column headerText="Joined" sortBy="#{m.joinedAt}">
+                      <h:outputText
+                        value="#{m.joinedAt}"
+                        converter="localDateTimeConverter"
+                      />
+                    </p:column>
+                    <p:column
+                      headerText="Actions"
+                      rendered="#{tripDetailBean.admin}"
+                      styleClass="tm-col-actions"
+                    >
+                      <div class="tm-row-actions">
+                        <!--
                                         Icon-only, like the itinerary row actions and
                                         for the same reason: "Make admin" and "Remove"
                                         do not fit across this column, so they wrapped
@@ -997,29 +1796,34 @@
                                         and out of line with each other. The tooltip
                                         carries the word.
                                     -->
-                                    <!-- Promote first: it is the action an administrator
+                        <!-- Promote first: it is the action an administrator
                                          reaches for when the remove button has just
                                          refused them. -->
-                                    <p:commandButton icon="pi pi-arrow-up" value=""
-                                                     styleClass="ui-button-secondary ui-button-icon-only"
-                                                     title="Make this person an administrator"
-                                                     pt:aria-label="Make this person an administrator"
-                                                     rendered="#{m.role.name() ne 'ADMIN'}"
-                                                     action="#{tripDetailBean.promoteMember(m.userId)}"
-                                                     update="@form tmToasts"
-                                                     ajax="true">
-                                        <!-- Promotion is not undone by the person
+                        <p:commandButton
+                          icon="pi pi-arrow-up"
+                          value=""
+                          styleClass="ui-button-secondary ui-button-icon-only"
+                          title="Make this person an administrator"
+                          pt:aria-label="Make this person an administrator"
+                          rendered="#{m.role.name() ne 'ADMIN'}"
+                          action="#{tripDetailBean.promoteMember(m.userId)}"
+                          update="@form tmToasts"
+                          ajax="true"
+                        >
+                          <!-- Promotion is not undone by the person
                                              who granted it: only another
                                              administrator can take it back, and
                                              the button that does that is on this
                                              same row. Asking first is the
                                              difference between granting a right
                                              and pressing a button. -->
-                                        <p:confirm header="Make this person an administrator?"
-                                                   message="They will be able to invite and remove people, change the trip's details, and delete the trip. You will not be able to undo this yourself: only another administrator can."/>
-                                    </p:commandButton>
+                          <p:confirm
+                            header="Make this person an administrator?"
+                            message="They will be able to invite and remove people, change the trip's details, and delete the trip. You will not be able to undo this yourself: only another administrator can."
+                          />
+                        </p:commandButton>
 
-                                    <!--
+                        <!--
                                         Both buttons are hidden for the trip's
                                         only administrator, because the service
                                         refuses both for that person. Rendering
@@ -1040,37 +1844,48 @@
                                         administrator's own row and were refused
                                         every time.
                                     -->
-                                    <p:commandButton icon="pi pi-arrow-down" value=""
-                                                     styleClass="ui-button-secondary ui-button-icon-only"
-                                                     title="Make this person an ordinary member"
-                                                     pt:aria-label="Make this person an ordinary member"
-                                                     rendered="#{m.role.name() eq 'ADMIN' and not tripDetailBean.isLastAdmin(m.userId)}"
-                                                     action="#{tripDetailBean.demoteMember(m.userId)}"
-                                                     update="@form tmToasts"
-                                                     ajax="true"/>
+                        <p:commandButton
+                          icon="pi pi-arrow-down"
+                          value=""
+                          styleClass="ui-button-secondary ui-button-icon-only"
+                          title="Make this person an ordinary member"
+                          pt:aria-label="Make this person an ordinary member"
+                          rendered="#{m.role.name() eq 'ADMIN' and not tripDetailBean.isLastAdmin(m.userId)}"
+                          action="#{tripDetailBean.demoteMember(m.userId)}"
+                          update="@form tmToasts"
+                          ajax="true"
+                        />
 
-                                    <p:commandButton icon="pi pi-trash" value=""
-                                                     styleClass="ui-button-secondary ui-button-icon-only"
-                                                     title="Remove this person from the trip"
-                                                     pt:aria-label="Remove this person from the trip"
-                                                     rendered="#{not tripDetailBean.isLastAdmin(m.userId)}"
-                                                     action="#{tripDetailBean.removeMember(m.userId)}"
-                                                     update="@form tmToasts"
-                                                     ajax="true">
-                                        <p:confirm header="Remove this person?"
-                                                   message="They lose access to the trip's itinerary, expenses and balances. Their expenses and shares stay on the trip, because the money did not change hands."/>
-                                    </p:commandButton>
-                                </div>
-                            </p:column>
-                        </p:dataTable>
-                        </h:form>
+                        <p:commandButton
+                          icon="pi pi-trash"
+                          value=""
+                          styleClass="ui-button-secondary ui-button-icon-only tm-button-danger-icon"
+                          title="Remove this person from the trip"
+                          pt:aria-label="Remove this person from the trip"
+                          rendered="#{not tripDetailBean.isLastAdmin(m.userId)}"
+                          action="#{tripDetailBean.removeMember(m.userId)}"
+                          update="@form tmToasts"
+                          ajax="true"
+                        >
+                          <p:confirm
+                            header="Remove this person?"
+                            message="They lose access to the trip's itinerary, expenses and balances. Their expenses and shares stay on the trip, because the money did not change hands."
+                          />
+                        </p:commandButton>
+                      </div>
+                    </p:column>
+                  </p:dataTable>
+                </h:form>
 
-                        <!-- Leaving is a member's own action, so it is offered to
+                <!-- Leaving is a member's own action, so it is offered to
                              everyone including administrators, and refused by the
                              service only when it would leave the trip unmanaged. -->
-                        <h:panelGroup layout="block" styleClass="tm-danger-zone"
-                                      rendered="#{tripDetailBean.member}">
-                            <!--
+                <h:panelGroup
+                  layout="block"
+                  styleClass="tm-danger-zone"
+                  rendered="#{tripDetailBean.member}"
+                >
+                  <!--
                                 All the prose is in this one block, and the block
                                 is the row's only other child. The danger row
                                 spreads its children apart, so a third child put
@@ -1081,13 +1896,13 @@
 
                                 One block on the left, one control on the right.
                             -->
-                            <div class="tm-danger-copy">
-                                <h3 class="tm-display-sm">Leave this trip</h3>
-                                <p class="tm-body-sm tm-text-muted">
-                                    You stop seeing it, and it stops appearing in your
-                                    balances. Your expenses stay on the trip.
-                                </p>
-                                <!--
+                  <div class="tm-danger-copy">
+                    <h3 class="tm-display-sm">Leave this trip</h3>
+                    <p class="tm-body-sm tm-text-muted">
+                      You stop seeing it, and it stops appearing in your
+                      balances. Your expenses stay on the trip.
+                    </p>
+                    <!--
                                     The button is withdrawn, rather than left to
                                     be refused, when leaving would strand the
                                     trip, and the reason takes its place rather
@@ -1097,26 +1912,35 @@
                                     promote somebody first, which is a thing
                                     they can do two rows up this same page.
                                 -->
-                                <h:panelGroup layout="block" styleClass="tm-body-sm tm-text-muted" rendered="#{tripDetailBean.soleAdmin}">
-                                    You are this trip's only administrator, so you
-                                    cannot leave it. Make somebody else an
-                                    administrator first, then you can go.
-                                </h:panelGroup>
-                            </div>
+                    <h:panelGroup
+                      layout="block"
+                      styleClass="tm-body-sm tm-text-muted tm-leave-blocked"
+                      rendered="#{tripDetailBean.soleAdmin}"
+                    >
+                      You are this trip's only administrator, so you cannot
+                      leave it. Make somebody else an administrator first, then
+                      you can go.
+                    </h:panelGroup>
+                  </div>
 
-                            <p:commandButton icon="pi pi-sign-out" value="Leave trip"
-                                            
-                                             rendered="#{not tripDetailBean.soleAdmin}"
-                                             action="#{tripDetailBean.leaveTrip}"
-                                             ajax="false">
-                                <p:confirm header="Leave this trip?"
-                                           message="You will no longer see it in your trips or your balances. Your expenses stay on the trip, because the money did not change hands."/>
-                            </p:commandButton>
-                        </h:panelGroup>
-                    </p:tab>
+                  <p:commandButton
+                    icon="pi pi-sign-out"
+                    value="Leave trip"
+                    styleClass="ui-button-secondary tm-button-danger"
+                    rendered="#{not tripDetailBean.soleAdmin}"
+                    action="#{tripDetailBean.leaveTrip}"
+                    ajax="false"
+                  >
+                    <p:confirm
+                      header="Leave this trip?"
+                      message="You will no longer see it in your trips or your balances. Your expenses stay on the trip, because the money did not change hands."
+                    />
+                  </p:commandButton>
+                </h:panelGroup>
+              </p:tab>
 
-                    <!-- ================================================ -->
-                    <!--
+              <!-- ================================================ -->
+              <!--
                         The closing summary is a tab rather than a card below
                         the tab strip.
 
@@ -1132,15 +1956,15 @@
                         strip entirely for a member rather than present and
                         refusing.
                     -->
-                    <!--
+              <!--
                         Visible to every member, not only administrators. The
                         log is the reason: it says when the summary last went
                         out, and a member looking for it in an inbox is exactly
                         the person who needs that. The send button stays
                         admin-only, because it writes to everybody.
                     -->
-                    <p:tab title="Summary">
-                        <!--
+              <p:tab title="Summary">
+                <!--
                             Visible to every member, and sendable by every
                             member, not only administrators. The log is the
                             reason: it says when the summary last went out, and
@@ -1159,27 +1983,28 @@
                             ancestor of its own, since its columns sort and
                             PrimeFaces needs one to process the sort.
                         -->
-                        <h:form id="summaryForm">
+                <h:form id="summaryForm">
+                  <section class="tm-panel">
+                    <div class="tm-toolbar">
+                      <h3 class="tm-display-sm no-margin">Send the summary</h3>
+                      <p:commandButton
+                        icon="pi pi-envelope"
+                        value="Email a summary"
+                        styleClass="ui-button-secondary"
+                        action="#{tripDetailBean.openSummary}"
+                        update="@form"
+                        ajax="true"
+                      />
+                    </div>
+                    <p class="tm-body-sm tm-text-muted tm-panel-lede">
+                      Emails the plan, or the money, to some or all of the
+                      people on this trip. The two are sent separately: a trip
+                      being planned has an itinerary and nothing spent, and a
+                      finished one has the reverse, so a single message always
+                      carried a section that said nothing.
+                    </p>
 
-                        <section class="tm-panel">
-                            <div class="tm-toolbar">
-                                <h3 class="tm-display-sm">Send the summary</h3>
-                                <p:commandButton icon="pi pi-envelope"
-                                                 value="Email a summary"
-                                                
-                                                 action="#{tripDetailBean.openSummary}"
-                                                 update="@form"
-                                                 ajax="true"/>
-                            </div>
-                            <p class="tm-body-sm tm-text-muted tm-panel-lede">
-                                Emails the plan, or the money, to some or all of the
-                                people on this trip. The two are sent separately: a trip
-                                being planned has an itinerary and nothing spent, and a
-                                finished one has the reverse, so a single message always
-                                carried a section that said nothing.
-                            </p>
-
-                            <!--
+                    <!--
                                 What to send, and to whom.
 
                                 Both choices are kept in the bean and re-rendered
@@ -1190,60 +2015,87 @@
                                 that can only produce a refusal is worse than one
                                 that says why it is unavailable.
                             -->
-                            <p:dialog id="summaryDialog"
-                                      widgetVar="summaryDialogWidget"
-                                      visible="#{tripDetailBean.summaryDialogOpen}"
-                                      header="Email a summary"
-                                      modal="true"
-                                      draggable="false"
-                                      resizable="false"
-                                      responsive="true"
-                                      styleClass="tm-dialog">
-                                <div class="tm-dialog-body tm-dialog-body-2">
-                                    <div class="tm-field">
-                                        <span class="tm-field-label">What to send</span>
-                                        <div class="tm-choice-list">
-                                            <p:selectOneRadio value="#{tripDetailBean.summaryKind}"
-                                                              layout="responsive" columns="1">
-                                                <f:selectItems value="#{tripDetailBean.summaryKinds}" var="k"
-                                                               itemLabel="#{k.label}" itemValue="#{k}"/>
-                                                <p:ajax event="change" update="@form"/>
-                                            </p:selectOneRadio>
-                                        </div>
-                                        <h:panelGroup layout="block" styleClass="tm-field-hint" rendered="#{not tripDetailBean.canSendItinerary}">
-                                            Nothing is planned on this trip yet, so there
-                                            is no itinerary to send.
-                                        </h:panelGroup>
-                                        <h:panelGroup layout="block" styleClass="tm-field-hint" rendered="#{not tripDetailBean.canSendBalances}">
-                                            Nothing has been spent on this trip yet, so
-                                            there are no balances to send.
-                                        </h:panelGroup>
-                                    </div>
+                    <p:dialog
+                      id="summaryDialog"
+                      widgetVar="summaryDialogWidget"
+                      visible="#{tripDetailBean.summaryDialogOpen}"
+                      header="Email a summary"
+                      modal="true"
+                      draggable="false"
+                      resizable="false"
+                      responsive="true"
+                      styleClass="tm-dialog"
+                    >
+                      <div class="tm-dialog-body tm-dialog-body-2">
+                        <div class="tm-field">
+                          <span class="tm-field-label">What to send</span>
+                          <div class="tm-choice-list">
+                            <p:selectOneRadio
+                              value="#{tripDetailBean.summaryKind}"
+                              layout="responsive"
+                              columns="1"
+                            >
+                              <f:selectItems
+                                value="#{tripDetailBean.summaryKinds}"
+                                var="k"
+                                itemLabel="#{k.label}"
+                                itemValue="#{k}"
+                              />
+                              <p:ajax event="change" update="@form" />
+                            </p:selectOneRadio>
+                          </div>
+                          <h:panelGroup
+                            layout="block"
+                            styleClass="tm-field-hint"
+                            rendered="#{not tripDetailBean.canSendItinerary}"
+                          >
+                            Nothing is planned on this trip yet, so there is no
+                            itinerary to send.
+                          </h:panelGroup>
+                          <h:panelGroup
+                            layout="block"
+                            styleClass="tm-field-hint"
+                            rendered="#{not tripDetailBean.canSendBalances}"
+                          >
+                            Nothing has been spent on this trip yet, so there
+                            are no balances to send.
+                          </h:panelGroup>
+                        </div>
 
-                                    <div class="tm-field">
-                                        <span class="tm-field-label">Who to send it to</span>
-                                        <div class="tm-choice-list">
-                                            <p:selectOneRadio value="#{tripDetailBean.summaryToEveryone}"
-                                                              layout="responsive" columns="1">
-                                                <f:selectItem itemLabel="Everyone on the trip"
-                                                              itemValue="#{true}"/>
-                                                <f:selectItem itemLabel="Choose people"
-                                                              itemValue="#{false}"/>
-                                                <p:ajax event="change" update="@form"/>
-                                            </p:selectOneRadio>
-                                        </div>
+                        <div class="tm-field">
+                          <span class="tm-field-label">Who to send it to</span>
+                          <div class="tm-choice-list">
+                            <p:selectOneRadio
+                              value="#{tripDetailBean.summaryToEveryone}"
+                              layout="responsive"
+                              columns="1"
+                            >
+                              <f:selectItem
+                                itemLabel="Everyone on the trip"
+                                itemValue="#{true}"
+                              />
+                              <f:selectItem
+                                itemLabel="Choose people"
+                                itemValue="#{false}"
+                              />
+                              <p:ajax event="change" update="@form" />
+                            </p:selectOneRadio>
+                          </div>
 
-                                    <!--
+                          <!--
                                         The names sit in the same column as the
                                         choice that reveals them, so ticking
                                         "Choose people" grows the dialog
                                         downwards rather than moving what is
                                         already on screen.
                                     -->
-                                    <h:panelGroup layout="block" styleClass="tm-recipient-block"
-                                                  rendered="#{not tripDetailBean.summaryToEveryone}">
-                                        <span class="tm-field-label">Who receives it</span>
-                                        <!--
+                          <h:panelGroup
+                            layout="block"
+                            styleClass="tm-recipient-block"
+                            rendered="#{not tripDetailBean.summaryToEveryone}"
+                          >
+                            <span class="tm-field-label">Who receives it</span>
+                            <!--
                                             No server round trip per tick, so
                                             the server does not know who is
                                             ticked until the form is sent. That
@@ -1257,75 +2109,108 @@
                                             service instead, with a sentence
                                             saying so.
                                         -->
-                                        <p:selectManyCheckbox value="#{tripDetailBean.summaryRecipients}"
-                                                              layout="responsive" columns="1"
-                                                              styleClass="tm-recipient-list">
-                                            <f:selectItems value="#{tripDetailBean.members}" var="m"
-                                                           itemLabel="#{m.fullName}" itemValue="#{m.userId}"/>
-                                        </p:selectManyCheckbox>
-                                    </h:panelGroup>
-                                    </div>
+                            <p:selectManyCheckbox
+                              value="#{tripDetailBean.summaryRecipients}"
+                              layout="responsive"
+                              columns="1"
+                              styleClass="tm-recipient-list"
+                            >
+                              <f:selectItems
+                                value="#{tripDetailBean.members}"
+                                var="m"
+                                itemLabel="#{m.fullName}"
+                                itemValue="#{m.userId}"
+                              />
+                            </p:selectManyCheckbox>
+                          </h:panelGroup>
+                        </div>
 
-                                    <h:panelGroup layout="block" styleClass="tm-field-error tm-form-error"
-                                                  rendered="#{not empty tripDetailBean.summaryError}">
-                                        <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
-                                        <h:outputText value="#{tripDetailBean.summaryError}"/>
-                                    </h:panelGroup>
-                                </div>
+                        <h:panelGroup
+                          layout="block"
+                          styleClass="tm-field-error tm-form-error"
+                          rendered="#{not empty tripDetailBean.summaryError}"
+                        >
+                          <i
+                            class="pi pi-exclamation-circle"
+                            aria-hidden="true"
+                          ></i>
+                          <h:outputText
+                            value="#{tripDetailBean.summaryError}"
+                          />
+                        </h:panelGroup>
+                      </div>
 
-                                <f:facet name="footer">
-                                    <div class="tm-dialog-actions">
-                                        <p:commandButton value="Cancel"
-                                                         styleClass="ui-button-secondary"
-                                                         action="#{tripDetailBean.closeSummary}"
-                                                         update="@form"
-                                                         ajax="true"/>
-                                        <p:commandButton icon="pi pi-send"
-                                                         value="Send it"
-                                                         action="#{tripDetailBean.emailSummary}"
-                                                         update="@form tmToasts"
-                                                         disabled="#{tripDetailBean.summaryKindUnavailable}"
-                                                         ajax="true"/>
-                                    </div>
-                                </f:facet>
-                            </p:dialog>
+                      <f:facet name="footer">
+                        <div class="tm-dialog-actions">
+                          <p:commandButton
+                            value="Cancel"
+                            styleClass="ui-button-secondary"
+                            action="#{tripDetailBean.closeSummary}"
+                            process="@this"
+                            update="@form"
+                            ajax="true"
+                          />
+                          <p:commandButton
+                            icon="pi pi-send"
+                            value="Send it"
+                            action="#{tripDetailBean.emailSummary}"
+                            update="@form tmToasts"
+                            disabled="#{tripDetailBean.summaryKindUnavailable}"
+                            ajax="true"
+                          />
+                        </div>
+                      </f:facet>
+                    </p:dialog>
+                  </section>
 
-                        </section>
+                  <section class="tm-panel">
+                    <div class="tm-toolbar">
+                      <h3 class="tm-display-sm">When it was sent</h3>
+                    </div>
 
-                        <section class="tm-panel">
-                            <div class="tm-toolbar">
-                                <h3 class="tm-display-sm">When it was sent</h3>
-                            </div>
+                    <tm:empty
+                      icon="pi-envelope"
+                      title="Not sent yet"
+                      text="Nobody has asked for a summary on this trip. When somebody sends one, the date, the content and who it reached appear here for everyone."
+                      rendered="#{tripDetailBean.summaryNeverSent}"
+                    />
 
-                            <tm:empty icon="pi-envelope"
-                                      title="Not sent yet"
-                                      text="Nobody has asked for a summary on this trip. When somebody sends one, the date, the content and who it reached appear here for everyone."
-                                      rendered="#{tripDetailBean.summaryNeverSent}"/>
-
-                            <p:dataTable reflow="true" rowHover="true"
-                                         value="#{tripDetailBean.summaryEmails}" var="log"
-                                         rendered="#{not tripDetailBean.summaryNeverSent}"
-                                         emptyMessage=""
-                          paginator="true"
-                         rows="10"
-                         paginatorAlwaysVisible="false"
-                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
-                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
-                            <p:column headerText="SN" styleClass="tm-col-sn">
-                                <h:outputText value="#{tripDetailBean.summaryEmails.indexOf(log) + 1}"/>
-                            </p:column>
-                                <p:column headerText="When" sortBy="#{log.sentAt}">
-                                    <h:outputText value="#{log.sentAt}"
-                                                  converter="localDateTimeConverter"/>
-                                </p:column>
-                                <p:column headerText="What" sortBy="#{log.kind}">
-                                    <h:outputText value="#{log.kind.label}"/>
-                                </p:column>
-                                <p:column headerText="Sender">
-                                    <h:outputText value="#{log.sentByName}"/>
-                                </p:column>
-                                <p:column headerText="Sent to" sortBy="#{log.recipientCount}">
-                                    <!--
+                    <p:dataTable
+                      reflow="true"
+                      rowHover="true"
+                      value="#{tripDetailBean.summaryEmails}"
+                      var="log"
+                      rendered="#{not tripDetailBean.summaryNeverSent}"
+                      emptyMessage=""
+                      paginator="true"
+                      rows="10"
+                      paginatorAlwaysVisible="false"
+                      paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+                      rowsPerPageTemplate="10,25,50"
+                      currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
+                    >
+                      <p:column headerText="SN" styleClass="tm-col-sn">
+                        <h:outputText
+                          value="#{tripDetailBean.summaryEmails.indexOf(log) + 1}"
+                        />
+                      </p:column>
+                      <p:column headerText="When" sortBy="#{log.sentAt}">
+                        <h:outputText
+                          value="#{log.sentAt}"
+                          converter="localDateTimeConverter"
+                        />
+                      </p:column>
+                      <p:column headerText="What" sortBy="#{log.kind}">
+                        <h:outputText value="#{log.kind.label}" />
+                      </p:column>
+                      <p:column headerText="Sender">
+                        <h:outputText value="#{log.sentByName}" />
+                      </p:column>
+                      <p:column
+                        headerText="Sent to"
+                        sortBy="#{log.recipientCount}"
+                      >
+                        <!--
                                         The count is the button. The log line
                                         answers "did it go out"; the question a
                                         reader usually arrives with is "did it
@@ -1335,106 +2220,145 @@
                                         the number is what the reader is
                                         already looking at.
                                     -->
-                                    <p:commandLink styleClass="tm-log-count"
-                                                   title="Who this went to"
-                                                   pt:aria-label="Who this went to"
-                                                   action="#{tripDetailBean.openSummaryDetail(log)}"
-                                                   update="@form"
-                                                   ajax="true">
-                                        <h:outputText value="#{log.recipientCount}"/>
-                                        <h:outputText value="#{log.recipientCount == 1 ? ' person' : ' people'}"/>
-                                    </p:commandLink>
-                                    <h:outputText value="#{log.failedCount} not reached"
-                                                  styleClass="tm-text-danger tm-log-failed"
-                                                  rendered="#{log.failedCount > 0}"/>
-                                </p:column>
-                                <p:column headerText="Status" sortBy="#{log.status}">
-                                    <span class="tm-status #{log.status.problem ? 'tm-status-debit' : 'tm-status-credit'}">
-                                        <h:outputText value="#{log.status.label}"/>
-                                    </span>
-                                </p:column>
-                            </p:dataTable>
+                        <p:commandLink
+                          styleClass="tm-log-count"
+                          title="Who this went to"
+                          pt:aria-label="Who this went to"
+                          action="#{tripDetailBean.openSummaryDetail(log)}"
+                          update="@form"
+                          ajax="true"
+                        >
+                          <h:outputText value="#{log.recipientCount}" />
+                          <h:outputText
+                            value="#{log.recipientCount == 1 ? ' person' : ' people'}"
+                          />
+                        </p:commandLink>
+                        <h:outputText
+                          value="#{log.failedCount} not reached"
+                          styleClass="tm-text-danger tm-log-failed"
+                          rendered="#{log.failedCount > 0}"
+                        />
+                      </p:column>
+                      <p:column headerText="Status" sortBy="#{log.status}">
+                        <span
+                          class="tm-status #{log.status.problem ? 'tm-status-debit' : 'tm-status-credit'}"
+                        >
+                          <h:outputText value="#{log.status.label}" />
+                        </span>
+                      </p:column>
+                    </p:dataTable>
 
-                            <!-- What one log line is about: who it reached
+                    <!-- What one log line is about: who it reached
                                  by name, what was sent, when, and who sent
                                  it. A read-only panel rather than a form,
                                  since there is nothing here to change. -->
-                            <p:dialog id="summaryDetailDialog"
-                                      widgetVar="summaryDetailDialogWidget"
-                                      visible="#{tripDetailBean.summaryDetailOpen}"
-                                      header="Summary sent"
-                                      modal="true"
-                                      draggable="false"
-                                      resizable="false"
-                                      responsive="true"
-                                      styleClass="tm-dialog"
-                                      rendered="#{not empty tripDetailBean.summaryDetail}">
-                                <div class="tm-dialog-body">
-                                    <dl class="tm-facts">
-                                        <dt>What</dt>
-                                        <dd><h:outputText value="#{tripDetailBean.summaryDetail.kind.label}"/></dd>
-                                        <dt>When</dt>
-                                        <dd>
-                                            <h:outputText value="#{tripDetailBean.summaryDetail.sentAt}"
-                                                          converter="localDateTimeConverter"/>
-                                        </dd>
-                                        <dt>Sender</dt>
-                                        <dd><h:outputText value="#{tripDetailBean.summaryDetail.sentByName}"/></dd>
-                                        <dt>Status</dt>
-                                        <dd>
-                                            <span class="tm-status #{tripDetailBean.summaryDetail.status.problem ? 'tm-status-debit' : 'tm-status-credit'}">
-                                                <h:outputText value="#{tripDetailBean.summaryDetail.status.label}"/>
-                                            </span>
-                                        </dd>
-                                    </dl>
+                    <p:dialog
+                      id="summaryDetailDialog"
+                      widgetVar="summaryDetailDialogWidget"
+                      visible="#{tripDetailBean.summaryDetailOpen}"
+                      header="Summary sent"
+                      modal="true"
+                      draggable="false"
+                      resizable="false"
+                      responsive="true"
+                      styleClass="tm-dialog"
+                      rendered="#{not empty tripDetailBean.summaryDetail}"
+                    >
+                      <div class="tm-dialog-body">
+                        <dl class="tm-facts">
+                          <dt>What</dt>
+                          <dd>
+                            <h:outputText
+                              value="#{tripDetailBean.summaryDetail.kind.label}"
+                            />
+                          </dd>
+                          <dt>When</dt>
+                          <dd>
+                            <h:outputText
+                              value="#{tripDetailBean.summaryDetail.sentAt}"
+                              converter="localDateTimeConverter"
+                            />
+                          </dd>
+                          <dt>Sender</dt>
+                          <dd>
+                            <h:outputText
+                              value="#{tripDetailBean.summaryDetail.sentByName}"
+                            />
+                          </dd>
+                          <dt>Status</dt>
+                          <dd>
+                            <span
+                              class="tm-status #{tripDetailBean.summaryDetail.status.problem ? 'tm-status-debit' : 'tm-status-credit'}"
+                            >
+                              <h:outputText
+                                value="#{tripDetailBean.summaryDetail.status.label}"
+                              />
+                            </span>
+                          </dd>
+                        </dl>
 
-                                    <h:panelGroup layout="block" rendered="#{not empty tripDetailBean.summaryDetail.recipientNameList}">
-                                        <p class="tm-field-label">Sent to</p>
-                                        <ul class="tm-name-list">
-                                            <ui:repeat value="#{tripDetailBean.summaryDetail.recipientNameList}" var="name">
-                                                <li>
-                                                    <i class="pi pi-user" aria-hidden="true"></i>
-                                                    <h:outputText value="#{name}"/>
-                                                </li>
-                                            </ui:repeat>
-                                        </ul>
-                                    </h:panelGroup>
-                                    <h:panelGroup layout="block" styleClass="tm-field-hint"
-                                                  rendered="#{empty tripDetailBean.summaryDetail.recipientNameList}">
-                                        This entry was recorded before the log kept
-                                        the names, so only the count is known.
-                                    </h:panelGroup>
+                        <h:panelGroup
+                          layout="block"
+                          rendered="#{not empty tripDetailBean.summaryDetail.recipientNameList}"
+                        >
+                          <p class="tm-field-label">Sent to</p>
+                          <ul class="tm-name-list">
+                            <ui:repeat
+                              value="#{tripDetailBean.summaryDetail.recipientNameList}"
+                              var="name"
+                            >
+                              <li>
+                                <i class="pi pi-user" aria-hidden="true"></i>
+                                <h:outputText value="#{name}" />
+                              </li>
+                            </ui:repeat>
+                          </ul>
+                        </h:panelGroup>
+                        <h:panelGroup
+                          layout="block"
+                          styleClass="tm-field-hint"
+                          rendered="#{empty tripDetailBean.summaryDetail.recipientNameList}"
+                        >
+                          This entry was recorded before the log kept the names,
+                          so only the count is known.
+                        </h:panelGroup>
 
-                                    <h:panelGroup layout="block" rendered="#{tripDetailBean.summaryDetail.failedCount > 0}">
-                                        <p class="tm-field-error tm-form-error">
-                                            <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
-                                            <h:outputText value="#{tripDetailBean.summaryDetail.failedCount} could not be reached."/>
-                                        </p>
-                                    </h:panelGroup>
-                                </div>
+                        <h:panelGroup
+                          layout="block"
+                          rendered="#{tripDetailBean.summaryDetail.failedCount > 0}"
+                        >
+                          <p class="tm-field-error tm-form-error">
+                            <i
+                              class="pi pi-exclamation-circle"
+                              aria-hidden="true"
+                            ></i>
+                            <h:outputText
+                              value="#{tripDetailBean.summaryDetail.failedCount} could not be reached."
+                            />
+                          </p>
+                        </h:panelGroup>
+                      </div>
 
-                                <f:facet name="footer">
-                                    <div class="tm-dialog-actions">
-                                        <p:commandButton value="Close"
-                                                         styleClass="ui-button-secondary"
-                                                         action="#{tripDetailBean.closeSummaryDetail}"
-                                                         update="@form"
-                                                         ajax="true"/>
-                                    </div>
-                                </f:facet>
-                            </p:dialog>
-                        </section>
-
-                        </h:form>
-                    </p:tab>
-
-                </p:tabView>
-            </section>
-
+                      <f:facet name="footer">
+                        <div class="tm-dialog-actions">
+                          <p:commandButton
+                            value="Close"
+                            styleClass="ui-button-secondary"
+                            action="#{tripDetailBean.closeSummaryDetail}"
+                            process="@this"
+                            update="@form"
+                            ajax="true"
+                          />
+                        </div>
+                      </f:facet>
+                    </p:dialog>
+                  </section>
+                </h:form>
+              </p:tab>
+            </p:tabView>
+          </section>
         </ui:fragment>
-
-    </ui:define>
-</ui:composition>
-
-</h:body>
+      </ui:define>
+    </ui:composition>
+  </h:body>
 </html>

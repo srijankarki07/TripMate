@@ -74,7 +74,17 @@
     <ui:insert name="meta"/>
 </h:head>
 
-<h:body>
+<!--
+    `tm-app` marks every page wearing this layout, and the stylesheet uses it to
+    tell the application apart from the public pages. The sign-in and landing
+    pages do not use this layout, so they keep the plain button tone, which is
+    what they want: one button, one colour.
+
+    Not `tm-shell`: there is already a `.tm-shell` inside this layout, the flex
+    column the page lives in, and putting that class on the body as well made
+    the body both a grid and a flex column.
+-->
+<h:body styleClass="tm-app">
 
     <!--
         Keyboard users land here first. Without it the first tab stop on every
@@ -130,6 +140,11 @@
                         styleClass="tm-nav-link #{facesContext.viewRoot.viewId.startsWith('/reports/') ? 'tm-nav-link-active' : ''}">
                     <i class="pi pi-chart-pie" aria-hidden="true"></i>
                     <span class="tm-nav-link-text">Reports</span>
+                </h:link>
+                <h:link outcome="/map.xhtml"
+                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/map.xhtml' ? 'tm-nav-link-active' : ''}">
+                    <i class="pi pi-globe" aria-hidden="true"></i>
+                    <span class="tm-nav-link-text">Map</span>
                 </h:link>
             </nav>
 
@@ -190,6 +205,8 @@
                         styleClass="tm-nav-link #{facesContext.viewRoot.viewId.startsWith('/trips/') ? 'tm-nav-link-active' : ''}"/>
                 <h:link outcome="/reports/index.xhtml" value="Reports"
                         styleClass="tm-nav-link #{facesContext.viewRoot.viewId.startsWith('/reports/') ? 'tm-nav-link-active' : ''}"/>
+                <h:link outcome="/map.xhtml" value="Map"
+                        styleClass="tm-nav-link #{facesContext.viewRoot.viewId eq '/map.xhtml' ? 'tm-nav-link-active' : ''}"/>
             </nav>
 
             <div class="tm-nav-account">
@@ -270,6 +287,11 @@
                 styleClass="tm-nav-panel-link #{facesContext.viewRoot.viewId.startsWith('/reports/') ? 'tm-nav-link-active' : ''}">
             <i class="pi pi-chart-pie" aria-hidden="true"></i>
             <span class="tm-nav-link-text">Reports</span>
+        </h:link>
+        <h:link outcome="/map.xhtml"
+                styleClass="tm-nav-panel-link #{facesContext.viewRoot.viewId eq '/map.xhtml' ? 'tm-nav-link-active' : ''}">
+            <i class="pi pi-globe" aria-hidden="true"></i>
+            <span class="tm-nav-link-text">Map</span>
         </h:link>
         <h:link outcome="/profile.xhtml"
                 styleClass="tm-nav-panel-link #{facesContext.viewRoot.viewId eq '/profile.xhtml' ? 'tm-nav-link-active' : ''}">
@@ -364,6 +386,14 @@
                 <span class="tm-footer-brand">TripMate</span>
                 Group trip planning and expense tracking.
             </p>
+            <!-- Always present, unlike the link below. Somebody using this is
+                 entitled to find out what happens to their data without going
+                 looking for it, and these are the pages Google's reviewers
+                 check for. -->
+            <h:panelGroup layout="block" styleClass="tm-footer-links">
+                <h:link outcome="/privacy.xhtml" value="Privacy"/>
+                <h:link outcome="/terms.xhtml" value="Terms"/>
+            </h:panelGroup>
             <!-- Both of these are deployment facts, read from system
                  properties that the setup script writes from .env. The link
                  points at a page of internal checks, so a deployment that has

@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
@@ -74,11 +75,57 @@ public class ItineraryItem implements Serializable {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * How many times this item has been edited, and when it last was.
+     *
+     * <p>Both are written into the calendar feed: the revision as the event's
+     * {@code SEQUENCE} and the time as its {@code LAST-MODIFIED}. A calendar
+     * application that has already read the feed uses those two to decide
+     * whether it has a newer copy of an event, so they are what make an edit
+     * show up in a subscriber's calendar rather than only in this application.
+     *
+     * <p>{@link #createdAt} cannot serve that purpose: it is set once and never
+     * moves, so an edited item would be indistinguishable from one the reader
+     * had already seen.
+     */
+    @Column(name = "revision", nullable = false)
+    private int revision;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
     @PrePersist
     void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = now;
         }
+        if (updatedAt == null) {
+            updatedAt = createdAt;
+        }
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Records an edit.
+     *
+     * <p>A method rather than two setters because the two must move together,
+     * and because the revision only ever goes up. A caller that could set a
+     * revision could set a lower one, and a {@code SEQUENCE} that has gone
+     * backwards is an event a calendar will refuse to update.
+     *
+     * <p>Called by the service on every write. The entity manager does not bump
+     * it by itself: JPA has no notion of a version the application also
+     * publishes, and {@code @Version} is for optimistic locking, which is a
+     * different problem with a different consequence if it fails.
+     */
+    public void recordEdit() {
+        revision++;
+        updatedAt = LocalDateTime.now();
     }
 
     // ------------------------------------------------------------------
@@ -163,6 +210,24 @@ public class ItineraryItem implements Serializable {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    /** @return how many times this item has been edited; never negative */
+    public int getRevision() {
+        return revision;
+    }
+
+    public void setRevision(int revision) {
+        this.revision = revision;
+    }
+
+    /** @return when this item was last written, which is when it was added if never edited */
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     // ------------------------------------------------------------------

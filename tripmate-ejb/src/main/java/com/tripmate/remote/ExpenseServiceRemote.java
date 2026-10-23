@@ -85,6 +85,25 @@ public interface ExpenseServiceRemote {
     List<ExpenseDTO> getExpensesForTrip(Long tripId);
 
     /**
+     * The newest expenses across every trip a user belongs to, newest first.
+     *
+     * <p>For the dashboard, which wants a short list spanning all of a reader's
+     * trips rather than one trip's expenses. Calling {@link #getExpensesForTrip}
+     * once per trip and merging the results would read every expense of every
+     * trip to display a handful, and the cost would grow with the reader's
+     * history rather than with the size of the list being shown.
+     *
+     * <p>Authorization is inherent rather than checked: the query is scoped to
+     * trips the user is a member of, so it cannot return an expense from a trip
+     * they cannot see, and there is no trip to verify membership against.
+     *
+     * @param userId the reader
+     * @param limit  how many to return at most, newest first
+     * @return the expenses, empty when the user is unknown or belongs to nothing
+     */
+    List<ExpenseDTO> getRecentExpensesForUser(Long userId, int limit);
+
+    /**
      * Updates an expense.
      *
      * <p>Splits are replaced wholesale when the DTO carries any, and left alone

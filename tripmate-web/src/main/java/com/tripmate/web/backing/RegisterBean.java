@@ -15,8 +15,18 @@ import jakarta.inject.Named;
 /**
  * Account creation.
  *
- * <p>On success the new user is signed in immediately, since having just
- * supplied the credentials there is nothing gained by asking for them again.
+ * <h2>The account is created, not opened</h2>
+ *
+ * <p>The previous version signed the new user in on the spot, on the reasoning
+ * that they had just supplied the credentials and there was nothing gained by
+ * asking again. That was true while the credentials were the only thing being
+ * established. Now they are not: the address also has to answer, because a
+ * mistyped one means an account nobody can reach and notifications that go
+ * nowhere, and the only way to know is to send something to it and see.
+ *
+ * <p>So registering ends on the verification page with a code in flight, and
+ * the sign-in happens there, once the address has answered. The credentials
+ * are not asked for twice; they are already in the session.
  */
 @Named
 @RequestScoped
@@ -31,16 +41,19 @@ public class RegisterBean implements Serializable {
     private UserServiceRemote userService;
 
     @Inject
-    private CurrentUser currentUser;
+    private PendingVerification pendingVerification;
 
     private String fullName;
     private String email;
     private String phone;
     private String password;
     private String confirmPassword;
+
     /**
-     * @return a redirect to the dashboard on success, or null to redisplay the
-     *         form with an error
+     * Creates the account and sends the code that confirms its address.
+     *
+     * @return a redirect to the verification page on success, or null to
+     *         redisplay the form with an error
      */
     public String register() {
 
@@ -62,8 +75,14 @@ public class RegisterBean implements Serializable {
                     new UserDTO(null, fullName.trim(), email.trim(),
                             isBlank(phone) ? null : phone.trim()),
                     password);
-            currentUser.login(created);
-            return "/dashboard.xhtml?faces-redirect=true";
+
+            // Registered, and deliberately not signed in. The account is held
+            // in the session so the verification page knows which one it is
+            // confirming, and the code has already been sent by the service,
+            // which is where registering happens.
+            pendingVerification.remember(created);
+            Toasts.info("We have sent a six-digit code to " + created.getEmail() + ".");
+            return "/verify-email.xhtml?faces-redirect=true";
 
         } catch (RuntimeException ex) {
             // The service rejects a duplicate address before touching the

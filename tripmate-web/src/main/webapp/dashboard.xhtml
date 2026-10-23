@@ -1,188 +1,233 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:f="jakarta.faces.core"
-      xmlns:h="jakarta.faces.html"
-      xmlns:p="http://primefaces.org/ui"
-      xmlns:tm="jakarta.faces.composite/tm"
-      xmlns:ui="jakarta.faces.facelets"
-      lang="en">
-<h:head>
-    <meta charset="UTF-8"/>
-</h:head>
-<h:body>
+<html
+  xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:f="jakarta.faces.core"
+  xmlns:h="jakarta.faces.html"
+  xmlns:p="http://primefaces.org/ui"
+  xmlns:tm="jakarta.faces.composite/tm"
+  xmlns:ui="jakarta.faces.facelets"
+  lang="en"
+>
+  <h:head>
+    <meta charset="UTF-8" />
+  </h:head>
+  <h:body>
+    <ui:composition template="/WEB-INF/templates/layout.xhtml">
+      <ui:define name="title">Dashboard</ui:define>
 
-<ui:composition template="/WEB-INF/templates/layout.xhtml">
-    <ui:define name="title">Dashboard</ui:define>
-
-    <ui:define name="content">
-
+      <ui:define name="content">
         <header class="tm-hero">
-            <h1 class="tm-title">Hello, #{currentUser.fullName}</h1>
-            <!--
+          <h1 class="tm-title">Hello, #{currentUser.fullName}</h1>
+          <!--
                 A sentence, not just a name. The tiles below carry the numbers,
                 but a reader landing here wants the one-line answer first: are
                 they owed money or do they owe it.
             -->
-<h:panelGroup layout="block" styleClass="tm-lede" rendered="#{dashboardBean.hasTrips}">
-                You are on #{dashboardBean.tripCount} trips,
-                #{dashboardBean.activeTripCount} of them still to come or under way.
-                Across all of them you
-                <h:outputText value="#{dashboardBean.inCredit ? 'are owed' : 'owe'}"/>
-                <strong>NPR #{dashboardBean.netMagnitude}</strong>
-                once every share is counted.
-</h:panelGroup>
+          <h:panelGroup
+            layout="block"
+            styleClass="tm-lede"
+            rendered="#{dashboardBean.hasTrips}"
+          >
+            You are on #{dashboardBean.tripCount} trips,
+            #{dashboardBean.activeTripCount} of them still to come or under way.
+            Across all of them you
+            <h:outputText
+              value="#{dashboardBean.inCredit ? 'are owed' : 'owe'}"
+            />
+            <strong>NPR #{dashboardBean.netMagnitude}</strong>
+            once every share is counted.
+          </h:panelGroup>
         </header>
 
         <section class="tm-stats">
-            <div class="tm-stat">
-                <span class="tm-stat-icon" aria-hidden="true"><i class="pi pi-compass"></i></span>
-                <p class="tm-stat-label">Trips</p>
-                <p class="tm-stat-value">#{dashboardBean.tripCount}</p>
-                <p class="tm-stat-note">
-                    #{dashboardBean.activeTripCount} still to come or under way
-                </p>
-            </div>
-            <div class="tm-stat">
-                <span class="tm-stat-icon" aria-hidden="true"><i class="pi pi-wallet"></i></span>
-                <p class="tm-stat-label">You have paid</p>
-                <p class="tm-stat-value">NPR #{dashboardBean.totalPaid}</p>
-                <p class="tm-stat-note">across every trip</p>
-            </div>
-            <div class="tm-stat">
-                <span class="tm-stat-icon" aria-hidden="true"><i class="pi pi-chart-pie"></i></span>
-                <p class="tm-stat-label">Your share</p>
-                <p class="tm-stat-value">NPR #{dashboardBean.totalOwed}</p>
-                <p class="tm-stat-note">what your splits come to</p>
-            </div>
-            <!-- The one tile that is a verdict rather than a figure, so it is
+          <div class="tm-stat">
+            <span class="tm-stat-icon" aria-hidden="true"
+              ><i class="pi pi-compass"></i
+            ></span>
+            <p class="tm-stat-label">Trips</p>
+            <p class="tm-stat-value">#{dashboardBean.tripCount}</p>
+            <p class="tm-stat-note">
+              #{dashboardBean.activeTripCount} still to come or under way
+            </p>
+          </div>
+          <div class="tm-stat">
+            <span class="tm-stat-icon" aria-hidden="true"
+              ><i class="pi pi-wallet"></i
+            ></span>
+            <p class="tm-stat-label">You have paid</p>
+            <p class="tm-stat-value">NPR #{dashboardBean.totalPaid}</p>
+            <p class="tm-stat-note">across every trip</p>
+          </div>
+          <div class="tm-stat">
+            <span class="tm-stat-icon" aria-hidden="true"
+              ><i class="pi pi-chart-pie"></i
+            ></span>
+            <p class="tm-stat-label">Your share</p>
+            <p class="tm-stat-value">NPR #{dashboardBean.totalOwed}</p>
+            <p class="tm-stat-note">what your splits come to</p>
+          </div>
+          <!-- The one tile that is a verdict rather than a figure, so it is
                  the one tile that carries a state colour and an icon that says
                  which way it went. -->
-            <div class="tm-stat #{dashboardBean.inCredit ? 'tm-stat-credit' : 'tm-stat-debit'}">
-                <span class="tm-stat-icon" aria-hidden="true">
-                    <i class="pi #{dashboardBean.inCredit ? 'pi-arrow-down-left' : 'pi-arrow-up-right'}"></i>
-                </span>
-                <p class="tm-stat-label">#{dashboardBean.netLabel}</p>
-                <p class="tm-stat-value #{dashboardBean.inCredit ? 'tm-positive' : 'tm-negative'}">
-                    NPR #{dashboardBean.netMagnitude}
-                </p>
-                <p class="tm-stat-note">before recorded repayments</p>
-            </div>
+          <div
+            class="tm-stat #{dashboardBean.inCredit ? 'tm-stat-credit' : 'tm-stat-debit'}"
+          >
+            <span class="tm-stat-icon" aria-hidden="true">
+              <i
+                class="pi #{dashboardBean.inCredit ? 'pi-arrow-down-left' : 'pi-arrow-up-right'}"
+              ></i>
+            </span>
+            <p class="tm-stat-label">#{dashboardBean.netLabel}</p>
+            <p
+              class="tm-stat-value #{dashboardBean.inCredit ? 'tm-positive' : 'tm-negative'}"
+            >
+              NPR #{dashboardBean.netMagnitude}
+            </p>
+            <p class="tm-stat-note">before recorded repayments</p>
+          </div>
         </section>
 
-        <section class="tm-card">
-            <div class="tm-toolbar">
-                <h2 class="tm-display-sm">My trips</h2>
-                <div class="tm-toolbar-actions">
-                    <p:button icon="pi pi-plus" outcome="/trips/list.xhtml" value="New trip">
-                        <f:param name="new" value="1"/>
-                    </p:button>
-                    <p:button outcome="/trips/list.xhtml" value="View all"
-                             
-                              rendered="#{dashboardBean.tripCount gt 3}"/>
-                </div>
+        <section class="tm-card-srijan">
+          <div class="tm-toolbar">
+            <h2 class="tm-display-sm no-margin">My trips</h2>
+            <div class="tm-toolbar-actions">
+              <p:button
+                icon="pi pi-plus"
+                outcome="/trips/list.xhtml"
+                value="New trip"
+              >
+                <f:param name="new" value="1" />
+              </p:button>
+              <p:button
+                outcome="/trips/list.xhtml"
+                value="View all"
+                styleClass="ui-button-secondary"
+                rendered="#{dashboardBean.tripCount gt 3}"
+              />
             </div>
+          </div>
 
-            <p:dataTable reflow="true" rowHover="true" value="#{dashboardBean.trips}"
-                         var="trip"
-                         rendered="#{dashboardBean.hasTrips}"
-                         styleClass="tm-table"
-                         emptyMessage=""
-                         paginator="true"
-                         rows="10"
-                         paginatorAlwaysVisible="false"
-                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
-                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
-                            <p:column headerText="SN" styleClass="tm-col-sn">
-                                <h:outputText value="#{dashboardBean.trips.indexOf(trip) + 1}"/>
-                            </p:column>
+          <p:dataTable
+            reflow="true"
+            rowHover="true"
+            value="#{dashboardBean.trips}"
+            var="trip"
+            rendered="#{dashboardBean.hasTrips}"
+            styleClass="tm-table"
+            emptyMessage=""
+            paginator="true"
+            rows="10"
+            paginatorAlwaysVisible="false"
+            paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+            rowsPerPageTemplate="10,25,50"
+            currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
+          >
+            <p:column headerText="SN" styleClass="tm-col-sn">
+              <h:outputText value="#{dashboardBean.trips.indexOf(trip) + 1}" />
+            </p:column>
 
-                <p:column headerText="Trip" width="34%">
-                    <h:link outcome="/trips/detail.xhtml" value="#{trip.tripName}">
-                        <f:param name="tripId" value="#{trip.tripId}"/>
-                    </h:link>
-                </p:column>
+            <p:column headerText="Trip">
+              <h:link outcome="/trips/detail.xhtml" value="#{trip.tripName}">
+                <f:param name="tripId" value="#{trip.tripId}" />
+              </h:link>
+            </p:column>
 
-                <p:column headerText="Where" width="20%">
-                    <h:outputText value="#{trip.destination}"/>
-                </p:column>
+            <p:column headerText="Where">
+              <h:outputText value="#{trip.destination}" />
+            </p:column>
 
-                <p:column headerText="Dates" width="22%">
-                    <h:outputText value="#{trip.startDate}"/>
-                    <h:outputText value=" to "/>
-                    <h:outputText value="#{trip.endDate}"/>
-                </p:column>
+            <p:column headerText="Dates">
+              <h:outputText value="#{trip.startDate}" />
+              <h:outputText value=" to " />
+              <h:outputText value="#{trip.endDate}" />
+            </p:column>
 
-                <p:column headerText="State" width="13%">
-                    <span class="tm-status tm-status-#{trip.status.name().toLowerCase()}">
-                        <h:outputText value="#{trip.status}"/>
-                    </span>
-                </p:column>
+            <p:column headerText="State">
+              <span
+                class="tm-status tm-status-#{trip.status.name().toLowerCase()}"
+              >
+                <h:outputText value="#{trip.status}" />
+              </span>
+            </p:column>
 
-                <p:column headerText="Members" width="11%">
-                    <h:outputText value="#{trip.memberCount}"/>
-                </p:column>
-            </p:dataTable>
+            <p:column headerText="Members">
+              <h:outputText value="#{trip.memberCount}" />
+            </p:column>
+          </p:dataTable>
 
-            <!-- h:panelGroup, not a plain <p>: `rendered` is a Faces attribute
+          <!-- h:panelGroup, not a plain <p>: `rendered` is a Faces attribute
                  and is ignored on non-components, so a bare element would show
                  this message even when there are trips. -->
-            <tm:empty icon="pi-compass"
-                      title="No trips yet"
-                      text="Create one and you become its administrator, which lets you invite the people you are travelling with."
-                      rendered="#{not dashboardBean.hasTrips}">
-                <f:facet name="action">
-                    <p:button icon="pi pi-plus" outcome="/trips/list.xhtml" value="Create a trip">
-                        <f:param name="new" value="1"/>
-                    </p:button>
-                </f:facet>
-            </tm:empty>
+          <tm:empty
+            icon="pi-compass"
+            title="No trips yet"
+            text="Create one and you become its administrator, which lets you invite the people you are travelling with."
+            rendered="#{not dashboardBean.hasTrips}"
+          >
+            <f:facet name="action">
+              <p:button
+                icon="pi pi-plus"
+                outcome="/trips/list.xhtml"
+                value="Create a trip"
+              >
+                <f:param name="new" value="1" />
+              </p:button>
+            </f:facet>
+          </tm:empty>
         </section>
 
-        <section class="tm-card">
-            <h2 class="tm-display-sm">Recent spending</h2>
+        <section class="tm-card-srijan">
+          <h2 class="tm-display-sm">Recent spending</h2>
 
-            <p:dataTable reflow="true" rowHover="true" value="#{dashboardBean.recentExpenses}"
-                         var="expense"
-                         rendered="#{dashboardBean.hasRecentExpenses}"
-                         emptyMessage=""
-                          paginator="true"
-                         rows="10"
-                         paginatorAlwaysVisible="false"
-                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
-                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
-                            <p:column headerText="SN" styleClass="tm-col-sn">
-                                <h:outputText value="#{dashboardBean.recentExpenses.indexOf(expense) + 1}"/>
-                            </p:column>
+          <p:dataTable
+            reflow="true"
+            rowHover="true"
+            value="#{dashboardBean.recentExpenses}"
+            var="expense"
+            rendered="#{dashboardBean.hasRecentExpenses}"
+            emptyMessage=""
+            paginator="true"
+            rows="10"
+            paginatorAlwaysVisible="false"
+            paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+            rowsPerPageTemplate="10,25,50"
+            currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}"
+          >
+            <p:column headerText="SN" styleClass="tm-col-sn">
+              <h:outputText
+                value="#{dashboardBean.recentExpenses.indexOf(expense) + 1}"
+              />
+            </p:column>
 
-                <p:column headerText="Date">
-                    <h:outputText value="#{expense.date}"/>
-                </p:column>
+            <p:column headerText="Date">
+              <h:outputText value="#{expense.date}" />
+            </p:column>
 
-                <p:column headerText="Trip">
-                    <h:outputText value="#{expense.tripName}"/>
-                </p:column>
+            <p:column headerText="Trip">
+              <h:outputText value="#{expense.tripName}" />
+            </p:column>
 
-                <p:column headerText="What">
-                    <h:outputText value="#{expense.description}"/>
-                </p:column>
+            <p:column headerText="What">
+              <h:outputText value="#{expense.description}" />
+            </p:column>
 
-                <p:column headerText="Paid by">
-                    <h:outputText value="#{expense.paidByName}"/>
-                </p:column>
+            <p:column headerText="Paid by">
+              <h:outputText value="#{expense.paidByName}" />
+            </p:column>
 
-                <p:column headerText="Amount">
-                    <h:outputText value="NPR #{expense.amount}"/>
-                </p:column>
-            </p:dataTable>
+            <p:column headerText="Amount">
+              <h:outputText value="NPR #{expense.amount}" />
+            </p:column>
+          </p:dataTable>
 
-            <tm:empty icon="pi-receipt"
-                      title="Nothing logged yet"
-                      text="Expenses you or anyone else records on your trips appear here, newest first."
-                      rendered="#{not dashboardBean.hasRecentExpenses}"/>
+          <tm:empty
+            icon="pi-receipt"
+            title="Nothing logged yet"
+            text="Expenses you or anyone else records on your trips appear here, newest first."
+            rendered="#{not dashboardBean.hasRecentExpenses}"
+          />
         </section>
-
-    </ui:define>
-</ui:composition>
-
-</h:body>
+      </ui:define>
+    </ui:composition>
+  </h:body>
 </html>

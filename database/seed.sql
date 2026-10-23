@@ -57,37 +57,50 @@ BEGIN;
 -- Makes the script re-runnable. RESTART IDENTITY also resets the BIGSERIAL
 -- sequences; the explicit ids below are re-synchronised with setval() at the
 -- end so later application inserts cannot collide.
-TRUNCATE TABLE expense_splits, settlements, expenses, itinerary_items,
-               trip_members, trips, users
+TRUNCATE TABLE email_verifications, expense_splits, settlements, expenses,
+               itinerary_items, trip_members, trips, users
     RESTART IDENTITY CASCADE;
 
 
 -- ----------------------------------------------------------------------------
 -- users
 -- ----------------------------------------------------------------------------
-INSERT INTO users (user_id, full_name, email, password_hash, phone, created_at) VALUES
-(1, 'Alice Sharma',   'alice@tripmate.test', 'pbkdf2_sha256$210000$5LrbMpHyUImo253+s3GqVQ==$XTEI6pkcu+Msuwn8oLHlrsNmRZzwukDm/zFvvx0mpuc=', '+977-9801000001', '2026-01-15 09:12:00'),
-(2, 'Bob Gurung',     'bob@tripmate.test',   'pbkdf2_sha256$210000$lxstk7a9LnKs2LNfqsgqLA==$7GzXwEl0TqiyNUZNO4xPnpgd7pFBSdsHIZ5pETBMNfg=', '+977-9801000002', '2026-01-15 09:40:00'),
-(3, 'Carol Thapa',    'carol@tripmate.test', 'pbkdf2_sha256$210000$Vv6H2AH43keClMpQN3ynoQ==$E7PE33dPoHAynADOVAprHrnk8ahlKTNbpHIxzUNnHrA=', '+977-9801000003', '2026-01-22 14:05:00'),
-(4, 'David Rai',      'david@tripmate.test', 'pbkdf2_sha256$210000$L35ezUQZUj2yKqM3obhQFA==$rOxgXxBCgGYsr021zWbXRkxyDXtNEI0ffnfed7gXn4I=', '+977-9801000004', '2026-02-03 11:26:00'),
-(5, 'Emma Shrestha',  'emma@tripmate.test',  'pbkdf2_sha256$210000$oUmKqpBc57h7sATrMIYvCQ==$BNVf98qDJ7/u+6nb8qUO18Hb4DZ3LSdMjlPYOXzE6WQ=', '+977-9801000005', '2026-02-20 16:48:00');
+-- Every demo account is marked verified, and at the moment it was created. The
+-- point of the seed is a database somebody can sign into and demonstrate with,
+-- and an account whose address has not been confirmed cannot be used at all, so
+-- leaving these null would make the whole sample unusable behind a code that
+-- only exists in a mail nobody sent.
+INSERT INTO users (user_id, full_name, email, password_hash, phone, email_verified_at, created_at) VALUES
+(1, 'Alice Sharma',   'alice@tripmate.test', 'pbkdf2_sha256$210000$5LrbMpHyUImo253+s3GqVQ==$XTEI6pkcu+Msuwn8oLHlrsNmRZzwukDm/zFvvx0mpuc=', '+977-9801000001', '2026-01-15 09:12:00', '2026-01-15 09:12:00'),
+(2, 'Bob Gurung',     'bob@tripmate.test',   'pbkdf2_sha256$210000$lxstk7a9LnKs2LNfqsgqLA==$7GzXwEl0TqiyNUZNO4xPnpgd7pFBSdsHIZ5pETBMNfg=', '+977-9801000002', '2026-01-15 09:40:00', '2026-01-15 09:40:00'),
+(3, 'Carol Thapa',    'carol@tripmate.test', 'pbkdf2_sha256$210000$Vv6H2AH43keClMpQN3ynoQ==$E7PE33dPoHAynADOVAprHrnk8ahlKTNbpHIxzUNnHrA=', '+977-9801000003', '2026-01-22 14:05:00', '2026-01-22 14:05:00'),
+(4, 'David Rai',      'david@tripmate.test', 'pbkdf2_sha256$210000$L35ezUQZUj2yKqM3obhQFA==$rOxgXxBCgGYsr021zWbXRkxyDXtNEI0ffnfed7gXn4I=', '+977-9801000004', '2026-02-03 11:26:00', '2026-02-03 11:26:00'),
+(5, 'Emma Shrestha',  'emma@tripmate.test',  'pbkdf2_sha256$210000$oUmKqpBc57h7sATrMIYvCQ==$BNVf98qDJ7/u+6nb8qUO18Hb4DZ3LSdMjlPYOXzE6WQ=', '+977-9801000005', '2026-02-20 16:48:00', '2026-02-20 16:48:00');
 
 
 -- ----------------------------------------------------------------------------
 -- trips
 -- ----------------------------------------------------------------------------
-INSERT INTO trips (trip_id, trip_name, destination, start_date, end_date, description, status, created_by, created_at) VALUES
+-- The timezone is the zone the itinerary's wall-clock times are read in, and
+-- every trip here is in Nepal. It is stored explicitly rather than left null so
+-- that the demo shows the field rather than the fallback.
+-- Coordinates, so the map has something on it out of the box. These are the
+-- real places: Pokhara, Lukla at the start of the Everest trail, and the
+-- Chitwan park. A trip is normally placed by a reader clicking the map, which
+-- is why the column is nullable; the sample data is placed here so the feature
+-- is demonstrable without anybody having to place three trips first.
+INSERT INTO trips (trip_id, trip_name, destination, start_date, end_date, description, timezone, latitude, longitude, status, created_by, created_at) VALUES
 (1, 'Pokhara Weekend', 'Pokhara, Gandaki', '2026-09-25', '2026-09-28',
  'Long weekend by Phewa Lake — paragliding, sunrise at Sarangkot, and a lot of Thakali food.',
- 'ONGOING', 1, '2026-09-01 10:00:00'),
+ 'Asia/Kathmandu', 28.209600, 83.985600, 'ONGOING', 1, '2026-09-01 10:00:00'),
 
 (2, 'Everest Base Camp Trek', 'Solukhumbu, Koshi', '2026-11-05', '2026-11-20',
  'Sixteen-day trek to Everest Base Camp via the classic Lukla route. Permits and guide arranged in advance.',
- 'PLANNING', 2, '2026-08-15 19:30:00'),
+ 'Asia/Kathmandu', 27.686900, 86.730000, 'PLANNING', 2, '2026-08-15 19:30:00'),
 
 (3, 'Chitwan Jungle Safari', 'Chitwan, Bagmati', '2026-04-10', '2026-04-13',
  'Four days in the Terai — canoe trip, jungle walk and a full jeep safari in the core area.',
- 'COMPLETED', 3, '2026-03-01 08:15:00');
+ 'Asia/Kathmandu', 27.529100, 84.354200, 'COMPLETED', 3, '2026-03-01 08:15:00');
 
 
 -- ----------------------------------------------------------------------------
@@ -272,6 +285,29 @@ INSERT INTO settlements (trip_id, payer_id, receiver_id, amount, note, settled_a
 
 
 -- ----------------------------------------------------------------------------
+-- Itinerary edit times follow their creation times
+-- ----------------------------------------------------------------------------
+-- updated_at defaults to NOW(), which for hand-written rows is the moment this
+-- script ran rather than anything about the data. The calendar feed writes it
+-- as each event's LAST-MODIFIED, so a seeded trip whose items all claim to have
+-- been edited seconds ago looks freshly changed every time the database is
+-- reloaded. Nobody has edited these, so their creation time is the truth.
+UPDATE itinerary_items SET updated_at = created_at;
+
+
+-- ----------------------------------------------------------------------------
+-- Places Alice went before she used this
+-- ----------------------------------------------------------------------------
+-- The other half of the map: trips nobody planned here, written down from
+-- memory so that the picture is of where somebody has been rather than only of
+-- what this application happens to contain. Two are enough to show that the two
+-- kinds are drawn differently.
+INSERT INTO past_trips (user_id, place_name, country, visited_on, note, latitude, longitude) VALUES
+(1, 'Bali',        'Indonesia', '2019-11-02', 'Two weeks between Ubud and the north coast.',        -8.409500, 115.188900),
+(1, 'Bangkok',     'Thailand',  '2018-04-14', 'Songkran, which was either the best or the worst time to go.', 13.756300, 100.501800);
+
+
+-- ----------------------------------------------------------------------------
 -- Re-synchronise the BIGSERIAL sequences
 -- ----------------------------------------------------------------------------
 -- The inserts above specify primary keys explicitly, which does NOT advance the
@@ -285,5 +321,6 @@ SELECT setval(pg_get_serial_sequence('itinerary_items','item_id'),       (SELECT
 SELECT setval(pg_get_serial_sequence('expenses',       'expense_id'),    (SELECT MAX(expense_id)    FROM expenses));
 SELECT setval(pg_get_serial_sequence('expense_splits', 'split_id'),      (SELECT MAX(split_id)      FROM expense_splits));
 SELECT setval(pg_get_serial_sequence('settlements',    'settlement_id'), (SELECT MAX(settlement_id) FROM settlements));
+SELECT setval(pg_get_serial_sequence('past_trips',     'past_trip_id'),  (SELECT MAX(past_trip_id)  FROM past_trips));
 
 COMMIT;

@@ -175,10 +175,10 @@
                 </p:dataTable>
                 </h:form>
 
-                <h:panelGroup layout="block" styleClass="tm-empty"
-                              rendered="#{not itineraryBean.hasItems}">
-                    Nothing planned yet. Add the first item above.
-                </h:panelGroup>
+                <tm:empty icon="pi-calendar"
+                          title="Nothing planned yet"
+                          text="Add the first item above. A date is all it needs; the times, the place and the note are optional."
+                          rendered="#{not itineraryBean.hasItems}"/>
             </section>
 
         </ui:fragment>

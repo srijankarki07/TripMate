@@ -49,14 +49,14 @@ public interface ItineraryServiceRemote {
      *
      * @throws IllegalArgumentException if the item does not exist
      */
-    ItineraryItemDTO updateItem(ItineraryItemDTO item);
+    ItineraryItemDTO updateItem(ItineraryItemDTO item, Long actedBy);
 
     /**
      * Deletes an item.
      *
      * @throws IllegalArgumentException if the item does not exist
      */
-    void deleteItem(Long itemId);
+    void deleteItem(Long itemId, Long actedBy);
 
     /** @return how many items the trip has */
     long getItemCountForTrip(Long tripId);

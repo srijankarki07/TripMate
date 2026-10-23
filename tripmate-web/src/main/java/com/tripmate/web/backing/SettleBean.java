@@ -83,7 +83,7 @@ public class SettleBean implements Serializable {
 
     private void refresh() {
         members = new ArrayList<>(tripService.getTripMembers(tripId));
-        balances = new ArrayList<>(reportService.getMemberBalances(tripId));
+        balances = new ArrayList<>(reportService.getMemberBalances(tripId, currentUser.getUserId()));
         settlements = new ArrayList<>(expenseService.getSettlementsForTrip(tripId));
     }
 

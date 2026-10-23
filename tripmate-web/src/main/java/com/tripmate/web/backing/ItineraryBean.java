@@ -98,7 +98,7 @@ public class ItineraryBean implements Serializable {
                 itineraryService.addItem(tripId, form, currentUser.getUserId());
             } else {
                 form.setItemId(editingItemId);
-                itineraryService.updateItem(form);
+                itineraryService.updateItem(form, currentUser.getUserId());
             }
             return "/trips/detail.xhtml?faces-redirect=true&tripId=" + tripId;
 
@@ -142,7 +142,7 @@ public class ItineraryBean implements Serializable {
 
     public void delete(Long itemId) {
         try {
-            itineraryService.deleteItem(itemId);
+            itineraryService.deleteItem(itemId, currentUser.getUserId());
             Toasts.success("Item removed.");
             if (itemId.equals(editingItemId)) {
                 cancelEdit();

@@ -13,6 +13,7 @@ import com.tripmate.dto.TripDTO;
 import com.tripmate.dto.TripMemberDTO;
 import com.tripmate.remote.ExpenseServiceRemote;
 import com.tripmate.remote.TripServiceRemote;
+import com.tripmate.web.support.Initials;
 import com.tripmate.web.support.Messages;
 import com.tripmate.web.support.Toasts;
 
@@ -119,6 +120,15 @@ public class ExpenseBean implements Serializable {
 
         public String getName() {
             return name;
+        }
+
+        /**
+         * @return the avatar letters for this participant, from the shared rule
+         *         so the split editor and the balances bar agree on the same
+         *         person
+         */
+        public String getInitials() {
+            return Initials.of(name);
         }
 
         public boolean isIncluded() {
@@ -317,10 +327,57 @@ public class ExpenseBean implements Serializable {
         return amount != null && amount.signum() > 0 && !isBalanced();
     }
 
+    /**
+     * Whether an amount has been typed yet, and so whether the form has a total
+     * to divide up.
+     *
+     * <p>The meter needs this as a third state. Without it a form nobody has
+     * touched falls through to the balanced branch and the page states that the
+     * shares add up to the amount, which is both untrue and reassuring: zero
+     * shares do not add up to a blank amount, there is simply nothing to add up
+     * yet. Claiming success for an empty form is worse than saying nothing.
+     *
+     * @return true once a positive amount is present
+     */
+    public boolean isAmountEntered() {
+        return amount != null && amount.signum() > 0;
+    }
+
     public boolean isBalanced() {
         return amount != null && amount.signum() > 0
                 && amount.compareTo(getSplitTotal()) == 0
                 && includedRows().stream().noneMatch(r -> r.getAmount() == null);
+    }
+
+    /** The typed amount, or zero, so the view can print it without a null check. */
+    public BigDecimal getAmountOrZero() {
+        return amount == null ? BigDecimal.ZERO : amount;
+    }
+
+    /**
+     * How much of the amount is assigned, as a whole number of percent from 0
+     * to 100.
+     *
+     * <p>Capped at 100 because the shares can legitimately overshoot: the user
+     * is mid-edit on a row and the total has gone past the amount. A bar wider
+     * than its track would overflow the card, and the state the overshoot
+     * represents is already reported by the note beside it.
+     *
+     * <p>Zero before an amount is typed, which draws an empty track. An empty
+     * track with nothing written beside it is the honest picture of a form
+     * nobody has filled in yet.
+     *
+     * @return 0 to 100
+     */
+    public int getAssignedPercent() {
+        if (amount == null || amount.signum() <= 0) {
+            return 0;
+        }
+        int percent = getSplitTotal()
+                .multiply(BigDecimal.valueOf(100))
+                .divide(amount, 0, RoundingMode.HALF_UP)
+                .intValue();
+        return Math.max(0, Math.min(100, percent));
     }
 
     public BigDecimal getExpenseTotal() {

@@ -64,6 +64,13 @@
        Colour — hairlines & borders
        --------------------------------------------------------------------- */
     --tm-color-hairline: #dddddd;            /* default 1px border tone */
+    /* The groove a progress bar runs in. Its own token because the surface
+       tones are all within a few values of each other by design, and a track
+       drawn in one of them on top of another is invisible: the split editor's
+       empty track was #f2f2f2 on #f7f7f7, which is no track at all. This is
+       the one surface in the system that has to read as recessed. */
+    --tm-color-track: #e4e4e4;
+
     --tm-color-hairline-soft: #ebebeb;       /* lighter editorial divider */
     --tm-color-border-strong: #c1c1c1;       /* disabled outlines, focused inputs */
 
@@ -495,6 +502,16 @@ body > main {
    ========================================================================== */
 
 .tm-page {
+    /* `width: 100%` and an explicit `align-self` rather than relying on the
+       flex container's default stretch. Relying on stretch means the width of
+       every page depends on a property set somewhere else, and a page whose
+       content happens to be narrow can size to it instead of to the container.
+       That is exactly the failure reported: the same card came out at one
+       width on one tab and half that on another. Stating the width here makes
+       that impossible whatever the container does. */
+    width: 100%;
+    align-self: stretch;
+    box-sizing: border-box;
     max-width: var(--tm-container-max);
     margin: 0 auto;
     padding: var(--tm-space-xxl) var(--tm-space-lg) var(--tm-space-section);
@@ -1410,6 +1427,261 @@ body .ui-panel {
     box-shadow: var(--tm-elevation-card);
 }
 
+body .ui-datatable thead th.ui-sortable-column:hover {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+body .ui-datatable thead th.ui-sortable-column.ui-state-active {
+    color: var(--tm-color-ink);
+    font-weight: 600;
+}
+
+body .ui-datatable thead th .ui-sortable-column-icon {
+    margin-left: var(--tm-space-xs);
+    color: var(--tm-color-muted-soft);
+    font-size: 12px;
+}
+
+body .ui-datatable thead th.ui-state-active .ui-sortable-column-icon {
+    color: var(--tm-color-ink);
+}
+
+/* --- the toolbar above a table --------------------------------------------
+   Title on the left, controls on the right, one row, wrapping to two on a
+   narrow screen rather than squeezing. */
+body .ui-datatable .ui-datatable-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--tm-space-md);
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* --- the search box a global filter renders ------------------------------- */
+body .ui-datatable .ui-column-filter,
+body .ui-datatable .ui-datatable-globalfilter-container input {
+    width: 100%;
+    max-width: 260px;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--tm-color-hairline);
+    border-radius: var(--tm-radius-sm);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-ink);
+    font-family: inherit;
+    font-size: 14px;
+}
+
+body .ui-datatable .ui-datatable-globalfilter-container {
+    display: inline-flex;
+}
+
+/* --- pagination -----------------------------------------------------------
+   Quiet controls at the trailing edge. The theme renders them as chunky
+   buttons with its own accent. */
+body .ui-paginator {
+    padding: var(--tm-space-base) 0 0;
+    border: none;
+    background-color: transparent;
+    text-align: right;
+}
+
+body .ui-paginator .ui-paginator-pages .ui-paginator-page,
+body .ui-paginator .ui-paginator-first,
+body .ui-paginator .ui-paginator-prev,
+body .ui-paginator .ui-paginator-next,
+body .ui-paginator .ui-paginator-last {
+    min-width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--tm-radius-sm);
+    background-color: transparent;
+    color: var(--tm-color-muted);
+    font-size: 14px;
+    line-height: 36px;
+    transition: background-color var(--tm-motion-fast) var(--tm-motion-ease);
+}
+
+body .ui-paginator .ui-paginator-pages .ui-paginator-page:hover,
+body .ui-paginator .ui-paginator-first:hover,
+body .ui-paginator .ui-paginator-prev:hover,
+body .ui-paginator .ui-paginator-next:hover,
+body .ui-paginator .ui-paginator-last:hover {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+/* The current page is the one piece of genuinely selected state here, so it
+   takes ink rather than the accent. */
+body .ui-paginator .ui-paginator-pages .ui-paginator-page.ui-state-active {
+    border-color: var(--tm-color-ink);
+    background-color: var(--tm-color-ink);
+    color: var(--tm-color-on-dark);
+    font-weight: 600;
+}
+
+body .ui-paginator .ui-paginator-current {
+    margin-right: var(--tm-space-base);
+    color: var(--tm-color-muted);
+    font-size: 13px;
+}
+
+/* ==========================================================================
+   Data tables on a narrow screen
+
+   The table becomes a stack of cards, one per row. PrimeFaces does the
+   restructuring: `reflow` hides the header row and writes each column's title
+   into its cells as a span. What is left for CSS is to make the result read as
+   a card rather than as a table that fell over.
+
+   This is the reason there is no horizontal scrolling table anywhere in the
+   application. A sideways-scrolling table on a phone is legible but miserable:
+   the reader has to keep a row's identity in their head while dragging it. A
+   card keeps a row's fields together.
+   ========================================================================== */
+
+@media (max-width: 743px) {
+
+    /* This block is deliberately self-contained rather than relying on the
+       library's own reflow rules, which switch at 640px. Two breakpoints for
+       one component leaves a band between them where the header row is still
+       shown but the cells have been restructured, and the table renders as
+       neither. Everything the stacking needs is therefore restated here at the
+       application's own breakpoint. */
+
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-tablewrapper {
+        overflow-x: visible;
+    }
+
+    /* The header row and its titles are replaced by the per-cell labels. */
+    body .ui-datatable.ui-datatable-reflow thead,
+    body .ui-datatable.ui-datatable-reflow tfoot {
+        display: none;
+    }
+
+    /* Reflow mode replaces the header row with a native <select> for choosing
+       the sort column. It is hidden rather than restyled: the dropdown it opens
+       is drawn by the browser and cannot be made to match anything, which is
+       exactly the kind of control the rest of this application avoids.
+       Sorting is therefore a desktop affordance for now, which is a real if
+       small loss on a phone; the alternative was a control that looks like it
+       came from a different product. */
+    body .ui-datatable.ui-datatable-reflow .ui-reflow-label,
+    body .ui-datatable.ui-datatable-reflow .ui-reflow-dropdown {
+        display: none;
+    }
+
+    /* One card per row. */
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-data > tr,
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-tbody > tr {
+        display: block;
+        margin-bottom: var(--tm-space-md);
+        padding: var(--tm-space-sm) var(--tm-space-base);
+        border: 1px solid var(--tm-color-hairline);
+        border-radius: var(--tm-radius-md);
+        background-color: var(--tm-color-canvas);
+    }
+
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-data > tr:last-child,
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-tbody > tr:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Each field is a labelled line: the title on the left at a fixed width,
+       the value filling the rest. A fixed label column is what makes a stack
+       of cards scannable; without it every value starts at a different x. */
+    /* `float: none` is the load-bearing part. The library floats every cell so
+       that they stack by clearing each other, and a floated child does not
+       contribute its height to the parent, so the card collapsed to a sliver
+       with its content overflowing the border. Clearing the float lets the row
+       size itself. */
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-data > tr > td[role="gridcell"],
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-tbody > tr > td[role="gridcell"] {
+        display: flex;
+        float: none;
+        clear: none;
+        width: auto;
+        align-items: baseline;
+        gap: var(--tm-space-md);
+        padding: var(--tm-space-xs) 0;
+        border: none;
+        text-align: left;
+    }
+
+    /* The library hides the label by default and only shows it inside its own
+       narrower media query, so it has to be turned back on here. */
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-data > tr > td[role="gridcell"] .ui-column-title,
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-tbody > tr > td[role="gridcell"] .ui-column-title {
+        display: inline-block;
+        flex: 0 0 34%;
+        min-width: 34%;
+        margin: 0;
+        padding: 0;
+        color: var(--tm-color-muted);
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+    }
+
+    /* A cell whose value is long, or a control rather than text, gets the full
+       width rather than being squeezed beside its label. */
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-data > tr > td[role="gridcell"]:has(.ui-button),
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-tbody > tr > td[role="gridcell"]:has(.ui-button) {
+        display: block;
+        margin-top: var(--tm-space-sm);
+    }
+
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-data > tr > td[role="gridcell"]:has(.ui-button) .ui-column-title,
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-tbody > tr > td[role="gridcell"]:has(.ui-button) .ui-column-title {
+        display: none;
+    }
+
+    /* The first cell names the row, so it is set larger and gets a rule under
+       it, which is what makes the card read as a unit. */
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-data > tr > td[role="gridcell"]:first-child,
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-tbody > tr > td[role="gridcell"]:first-child {
+        display: block;
+        margin-bottom: var(--tm-space-xs);
+        padding-bottom: var(--tm-space-sm);
+        border-bottom: 1px solid var(--tm-color-hairline-soft);
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-data > tr > td[role="gridcell"]:first-child .ui-column-title,
+    body .ui-datatable.ui-datatable-reflow .ui-datatable-tbody > tr > td[role="gridcell"]:first-child .ui-column-title {
+        display: none;
+    }
+
+    /* The paginator and the toolbar stack rather than sitting side by side. */
+    body .ui-paginator {
+        text-align: center;
+    }
+
+    body .ui-datatable .ui-datatable-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* `:has()` is not available in every browser the markers may open this in.
+   Without it the rules above simply do not apply and the cell keeps its label
+   beside the value, which is still correct, just less roomy. */
+
+/* --------------------------------------------------------------------------
+   Panels and cards
+   -------------------------------------------------------------------------- */
+
+body .ui-card,
+body .ui-panel {
+    border: none;
+    border-radius: var(--tm-radius-md);
+    background-color: var(--tm-color-surface-card);
+    box-shadow: var(--tm-elevation-card);
+}
+
 body .ui-card .ui-card-body,
 body .ui-panel .ui-panel-content {
     padding: var(--tm-space-lg);
@@ -1451,6 +1723,27 @@ body .ui-message-error-summary,
     color: var(--tm-color-error);
     font-size: 14px;
     line-height: 1.43;
+}
+
+/* Guidance under a field, as opposed to a failure. Deliberately not the error
+   tone: telling a reader what the field wants before they have typed anything
+   is not a complaint, and a red sentence under an untouched field reads as one.
+   The error style above is for something that has actually gone wrong. */
+.tm-field-hint {
+    display: block;
+    margin-top: var(--tm-space-xs);
+    color: var(--tm-color-muted);
+    font-size: 13px;
+    line-height: 1.43;
+}
+
+/* A hint that is reporting a satisfied condition rather than pending guidance,
+   as the trip-delete confirmation does once the name matches. Written as a
+   compound so it does not depend on which of the two single-class rules happens
+   to appear later in this file. */
+.tm-field-hint.tm-text-success {
+    color: var(--tm-color-success);
+    font-weight: 600;
 }
 
 /* --------------------------------------------------------------------------
@@ -2215,28 +2508,360 @@ body .tm-input-narrow.ui-inputfield {
     line-height: 1.23;
 }
 
-/* Trip lifecycle state. Only CANCELLED takes colour, so Rausch stays reserved
-   for actions; the rest are distinguished by weight and rule rather than hue. */
+/* State chips.
+   Every state a reader has to tell apart at a glance: a trip's lifecycle, which
+   way a balance runs, and what role someone holds. They were previously all the
+   same grey outline with two exceptions, which meant the one thing a chip is
+   for, being scannable, was the one thing it did not do.
+
+   Each chip carries a soft tint, a matching border and the tone as its text, so
+   the state is legible before the label is read. These use the semantic states
+   from DESIGN.md Part Two, not the brand accent: Rausch stays reserved for
+   actions, and a status is not an action. */
 .tm-status {
-    display: inline-block;
-    padding: 2px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
     border: 1px solid var(--tm-color-hairline);
     border-radius: var(--tm-radius-full);
+    background-color: var(--tm-color-surface-soft);
     color: var(--tm-color-muted);
     font-size: 11px;
     font-weight: 600;
-    line-height: 1.18;
+    line-height: 1.3;
     white-space: nowrap;
 }
 
+/* A dot inside the chip, for the states worth spotting from across the page. */
+.tm-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: var(--tm-radius-full);
+    background-color: currentColor;
+    flex: 0 0 auto;
+}
+
+/* --- a trip's lifecycle --------------------------------------------------- */
+.tm-status-planning {
+    border-color: var(--tm-color-info-border);
+    background-color: var(--tm-color-info-soft);
+    color: var(--tm-color-info);
+}
+
 .tm-status-ongoing {
-    border-color: var(--tm-color-ink);
-    color: var(--tm-color-ink);
+    border-color: var(--tm-color-success-border);
+    background-color: var(--tm-color-success-soft);
+    color: var(--tm-color-success);
+}
+
+.tm-status-completed {
+    border-color: var(--tm-color-hairline);
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-muted);
 }
 
 .tm-status-cancelled {
-    border-color: var(--tm-color-error);
-    color: var(--tm-color-error);
+    border-color: var(--tm-color-danger-border);
+    background-color: var(--tm-color-danger-soft);
+    color: var(--tm-color-danger);
+}
+
+/* --- which way a balance runs --------------------------------------------
+   The same three tones used on the balances page, so "owed back to you" looks
+   the same wherever it appears. */
+.tm-status-credit {
+    border-color: var(--tm-color-success-border);
+    background-color: var(--tm-color-success-soft);
+    color: var(--tm-color-success);
+}
+
+.tm-status-debit {
+    border-color: var(--tm-color-danger-border);
+    background-color: var(--tm-color-danger-soft);
+    color: var(--tm-color-danger);
+}
+
+.tm-status-square {
+    border-color: var(--tm-color-hairline);
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-muted);
+}
+
+/* --- a member's role -----------------------------------------------------
+   An administrator is the one that matters, and it is marked in ink rather
+   than in the accent, because it is a permission rather than an action. */
+.tm-status-admin {
+    border-color: var(--tm-color-ink);
+    background-color: var(--tm-color-ink);
+    color: var(--tm-color-on-dark);
+}
+
+.tm-status-member {
+    border-color: var(--tm-color-hairline);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-muted);
+}
+
+/* The dot is meaningless on the role chips, which are already unambiguous. */
+.tm-status-admin::before,
+.tm-status-member::before {
+    display: none;
+}
+
+/* ============================================================================
+   Meter
+
+   The split editor's "has this been divided up yet" bar. A progress bar is the
+   right mark for it: the question is whether the track is full, and a reader
+   answers that faster from a filled bar than from two numbers they have to
+   subtract.
+
+   The fill carries the state colour rather than a fixed accent, so an
+   unfinished split is amber and a finished one is green. The note underneath
+   says the same thing in words, which is what keeps the colour from being the
+   only signal.
+   ============================================================================ */
+
+.tm-meter {
+    margin-top: var(--tm-space-lg);
+    padding: var(--tm-space-base);
+    border: 1px solid var(--tm-color-hairline);
+    border-radius: var(--tm-radius-md);
+    background-color: var(--tm-color-surface-soft);
+}
+
+.tm-meter-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--tm-space-xs) var(--tm-space-base);
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: var(--tm-space-sm);
+}
+
+.tm-meter-label {
+    color: var(--tm-color-ink);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.tm-meter-value {
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.tm-meter-track {
+    height: 8px;
+    border-radius: var(--tm-radius-full);
+    /* A visible empty track rather than a transparent one, so a form that is
+       entirely unassigned still draws the shape the reader is looking for. */
+    background-color: var(--tm-color-track);
+    overflow: hidden;
+}
+
+.tm-meter-fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--tm-radius-full);
+    transition: width var(--tm-motion-base) var(--tm-motion-ease),
+                background-color var(--tm-motion-base) var(--tm-motion-ease);
+}
+
+.tm-meter-fill-success {
+    background-color: var(--tm-color-success);
+}
+
+.tm-meter-fill-warning {
+    background-color: var(--tm-color-warning);
+}
+
+.tm-meter-note {
+    margin: var(--tm-space-sm) 0 0;
+    font-size: 13px;
+    line-height: 1.43;
+}
+
+/* A participant in the split editor: avatar then name, so a long list of names
+   is scannable by face-initial rather than by reading every line. */
+.tm-split-person {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--tm-space-sm);
+}
+
+/* ============================================================================
+   Diverging position bar
+
+   The balances page's answer to "who is up and who is down". A table of seven
+   currency columns is precise and tells a reader nothing at a glance: the
+   question here is a shape, not a figure, and the figure is already in the
+   table underneath.
+
+   So each member gets one line. A centre line is square. A bar growing right
+   is money they are owed; a bar growing left is money they still owe. Colour
+   follows the direction and is never the only signal, because the side of the
+   centre line already says which way it went and the amount is written at the
+   end.
+
+   The halves are separate elements rather than one bar with a signed width,
+   which keeps the centre line exactly at the middle of the track and means a
+   member who is square draws nothing at all.
+   ============================================================================ */
+
+.tm-diverging {
+    margin-top: var(--tm-space-base);
+}
+
+/* The axis labels. Laid out with the same three-column grid as the rows below,
+   with the two words sharing the middle track exactly as the two bar halves do.
+   That is what puts each word over the half it names; placing them as siblings
+   of the track instead lands them in the same cell, and the grid then stacks
+   them, which reads as the two labels being swapped. */
+.tm-diverging-axis {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+    gap: var(--tm-space-base);
+    margin-bottom: var(--tm-space-xs);
+    color: var(--tm-color-muted-soft);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* The middle track of the row above, and the only populated cell here. */
+.tm-diverging-axis-track {
+    grid-column: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.tm-diverging-axis-label-pay {
+    padding-right: var(--tm-space-sm);
+    text-align: right;
+}
+
+.tm-diverging-axis-label-receive {
+    padding-left: var(--tm-space-sm);
+}
+
+.tm-diverging-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tm-space-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tm-diverging-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+    gap: var(--tm-space-base);
+    align-items: center;
+}
+
+.tm-diverging-name {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--tm-space-sm);
+    min-width: 0;
+    color: var(--tm-color-ink);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* The name is the one thing on the row that can be arbitrarily long, so it is
+   the one thing allowed to truncate. Everything else is a fixed shape. */
+.tm-diverging-name > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The track. Two halves meeting at the centre, each drawing its bar from that
+   centre outwards, which is what makes the two directions read as opposite. */
+.tm-diverging-track {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* Tall enough for the bar, and it holds its height when there is no bar so
+       a page of square members does not collapse to a stack of names. */
+    height: 22px;
+}
+
+.tm-diverging-half {
+    display: flex;
+    align-items: center;
+    /* The hairline that marks square. Both halves carry it and they meet, so it
+       reads as one line through the middle of the row. */
+    border-right: 1px solid var(--tm-color-hairline);
+}
+
+.tm-diverging-half-pay {
+    justify-content: flex-end;
+}
+
+.tm-diverging-half-receive {
+    border-right: none;
+    border-left: 1px solid var(--tm-color-hairline);
+    justify-content: flex-start;
+}
+
+.tm-diverging-bar {
+    display: block;
+    height: 10px;
+    /* Animated on width. That is a layout property, which DESIGN.md Part Two
+       section 4 rules out, so this is a transition on the one property the
+       shape is made of rather than a decoration: nothing else on the page
+       reflows when it runs, because the track is a fixed size. */
+    transition: width var(--tm-motion-base) var(--tm-motion-ease);
+}
+
+.tm-diverging-bar-pay {
+    background-color: var(--tm-color-danger);
+    border-radius: var(--tm-radius-full) 0 0 var(--tm-radius-full);
+}
+
+.tm-diverging-bar-receive {
+    background-color: var(--tm-color-success);
+    border-radius: 0 var(--tm-radius-full) var(--tm-radius-full) 0;
+}
+
+.tm-diverging-value {
+    color: var(--tm-color-ink);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* Below the mobile breakpoint the name and the amount take the full width and
+   the bar sits under them. Squeezing three columns into 390px leaves the bar
+   about 40px wide, which is not enough to show a difference between 10% and
+   40%. */
+@media (max-width: 743px) {
+    .tm-diverging-axis {
+        display: none;
+    }
+
+    .tm-diverging-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: var(--tm-space-xs) var(--tm-space-sm);
+    }
+
+    .tm-diverging-name {
+        grid-column: 1;
+    }
+
+    .tm-diverging-value {
+        grid-column: 2;
+    }
+
+    .tm-diverging-track {
+        grid-column: 1 / -1;
+    }
 }
 
 /* Notices. Ink on the soft surface is the neutral default, which is what the
@@ -2311,6 +2936,38 @@ body .tm-input-narrow.ui-inputfield {
     max-width: 60ch;
 }
 
+/* A danger zone whose action needs more than one control, as the typed
+   confirmation does, stacks its form instead of laying it out in the row. The
+   confirmation field needs the width; squeezing it beside the description
+   would leave about 120px for a trip name. */
+.tm-danger-zone form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tm-space-sm);
+    align-items: stretch;
+    min-width: min(320px, 100%);
+}
+
+.tm-danger-zone .tm-field-label {
+    font-size: 13px;
+}
+
+/* The destructive button. Same tone as the confirmation dialog's confirming
+   button, for the same reason: Rausch on this button reads as the good
+   outcome. */
+body .ui-button.tm-button-danger {
+    border: 1px solid var(--tm-color-danger);
+    background-color: var(--tm-color-danger);
+    color: var(--tm-color-on-primary);
+}
+
+body .ui-button.tm-button-danger:hover,
+body .ui-button.tm-button-danger.ui-state-hover {
+    border-color: var(--tm-color-error-hover);
+    background-color: var(--tm-color-error-hover);
+    color: var(--tm-color-on-primary);
+}
+
 /* Checkboxes and radios take ink when checked. The theme uses its blue, which
    is a second accent the system does not have. */
 body .ui-chkbox .ui-chkbox-box.ui-state-active,
@@ -2380,6 +3037,373 @@ body .ui-tabs .ui-tabs-panels {
 body .ui-tabs .ui-tabs-panel {
     padding: var(--tm-space-lg) 0 0;
     background-color: transparent;
+}
+
+/* ==========================================================================
+   Focus policy
+
+   Two of the reported defects have one cause. Clicking a tab left a border
+   behind, and clicking a table cell drew one as well.
+
+   PrimeFaces gives a tab header and a table cell a tabindex so both can be
+   reached by keyboard. A browser then treats a mouse click on them as focus and
+   draws the platform focus ring, which follows the desktop accent colour rather
+   than the page's, so it arrived in a colour that appears nowhere else in the
+   product.
+
+   The rule is one rule: a ring is drawn for :focus-visible only. Keyboard focus
+   keeps an obvious indicator, which is a hard accessibility requirement and not
+   something to trade away; a mouse click leaves nothing behind.
+   ========================================================================== */
+
+/* Suppress the ring only when the browser has decided this focus did not come
+   from the keyboard.
+
+   Written as `:focus:not(:focus-visible)` rather than as a blanket
+   `:focus { outline: none }` on purpose. The blanket form would also remove the
+   indicator from a keyboard user, and every selector below covers an element
+   that a keyboard user can land on. Suppressing the mouse case and leaving the
+   keyboard case alone is the whole point of the rule. */
+body .ui-tabs .ui-tabs-nav li.ui-tabs-header > a:focus:not(:focus-visible),
+body .ui-datatable .ui-datatable-data > tr:focus:not(:focus-visible),
+body .ui-datatable td:focus:not(:focus-visible),
+body .ui-datatable th:focus:not(:focus-visible),
+body .ui-selectonemenu:focus:not(:focus-visible),
+body .ui-selectonemenu .ui-selectonemenu-label:focus:not(:focus-visible),
+body .ui-datepicker .ui-datepicker-calendar td > a:focus:not(:focus-visible),
+body .ui-datepicker .ui-datepicker-prev:focus:not(:focus-visible),
+body .ui-datepicker .ui-datepicker-next:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Keyboard focus, which stays obvious. */
+body .ui-tabs .ui-tabs-nav li.ui-tabs-header > a:focus-visible,
+body .ui-datatable .ui-datatable-data > tr:focus-visible,
+body .ui-datatable td:focus-visible,
+body .ui-datatable th:focus-visible,
+body .ui-datepicker .ui-datepicker-calendar td > a:focus-visible,
+body .ui-datepicker .ui-datepicker-prev:focus-visible,
+body .ui-datepicker .ui-datepicker-next:focus-visible {
+    outline: 2px solid var(--tm-color-ink);
+    outline-offset: 2px;
+    border-radius: var(--tm-radius-xs);
+}
+
+/* Buttons take the theme's focus ring on :focus. Move it to :focus-visible.
+   `.ui-state-focus` is the class PrimeFaces adds itself, so it has to be
+   cleared separately: it is applied on every focus, keyboard or not. */
+body .ui-button:focus:not(:focus-visible),
+body .ui-button.ui-state-focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+}
+
+body .ui-button:focus-visible {
+    outline: 2px solid var(--tm-color-ink);
+    outline-offset: 2px;
+}
+
+/* The two controls whose focus state is a border rather than a ring are
+   handled where they are defined, above. */
+
+/* ==========================================================================
+   Toasts
+
+   What an action reports when it is done. Replaces the grey notice box, which
+   could say only one thing at a time, could not survive the redirect that most
+   successful actions perform, and looked identical whether it was reporting a
+   success or a failure.
+
+   Positioned below the sticky navigation so it never covers it, and above
+   everything else because a message about what just happened outranks anything
+   else on the page.
+   ========================================================================== */
+
+.tm-toast-stack {
+    position: fixed;
+    top: calc(72px + var(--tm-space-base));
+    right: var(--tm-space-lg);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    gap: var(--tm-space-sm);
+    width: min(380px, calc(100vw - 2 * var(--tm-space-base)));
+    /* The stack is as wide as its widest toast and spans an empty column the
+       rest of the time, so it must not swallow clicks meant for the page. Each
+       toast turns pointer events back on for itself. */
+    pointer-events: none;
+}
+
+.tm-toast-stack[hidden] {
+    display: none;
+}
+
+.tm-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--tm-space-md);
+    padding: var(--tm-space-md) var(--tm-space-base);
+    border: 1px solid var(--tm-color-hairline);
+    border-left-width: 3px;
+    border-radius: var(--tm-radius-md);
+    background-color: var(--tm-color-canvas);
+    box-shadow: var(--tm-elevation-3);
+    pointer-events: auto;
+    animation: tm-toast-in var(--tm-motion-slow) var(--tm-motion-ease) both;
+}
+
+.tm-toast-icon {
+    flex: 0 0 auto;
+    margin-top: 1px;
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+.tm-toast-text {
+    flex: 1 1 auto;
+    margin: 0;
+    color: var(--tm-color-ink);
+    font-size: 14px;
+    line-height: 1.43;
+}
+
+.tm-toast-close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* 32px rather than the 44px touch minimum: it sits inside a message that
+       will dismiss itself anyway, and a larger target would dominate it. The
+       padding around it in the toast keeps it easy to hit. */
+    width: 32px;
+    height: 32px;
+    margin: -4px -6px -4px 0;
+    padding: 0;
+    border: none;
+    border-radius: var(--tm-radius-sm);
+    background-color: transparent;
+    color: var(--tm-color-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color var(--tm-motion-fast) var(--tm-motion-ease);
+}
+
+.tm-toast-close:hover {
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+}
+
+/* Severity. The icon, the left edge and the tint all change together, so the
+   severity is never carried by colour alone. */
+.tm-toast-success { border-left-color: var(--tm-color-success); background-color: var(--tm-color-success-soft); }
+.tm-toast-success .tm-toast-icon { color: var(--tm-color-success); }
+
+.tm-toast-info { border-left-color: var(--tm-color-info); background-color: var(--tm-color-info-soft); }
+.tm-toast-info .tm-toast-icon { color: var(--tm-color-info); }
+
+.tm-toast-warning { border-left-color: var(--tm-color-warning); background-color: var(--tm-color-warning-soft); }
+.tm-toast-warning .tm-toast-icon { color: var(--tm-color-warning); }
+
+.tm-toast-error { border-left-color: var(--tm-color-danger); background-color: var(--tm-color-danger-soft); }
+.tm-toast-error .tm-toast-icon { color: var(--tm-color-danger); }
+
+.tm-toast-leaving {
+    animation: tm-toast-out var(--tm-motion-slow) var(--tm-motion-ease) both;
+}
+
+@keyframes tm-toast-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tm-toast-out {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-8px); }
+}
+
+/* The sign-in and registration pages have no navigation bar, so the offset
+   that clears it would leave the stack floating in the middle of nothing. */
+.tm-auth-page .tm-toast-stack {
+    top: var(--tm-space-lg);
+}
+
+@media (max-width: 743px) {
+    .tm-toast-stack {
+        top: calc(64px + var(--tm-space-sm));
+        right: var(--tm-space-base);
+        left: var(--tm-space-base);
+        width: auto;
+    }
+
+    .tm-auth-page .tm-toast-stack {
+        top: var(--tm-space-base);
+    }
+}
+
+/* ==========================================================================
+   Empty and error states
+
+   Two different things that were previously both a centred grey sentence. An
+   empty state explains what would be here and offers the action that would put
+   it here; an error state says the region could not be built and offers a way
+   out. Neither is a bare paragraph.
+   ========================================================================== */
+
+.tm-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--tm-space-sm);
+    padding: var(--tm-space-xxl) var(--tm-space-lg);
+    text-align: center;
+}
+
+.tm-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    margin-bottom: var(--tm-space-xs);
+    border-radius: var(--tm-radius-full);
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-muted);
+    font-size: 22px;
+}
+
+.tm-empty-title {
+    margin: 0;
+    color: var(--tm-color-ink);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.tm-empty-text {
+    max-width: 46ch;
+    color: var(--tm-color-muted);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.tm-empty-action {
+    margin-top: var(--tm-space-sm);
+}
+
+.tm-error-state {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--tm-space-base);
+    padding: var(--tm-space-lg);
+    border: 1px solid var(--tm-color-danger-border);
+    border-radius: var(--tm-radius-md);
+    background-color: var(--tm-color-danger-soft);
+}
+
+.tm-error-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--tm-radius-full);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-danger);
+    font-size: 16px;
+}
+
+.tm-error-body {
+    flex: 1 1 auto;
+}
+
+.tm-error-title {
+    margin: 0 0 var(--tm-space-xs);
+    color: var(--tm-color-ink);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.tm-error-text {
+    margin: 0;
+    color: var(--tm-color-body);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.tm-error-action {
+    margin-top: var(--tm-space-base);
+}
+
+/* ==========================================================================
+   Confirmation dialog
+
+   Replaces window.confirm, which cannot be styled, is announced to a screen
+   reader as nothing in particular, and blocks the browser while it is open.
+   ========================================================================== */
+
+body .ui-confirm-dialog.tm-confirm,
+body .tm-confirm.ui-confirmdialog {
+    padding: var(--tm-space-lg);
+    border: none;
+    border-radius: var(--tm-radius-md);
+    background-color: var(--tm-color-canvas);
+    box-shadow: var(--tm-elevation-3);
+    max-width: min(440px, calc(100vw - 2 * var(--tm-space-base)));
+}
+
+body .tm-confirm .ui-confirm-dialog-message {
+    margin: 0 0 var(--tm-space-lg);
+    color: var(--tm-color-ink);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+body .tm-confirm .ui-confirm-dialog-severity {
+    color: var(--tm-color-warning);
+    font-size: 20px;
+}
+
+body .tm-confirm .ui-dialog-footer,
+body .tm-confirm .ui-confirm-dialog-footer {
+    display: flex;
+    gap: var(--tm-space-sm);
+    justify-content: flex-end;
+    padding: 0;
+    border: none;
+}
+
+body .tm-confirm .ui-dialog-titlebar {
+    padding: 0 0 var(--tm-space-sm);
+    border: none;
+    background-color: transparent;
+    color: var(--tm-color-ink);
+    font-size: 17px;
+    font-weight: 700;
+}
+
+/* The dialog's own close control, matched to the rest of the chrome. */
+body .tm-confirm .ui-dialog-titlebar-icon {
+    color: var(--tm-color-muted);
+}
+
+/* The confirming button takes the danger tone rather than the brand accent.
+   Rausch on this button reads as "this is the good outcome", which is the
+   opposite of what it does. Every confirmation in the application is for a
+   deletion, so the tone is unconditional rather than something each button has
+   to remember to ask for. */
+body .tm-confirm .ui-confirmdialog-yes.ui-button {
+    border: 1px solid var(--tm-color-danger);
+    background-color: var(--tm-color-danger);
+    color: var(--tm-color-on-primary);
+}
+
+body .tm-confirm .ui-confirmdialog-yes.ui-button:hover,
+body .tm-confirm .ui-confirmdialog-yes.ui-button.ui-state-hover {
+    border-color: var(--tm-color-error-hover);
+    background-color: var(--tm-color-error-hover);
+    color: var(--tm-color-on-primary);
 }
 
 /* ==========================================================================
@@ -2975,4 +3999,200 @@ body .ui-datatable th {
         flex-direction: column;
         align-items: flex-start;
     }
+}
+
+/* ==========================================================================
+   Reports
+   ========================================================================== */
+
+/* The trip selector. Chips rather than a dropdown: every alternative stays
+   visible, each one is reachable by keyboard without opening anything, and the
+   chosen trip is in the URL where it can be shared or bookmarked. */
+.tm-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--tm-space-sm);
+    margin-bottom: var(--tm-space-xl);
+}
+
+/* Written as `a.tm-chip` rather than `.tm-chip` on purpose. The generic
+   `.tm-page a` rule sets ink and an underline, and it outranks a bare class,
+   so a chip written the obvious way came out as ink text on an ink background
+   when selected: an apparently empty pill. Matching its specificity and
+   coming later in the file is what fixes it. */
+a.tm-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 6px 14px;
+    border: 1px solid var(--tm-color-hairline);
+    border-radius: var(--tm-radius-full);
+    background-color: var(--tm-color-canvas);
+    color: var(--tm-color-ink);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: border-color var(--tm-motion-fast) var(--tm-motion-ease),
+                background-color var(--tm-motion-fast) var(--tm-motion-ease);
+}
+
+a.tm-chip:hover {
+    border-color: var(--tm-color-ink);
+    background-color: var(--tm-color-surface-soft);
+    color: var(--tm-color-ink);
+    text-decoration: none;
+}
+
+/* The chosen chip inverts. It is the one genuinely selected thing on the page,
+   and an outline alone was too quiet to find at a glance. */
+a.tm-chip-active,
+a.tm-chip-active:hover {
+    border-color: var(--tm-color-ink);
+    background-color: var(--tm-color-ink);
+    color: var(--tm-color-on-dark);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* A chart beside its table on a wide screen, stacked on a narrow one. The
+   table is not a fallback for the chart; it is where the exact figures live,
+   which is why it sits alongside rather than behind a disclosure. */
+.tm-chart-pair {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--tm-space-xl);
+}
+
+@media (min-width: 1024px) {
+    .tm-chart-pair {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+        align-items: start;
+    }
+}
+
+/* --- the written reading of the numbers ---------------------------------- */
+.tm-insights {
+    /* The subtle gradient, one of only two places it is allowed: a full-bleed
+       surface with no data on it. */
+    background-image: var(--tm-gradient-subtle);
+}
+
+.tm-insight-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tm-space-md);
+    margin: var(--tm-space-base) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tm-insight-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--tm-space-md);
+    color: var(--tm-color-body);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.tm-insight-list .pi {
+    flex: 0 0 auto;
+    margin-top: 2px;
+    color: var(--tm-color-warning);
+    font-size: 15px;
+}
+
+/* ==========================================================================
+   Tab panels
+
+   Every panel is the full width of the card that holds it, so switching tabs
+   never changes how wide the content is. A tab strip whose panels are different
+   widths reads as the page reloading into something else rather than as one
+   panel replacing another.
+   ========================================================================== */
+
+body .ui-tabs,
+body .ui-tabs .ui-tabs-nav,
+body .ui-tabs .ui-tabs-panels,
+body .ui-tabs .ui-tabs-panel {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+body .ui-tabs .ui-tabs-panel {
+    /* The panels sit in a stack; only one is visible at a time. Sizing them all
+       to the same box means the container does not resize between tabs. */
+    min-height: 320px;
+}
+
+/* Anything a panel holds that is a block stretches with it, so a panel holding
+   one narrow table and a panel holding a wide one still line up. */
+body .ui-tabs .ui-tabs-panel > * {
+    max-width: 100%;
+}
+
+/* Row actions that sit side by side in a table cell, wrapping rather than
+   overflowing on a narrow column. */
+.tm-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--tm-space-sm);
+}
+
+.tm-row-actions .ui-button {
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+/* ==========================================================================
+   Split breakdown
+
+   One line per person on an expense, the name on the left and what they owe on
+   the right. In a table cell this replaces a bare count, and in a stacked card
+   it reads as a small ledger.
+   ========================================================================== */
+
+.tm-split-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tm-split-list li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--tm-space-base);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.tm-split-name {
+    color: var(--tm-color-body);
+    overflow-wrap: anywhere;
+}
+
+.tm-split-amount {
+    color: var(--tm-color-ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* A heading that starts a new block inside a panel already has content above
+   it, so it needs its own space rather than the panel's top padding. */
+.tm-section-heading {
+    margin-top: var(--tm-space-xl);
+    margin-bottom: var(--tm-space-xs);
+}
+
+/* Sits directly under the sign-in button, where somebody who has just failed to
+   sign in is looking. */
+.tm-auth-forgot {
+    margin: var(--tm-space-base) 0 0;
+    text-align: center;
 }

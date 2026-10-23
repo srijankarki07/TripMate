@@ -3,6 +3,7 @@ package com.tripmate.web.backing;
 import java.io.Serializable;
 
 import com.tripmate.dto.UserDTO;
+import com.tripmate.web.support.Initials;
 
 import jakarta.enterprise.context.SessionScoped;
 import jakarta.inject.Named;
@@ -49,44 +50,47 @@ public class CurrentUser implements Serializable {
     /**
      * Up to two initials for the avatar in the navigation bar.
      *
-     * <p>Derived from the first and last word of the name rather than the first
-     * two, so "Srijan Karki" gives "SK" rather than "SR". A single-word name
-     * gives one letter. A name that yields nothing usable falls back to a
-     * question mark, so the avatar is never an empty circle.
-     *
-     * <p>Bounded to two characters because that is what the avatar is sized
-     * for; a longer string would overflow the circle on a narrow screen.
+     * <p>The rule lives in {@link Initials}, because the trip's member list and
+     * the balance position bar draw the same avatar and must not disagree with
+     * this one about the same person.
      *
      * @return one or two upper-case letters, never null and never empty
      */
     public String getInitials() {
-        String name = getFullName().trim();
-        if (name.isEmpty()) {
-            return "?";
-        }
-
-        String[] words = name.split("\\s+");
-        StringBuilder initials = new StringBuilder();
-        initials.append(firstLetter(words[0]));
-        if (words.length > 1) {
-            initials.append(firstLetter(words[words.length - 1]));
-        }
-
-        String result = initials.toString().toUpperCase();
-        return result.isEmpty() ? "?" : result;
+        return Initials.of(getFullName());
     }
 
-    private static char firstLetter(String word) {
-        for (int i = 0; i < word.length(); i++) {
-            if (Character.isLetterOrDigit(word.charAt(i))) {
-                return word.charAt(i);
-            }
-        }
-        return ' ';
-    }
-
+    /**
+     * Signs a user in, and gives them a new session id.
+     *
+     * <p>Changing the id is what stops session fixation. Without it, an
+     * attacker who can plant a session id on the victim before they sign in
+     * keeps using that id afterwards, because signing in never changed it. The
+     * session's attributes are carried across, so anything already stored, such
+     * as the path to return to after signing in, survives.
+     *
+     * <p>Done here rather than in each backing bean so that every path into a
+     * signed-in state, sign-in and registration alike, gets it by construction.
+     */
     public void login(UserDTO user) {
         this.user = user;
+        renewSessionId();
+    }
+
+    private static void renewSessionId() {
+        Object request = jakarta.faces.context.FacesContext.getCurrentInstance()
+                .getExternalContext()
+                .getRequest();
+        if (request instanceof jakarta.servlet.http.HttpServletRequest http) {
+            try {
+                http.changeSessionId();
+            } catch (IllegalStateException none) {
+                // No session to change, which cannot happen on a path that just
+                // authenticated someone. Ignored rather than thrown: refusing to
+                // sign someone in because the id could not be rotated would be a
+                // worse outcome than signing them in on the id they have.
+            }
+        }
     }
 
     /**

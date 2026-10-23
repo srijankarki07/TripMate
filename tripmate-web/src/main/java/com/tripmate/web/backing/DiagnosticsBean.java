@@ -24,6 +24,7 @@ import com.tripmate.remote.ExpenseServiceRemote;
 import com.tripmate.remote.ReportServiceRemote;
 import com.tripmate.remote.TripServiceRemote;
 import com.tripmate.remote.UserServiceRemote;
+import com.tripmate.web.chart.ChartPalette;
 
 import jakarta.ejb.EJB;
 import jakarta.enterprise.context.RequestScoped;
@@ -90,6 +91,7 @@ public class DiagnosticsBean implements Serializable {
         runSuite("The five required queries", queryVerificationTest::runQueryChecks);
         runSuite("Session bean rejections", this::runRejectionChecks);
         runSuite("Balances and settle-up arithmetic", this::runBalanceArithmeticChecks);
+        runSuite("Chart palette matches the stylesheet", this::runPaletteChecks);
     }
 
     // ------------------------------------------------------------------
@@ -124,7 +126,7 @@ public class DiagnosticsBean implements Serializable {
 
         for (TripDTO trip : tripService.getTripsForUser(alice.getUserId())) {
             String label = "trip " + trip.getTripId();
-            List<MemberBalanceDTO> balances = reportService.getMemberBalances(trip.getTripId());
+            List<MemberBalanceDTO> balances = reportService.getMemberBalances(trip.getTripId(), alice.getUserId());
             List<SettlementDTO> settlements = expenseService.getSettlementsForTrip(trip.getTripId());
             List<BalancesBean.MemberPosition> positions =
                     BalancesBean.buildPositions(balances, settlements);
@@ -392,5 +394,60 @@ public class DiagnosticsBean implements Serializable {
 
     public long getFailCount() {
         return report == null ? 0 : report.stream().filter(l -> l.startsWith("FAIL")).count();
+    }
+
+    /**
+     * Checks that the chart palette in Java and the one in the stylesheet are
+     * still the same six colours.
+     *
+     * <p>They have to exist twice. Chart.js draws to a canvas, so the series
+     * colours can only reach it through the JSON configuration built in Java,
+     * while the legend and the swatches beside the chart are HTML and read the
+     * custom properties. Two copies of one palette is a drift waiting to
+     * happen, and the symptom would be a chart whose colours no longer match
+     * its own legend, which is easy to miss and hard to explain.
+     *
+     * <p>So the CSS is read back and each colour is looked for in it. This is a
+     * string search, not a parse: it proves the values are present, not that
+     * they are attached to the right variable names. That is enough to catch a
+     * colour changed in one place and not the other, which is the failure this
+     * exists for.
+     */
+    private List<String> runPaletteChecks() {
+        List<String> lines = new ArrayList<>();
+        String tag = "palette";
+
+        String css = readStylesheet();
+        if (css == null) {
+            lines.add("FAIL  [" + tag + "] could not read tripmate.css from the deployed application");
+            return lines;
+        }
+
+        int slot = 1;
+        for (String colour : ChartPalette.series()) {
+            check(lines, tag, "--tm-chart-" + slot + " is " + colour + " in the stylesheet",
+                    css.contains(colour));
+            slot++;
+        }
+        check(lines, tag, "the neutral reserved for Other is " + ChartPalette.OTHER,
+                css.contains(ChartPalette.OTHER));
+
+        return lines;
+    }
+
+    /**
+     * @return the stylesheet as text, or null when it cannot be read
+     *
+     * <p>Read through the servlet context rather than the class loader: the
+     * file lives in the web application, not on the classpath.
+     */
+    private String readStylesheet() {
+        try (java.io.InputStream in = jakarta.faces.context.FacesContext.getCurrentInstance()
+                .getExternalContext()
+                .getResourceAsStream("/resources/css/tripmate.css")) {
+            return in == null ? null : new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException | RuntimeException ex) {
+            return null;
+        }
     }
 }

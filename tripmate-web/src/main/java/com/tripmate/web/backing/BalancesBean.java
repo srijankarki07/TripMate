@@ -2,6 +2,7 @@ package com.tripmate.web.backing;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -14,6 +15,7 @@ import com.tripmate.dto.TripDTO;
 import com.tripmate.remote.ExpenseServiceRemote;
 import com.tripmate.remote.ReportServiceRemote;
 import com.tripmate.remote.TripServiceRemote;
+import com.tripmate.web.support.Initials;
 import com.tripmate.web.support.Messages;
 import com.tripmate.web.support.Toasts;
 
@@ -84,7 +86,7 @@ public class BalancesBean implements Serializable {
             return;
         }
 
-        List<MemberBalanceDTO> balances = reportService.getMemberBalances(tripId);
+        List<MemberBalanceDTO> balances = reportService.getMemberBalances(tripId, currentUser.getUserId());
         settlements = new ArrayList<>(expenseService.getSettlementsForTrip(tripId));
         positions = new ArrayList<>(buildPositions(balances, settlements));
         suggested = new ArrayList<>(suggestTransfers(positions));
@@ -243,6 +245,11 @@ public class BalancesBean implements Serializable {
             return fullName;
         }
 
+        /** @return the avatar letters for this member, from the shared rule */
+        public String getInitials() {
+            return Initials.of(fullName);
+        }
+
         public BigDecimal getPaid() {
             return paid;
         }
@@ -357,6 +364,55 @@ public class BalancesBean implements Serializable {
     /** True when any repayment has been made, so the two figures differ. */
     public boolean isRepaymentsAffectFigures() {
         return positions.stream().anyMatch(p -> !p.isUntouchedBySettlements());
+    }
+
+    // ------------------------------------------------------------------
+    // The position bar
+    // ------------------------------------------------------------------
+
+    /** The largest distance from square that anybody on the trip is. */
+    public BigDecimal getLargestPosition() {
+        return positions.stream()
+                .map(MemberPosition::getOutstandingMagnitude)
+                .max(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+    }
+
+    /**
+     * How far along its half of the bar one member's position reaches, as a
+     * whole number of percent from 0 to 100.
+     *
+     * <p>Every member is scaled against the same figure, the largest position on
+     * the trip. That is the point of the bar: scaling each row to its own maximum
+     * would draw every position the same length and say nothing, and scaling to
+     * the trip total would draw a single large position as a full bar with
+     * everybody else as a sliver.
+     *
+     * <p>The floor of 4 keeps a position that is real but tiny visible as a mark
+     * rather than as nothing at all, and a square position returns 0 so it draws
+     * no bar and the centre tick stands alone.
+     *
+     * @param position the member's row, which the view passes in
+     * @return 0 to 100
+     */
+    public int barWidth(MemberPosition position) {
+        BigDecimal largest = getLargestPosition();
+        if (position == null || largest.signum() == 0) {
+            return 0;
+        }
+        BigDecimal magnitude = position.getOutstandingMagnitude();
+        if (magnitude.signum() == 0) {
+            return 0;
+        }
+        int percent = magnitude.multiply(BigDecimal.valueOf(100))
+                .divide(largest, 0, RoundingMode.HALF_UP)
+                .intValue();
+        return Math.max(4, Math.min(100, percent));
+    }
+
+    /** @return true when there is a position worth drawing a bar for */
+    public boolean isHasPositionBar() {
+        return !positions.isEmpty() && getLargestPosition().signum() > 0;
     }
 
     // ------------------------------------------------------------------

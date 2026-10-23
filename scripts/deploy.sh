@@ -27,6 +27,13 @@ echo
 echo
 "$(dirname "${BASH_SOURCE[0]}")/glassfish-jms.sh"
 
+# And for the mail session: MailService injects it, so a missing resource fails
+# the deployment rather than the send. With no TM_MAIL_HOST set this still
+# creates the resource, and the session carries a flag that makes MailService
+# log each message instead of sending it.
+echo
+"$(dirname "${BASH_SOURCE[0]}")/glassfish-mail.sh"
+
 echo
 echo "==> Deploying '${APP_NAME}'"
 "${ASADMIN}" deploy --force=true --name="${APP_NAME}" "${EAR_FILE}"

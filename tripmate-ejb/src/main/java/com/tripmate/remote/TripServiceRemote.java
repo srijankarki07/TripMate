@@ -115,4 +115,36 @@ public interface TripServiceRemote {
 
     /** @return the user's role on the trip, or {@code null} if not a member */
     TripRole getMemberRole(Long tripId, Long userId);
+
+    /**
+     * Adds someone to a trip by their exact email address.
+     *
+     * @throws com.tripmate.exception.ValidationException when the address is
+     *         malformed, unknown, or already on the trip
+     */
+    TripMemberDTO addMemberByEmail(Long tripId, String email, TripRole role, Long actedBy);
+
+    /**
+     * Changes what a member is allowed to do.
+     *
+     * <p>Refuses to demote a trip's last administrator.
+     */
+    TripMemberDTO updateMemberRole(Long tripId, Long userId, TripRole role, Long actedBy);
+
+    /**
+     * Removes the caller from a trip.
+     *
+     * <p>Refuses when the caller is the trip's last administrator.
+     */
+    void leaveTrip(Long tripId, Long userId);
+
+    /**
+     * Emails every member the trip's closing summary.
+     *
+     * <p>Administrators only. Returns as soon as the messages are handed to the
+     * mail service, which sends them asynchronously.
+     *
+     * @return how many people it was sent to
+     */
+    int emailTripSummary(Long tripId, Long actedBy);
 }

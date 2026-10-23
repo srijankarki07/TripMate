@@ -262,3 +262,35 @@ CREATE INDEX idx_settlements_receiver ON settlements (receiver_id);
 
 -- Dashboard filters trips by lifecycle state.
 CREATE INDEX idx_trips_status ON trips (status);
+
+-- ============================================================================
+-- Password resets
+-- ============================================================================
+--
+-- One row per outstanding reset request. Deliberately holds no plaintext token:
+-- token_hash is the SHA-256 of the value that was emailed, so a copy of this
+-- table does not let anyone reset anybody's password. The token itself exists
+-- only in the message the user received.
+--
+-- consumed_at marks a token as spent rather than deleting the row, so a
+-- replayed link can be recognised as used rather than as unknown. An unknown
+-- token and a used one are answered the same way to the user; the difference
+-- matters for the log, not the response.
+
+CREATE TABLE password_resets (
+    reset_id      BIGSERIAL PRIMARY KEY,
+    user_id       BIGINT      NOT NULL,
+    token_hash    VARCHAR(64) NOT NULL,
+    requested_at  TIMESTAMP   NOT NULL DEFAULT NOW(),
+    expires_at    TIMESTAMP   NOT NULL,
+    consumed_at   TIMESTAMP,
+    requested_ip  VARCHAR(45),
+    CONSTRAINT uq_password_resets_token UNIQUE (token_hash),
+    CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id)
+        REFERENCES users (user_id) ON DELETE CASCADE
+);
+
+-- Lookups are always by the hash of what was presented, and cleaning up is
+-- always by age.
+CREATE INDEX idx_password_resets_user ON password_resets (user_id);
+CREATE INDEX idx_password_resets_expiry ON password_resets (expires_at);

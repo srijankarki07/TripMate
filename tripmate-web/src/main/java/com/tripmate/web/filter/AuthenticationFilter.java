@@ -53,7 +53,11 @@ public class AuthenticationFilter implements Filter {
             "",
             "/index.xhtml",
             "/login.xhtml",
-            "/register.xhtml");
+            "/register.xhtml",
+            // Reachable without signing in by definition: somebody who cannot
+            // sign in is the only person who needs them.
+            "/forgot-password.xhtml",
+            "/reset-password.xhtml");
 
     /**
      * Faces serves every stylesheet, script and image under this prefix, and

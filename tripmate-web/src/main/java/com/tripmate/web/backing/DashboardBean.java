@@ -61,8 +61,8 @@ public class DashboardBean implements Serializable {
         }
 
         trips = tripService.getTripsForUser(userId);
-        totalPaid = reportService.getTotalPaidByUser(userId);
-        totalOwed = reportService.getTotalOwedByUser(userId);
+        totalPaid = reportService.getTotalPaidByUser(userId, userId);
+        totalOwed = reportService.getTotalOwedByUser(userId, userId);
         recentExpenses = collectRecentExpenses();
     }
 

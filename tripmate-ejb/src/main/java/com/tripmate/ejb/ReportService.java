@@ -4,7 +4,11 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import com.tripmate.dto.CategorySpendingDTO;
+import com.tripmate.exception.ValidationException;
+import com.tripmate.dto.CategoryTotalDTO;
+import com.tripmate.dto.DailyTotalDTO;
 import com.tripmate.dto.MemberBalanceDTO;
+import com.tripmate.dto.TripTotalDTO;
 import com.tripmate.remote.ReportServiceRemote;
 
 import jakarta.ejb.Stateless;
@@ -44,10 +48,11 @@ public class ReportService implements ReportServiceRemote {
      * it is shown beside.
      */
     @Override
-    public List<MemberBalanceDTO> getMemberBalances(Long tripId) {
+    public List<MemberBalanceDTO> getMemberBalances(Long tripId, Long actedBy) {
         if (tripId == null) {
             return List.of();
         }
+        TripAccess.requireMember(em, tripId, actedBy, "read this trip's balances");
         return em.createQuery(
                         "SELECT new com.tripmate.dto.MemberBalanceDTO("
                                 + "  u.userId, u.fullName,"
@@ -90,10 +95,11 @@ public class ReportService implements ReportServiceRemote {
      * or more related entities, is still met.
      */
     @Override
-    public List<CategorySpendingDTO> getCategorySpendingForUser(Long userId) {
+    public List<CategorySpendingDTO> getCategorySpendingForUser(Long userId, Long actedBy) {
         if (userId == null) {
             return List.of();
         }
+        requireSelf(userId, actedBy, "read this spending");
         return em.createQuery(
                         "SELECT new com.tripmate.dto.CategorySpendingDTO("
                                 + "  e.category, SUM(es.amountOwed), COUNT(DISTINCT e.trip.tripId))"
@@ -111,37 +117,41 @@ public class ReportService implements ReportServiceRemote {
     }
 
     @Override
-    public BigDecimal getTotalSpentForTrip(Long tripId) {
+    public BigDecimal getTotalSpentForTrip(Long tripId, Long actedBy) {
         if (tripId == null) {
             return BigDecimal.ZERO;
         }
+        TripAccess.requireMember(em, tripId, actedBy, "read this trip's spending");
         return scalar("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e "
                 + "WHERE e.trip.tripId = :id", tripId);
     }
 
     @Override
-    public BigDecimal getTotalPaidByUser(Long userId) {
+    public BigDecimal getTotalPaidByUser(Long userId, Long actedBy) {
         if (userId == null) {
             return BigDecimal.ZERO;
         }
+        requireSelf(userId, actedBy, "read these totals");
         return scalar("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e "
                 + "WHERE e.paidBy.userId = :id", userId);
     }
 
     @Override
-    public BigDecimal getTotalOwedByUser(Long userId) {
+    public BigDecimal getTotalOwedByUser(Long userId, Long actedBy) {
         if (userId == null) {
             return BigDecimal.ZERO;
         }
+        requireSelf(userId, actedBy, "read these totals");
         return scalar("SELECT COALESCE(SUM(es.amountOwed), 0) FROM ExpenseSplit es "
                 + "WHERE es.user.userId = :id", userId);
     }
 
     @Override
-    public long getTripCountForUser(Long userId) {
+    public long getTripCountForUser(Long userId, Long actedBy) {
         if (userId == null) {
             return 0L;
         }
+        requireSelf(userId, actedBy, "read these totals");
         return em.createQuery(
                         "SELECT COUNT(tm) FROM TripMember tm WHERE tm.user.userId = :id",
                         Long.class)
@@ -150,10 +160,106 @@ public class ReportService implements ReportServiceRemote {
     }
 
     /** Runs a single-value numeric aggregate, treating a null result as zero. */
+    /**
+     * Refuses a request for someone else's totals.
+     *
+     * <p>The user-scoped aggregates took a bare user id, so any caller could
+     * ask for any user's spending by guessing a number. The web tier always
+     * passed the signed-in user, but the service was open. Reading your own
+     * figures is the only thing these are for, so the actor must be the subject.
+     */
+    private static void requireSelf(Long userId, Long actedBy, String what) {
+        if (actedBy == null || !actedBy.equals(userId)) {
+            throw new ValidationException("you can only " + what + " on your own account");
+        }
+    }
+
     private BigDecimal scalar(String jpql, Long id) {
         BigDecimal value = em.createQuery(jpql, BigDecimal.class)
                 .setParameter("id", id)
                 .getSingleResult();
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    /**
+     * What a trip spent in each category.
+     *
+     * <p>Sums the whole expense rather than the splits, because the question is
+     * what the trip spent, not what any one person's share of it was.
+     *
+     * <p>Guarded, unlike the reporting methods that predate it: a breakdown of
+     * a trip's spending is not something a stranger should be able to read by
+     * guessing a trip id.
+     */
+    @Override
+    public List<CategoryTotalDTO> getCategoryTotalsForTrip(Long tripId, Long actedBy) {
+        if (tripId == null) {
+            return List.of();
+        }
+        TripAccess.requireMember(em, tripId, actedBy, "read this trip's spending");
+        return em.createQuery(
+                        "SELECT new com.tripmate.dto.CategoryTotalDTO("
+                                + "  e.category, SUM(e.amount), COUNT(e))"
+                                + " FROM Expense e"
+                                + " WHERE e.trip.tripId = :tripId"
+                                + " GROUP BY e.category"
+                                + " ORDER BY SUM(e.amount) DESC",
+                        CategoryTotalDTO.class)
+                .setParameter("tripId", tripId)
+                .getResultList();
+    }
+
+    /**
+     * What a trip spent on each day.
+     *
+     * <p>Days with no spending are absent rather than zero. Generating a row
+     * per calendar day would be a date series the database has no natural way
+     * to produce, and a gap in a line is a truthful picture of a day nobody
+     * bought anything.
+     */
+    @Override
+    public List<DailyTotalDTO> getDailyTotalsForTrip(Long tripId, Long actedBy) {
+        if (tripId == null) {
+            return List.of();
+        }
+        TripAccess.requireMember(em, tripId, actedBy, "read this trip's spending");
+        return em.createQuery(
+                        "SELECT new com.tripmate.dto.DailyTotalDTO("
+                                + "  e.expenseDate, SUM(e.amount), COUNT(e))"
+                                + " FROM Expense e"
+                                + " WHERE e.trip.tripId = :tripId"
+                                + " GROUP BY e.expenseDate"
+                                + " ORDER BY e.expenseDate",
+                        DailyTotalDTO.class)
+                .setParameter("tripId", tripId)
+                .getResultList();
+    }
+
+    /**
+     * Every trip a user belongs to, with its total and its cost per head.
+     *
+     * <p>Driven from Trip joined to its members so a trip the user belongs to
+     * appears even when nothing has been spent on it yet; starting from Expense
+     * would quietly drop it, and a trip that has cost nothing is a fact worth
+     * showing rather than an absence.
+     */
+    @Override
+    public List<TripTotalDTO> getTripTotalsForUser(Long userId) {
+        if (userId == null) {
+            return List.of();
+        }
+        return em.createQuery(
+                        "SELECT new com.tripmate.dto.TripTotalDTO("
+                                + "  t.tripId, t.tripName,"
+                                + "  (SELECT COALESCE(SUM(e.amount), 0) FROM Expense e"
+                                + "     WHERE e.trip = t),"
+                                + "  t.startDate, t.status,"
+                                + "  (SELECT COUNT(tm) FROM TripMember tm WHERE tm.trip = t))"
+                                + " FROM Trip t JOIN t.members m"
+                                + " WHERE m.user.userId = :userId"
+                                + " ORDER BY t.startDate DESC",
+                        TripTotalDTO.class)
+                .setParameter("userId", userId)
+                .getResultList();
     }
 }

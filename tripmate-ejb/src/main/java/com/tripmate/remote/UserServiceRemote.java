@@ -64,7 +64,19 @@ public interface UserServiceRemote {
      *
      * @throws IllegalArgumentException if the user does not exist
      */
-    void changePassword(Long userId, String newPlainPassword);
+    /**
+     * Changes a password.
+     *
+     * <p>Three things are required: the person asking, the person it belongs
+     * to, and the password currently in force. The first two must be the same
+     * person. Asking for the current password as well makes the change
+     * deliberate rather than something a hijacked session can do quietly.
+     *
+     * @param actedBy the user making the request, who must be {@code userId}
+     * @throws com.tripmate.exception.ValidationException when either check fails
+     */
+    void changePassword(Long userId, String currentPassword,
+                        String newPlainPassword, Long actedBy);
 
     /**
      * Deletes a user.

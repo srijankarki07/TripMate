@@ -48,9 +48,10 @@ echo "    $(basename "${EAR_FILE}")"
 echo "==> Starting the domain"
 "${ASADMIN}" start-domain >/dev/null
 
-echo "==> Ensuring the datasource and queue exist"
+echo "==> Ensuring the datasource, queue and mail session exist"
 "${SCRIPT_DIR}/glassfish-setup.sh" > /dev/null
 "${SCRIPT_DIR}/glassfish-jms.sh" > /dev/null
+"${SCRIPT_DIR}/glassfish-mail.sh" > /dev/null
 
 echo "==> Deploying"
 # --name is not optional here. Without it the container derives the application

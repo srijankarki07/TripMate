@@ -116,7 +116,8 @@ public class SessionBeanSmokeTest {
         check(report, "UserService", "updateUser persists a name change",
                 "Smoke Alice Renamed".equals(userService.updateUser(edited).getFullName()));
 
-        userService.changePassword(alice.getUserId(), "smoke-password-1-changed");
+        userService.changePassword(alice.getUserId(), "smoke-password-1",
+                "smoke-password-1-changed", alice.getUserId());
         check(report, "UserService", "changePassword takes effect",
                 userService.login(alice.getEmail(), "smoke-password-1") == null
                         && userService.login(alice.getEmail(), "smoke-password-1-changed") != null);
@@ -199,7 +200,7 @@ public class SessionBeanSmokeTest {
         editedItem.setItemId(morning.getItemId());
         editedItem.setTitle("Smoke Brunch");
         check(report, "ItineraryService", "updateItem persists a title change",
-                "Smoke Brunch".equals(itineraryService.updateItem(editedItem).getTitle()));
+                "Smoke Brunch".equals(itineraryService.updateItem(editedItem, alice.getUserId()).getTitle()));
         check(report, "ItineraryService", "getItem reads back",
                 "Smoke Brunch".equals(itineraryService.getItem(morning.getItemId()).getTitle()));
         check(report, "ItineraryService", "getItemCountForTrip agrees",
@@ -249,7 +250,7 @@ public class SessionBeanSmokeTest {
         // ==============================================================
         // ReportService
         // ==============================================================
-        List<MemberBalanceDTO> balances = reportService.getMemberBalances(tripId);
+        List<MemberBalanceDTO> balances = reportService.getMemberBalances(tripId, alice.getUserId());
 
         check(report, "ReportService", "query 4 returns one row per member",
                 balances.size() == 2);
@@ -271,7 +272,7 @@ public class SessionBeanSmokeTest {
                         && expenseService.getSettlementsForTrip(tripId).size() == 1);
 
         List<CategorySpendingDTO> categories =
-                reportService.getCategorySpendingForUser(alice.getUserId());
+                reportService.getCategorySpendingForUser(alice.getUserId(), alice.getUserId());
         check(report, "ReportService", "query 5 returns the FOOD category",
                 categories.stream().anyMatch(c -> "FOOD".equals(c.getCategory())));
         check(report, "ReportService", "query 5 counts distinct trips",
@@ -280,11 +281,11 @@ public class SessionBeanSmokeTest {
                 isDescending(categories));
 
         check(report, "ReportService", "getTripCountForUser counts memberships",
-                reportService.getTripCountForUser(alice.getUserId()) >= 1);
+                reportService.getTripCountForUser(alice.getUserId(), alice.getUserId()) >= 1);
         check(report, "ReportService", "getTotalPaidByUser covers every trip",
-                reportService.getTotalPaidByUser(alice.getUserId()).signum() > 0);
+                reportService.getTotalPaidByUser(alice.getUserId(), alice.getUserId()).signum() > 0);
         check(report, "ReportService", "getTotalOwedByUser covers every split",
-                reportService.getTotalOwedByUser(alice.getUserId()).signum() > 0);
+                reportService.getTotalOwedByUser(alice.getUserId(), alice.getUserId()).signum() > 0);
 
         // ==============================================================
         // Deletes, in dependency order
@@ -299,7 +300,7 @@ public class SessionBeanSmokeTest {
         check(report, "ExpenseService", "the splits went with the expense",
                 expenseService.getExpensesForTrip(tripId).isEmpty());
 
-        itineraryService.deleteItem(morning.getItemId());
+        itineraryService.deleteItem(morning.getItemId(), alice.getUserId());
         check(report, "ItineraryService", "deleteItem removes the row",
                 itineraryService.getItem(morning.getItemId()) == null);
 

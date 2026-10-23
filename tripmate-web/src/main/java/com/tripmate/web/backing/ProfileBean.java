@@ -59,10 +59,11 @@ public class ProfileBean implements Serializable {
             email = user.getEmail();
             phone = user.getPhone();
         }
+        Long userId = currentUser.getUserId();
         if (currentUser.isLoggedIn()) {
-            totalPaid = reportService.getTotalPaidByUser(currentUser.getUserId());
-            totalOwed = reportService.getTotalOwedByUser(currentUser.getUserId());
-            tripCount = reportService.getTripCountForUser(currentUser.getUserId());
+            totalPaid = reportService.getTotalPaidByUser(userId, userId);
+            totalOwed = reportService.getTotalOwedByUser(userId, userId);
+            tripCount = reportService.getTripCountForUser(userId, userId);
         }
     }
 
@@ -124,7 +125,8 @@ public class ProfileBean implements Serializable {
         }
 
         try {
-            userService.changePassword(user.getUserId(), newPassword);
+            userService.changePassword(user.getUserId(), currentPassword, newPassword,
+                    currentUser.getUserId());
             Toasts.success("Password changed.");
             currentPassword = null;
             newPassword = null;

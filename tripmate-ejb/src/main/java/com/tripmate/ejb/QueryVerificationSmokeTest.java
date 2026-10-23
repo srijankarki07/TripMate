@@ -214,7 +214,7 @@ public class QueryVerificationSmokeTest {
 
     private void checkQuery4(List<String> report, List<Long> tripIds) {
         for (Long tripId : tripIds) {
-            List<MemberBalanceDTO> actual = reportService.getMemberBalances(tripId);
+            List<MemberBalanceDTO> actual = reportService.getMemberBalances(tripId, memberOf(tripId));
 
             // The same question in raw SQL, with the correlated subqueries
             // written out by hand rather than translated from JPQL.
@@ -294,7 +294,7 @@ public class QueryVerificationSmokeTest {
 
     private void checkQuery5(List<String> report, List<Long> userIds) {
         for (Long userId : userIds) {
-            List<CategorySpendingDTO> actual = reportService.getCategorySpendingForUser(userId);
+            List<CategorySpendingDTO> actual = reportService.getCategorySpendingForUser(userId, userId);
 
             @SuppressWarnings("unchecked")
             List<Object[]> rows = em.createNativeQuery(
@@ -345,7 +345,7 @@ public class QueryVerificationSmokeTest {
             BigDecimal grouped = actual.stream()
                     .map(CategorySpendingDTO::getTotalSpent)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
-            BigDecimal totalOwed = reportService.getTotalOwedByUser(userId);
+            BigDecimal totalOwed = reportService.getTotalOwedByUser(userId, userId);
             check(report, "Q5", "user " + userId + ": categories sum to everything they owe",
                     grouped.compareTo(totalOwed) == 0);
         }
@@ -357,7 +357,7 @@ public class QueryVerificationSmokeTest {
 
     private void checkInvariants(List<String> report, List<Long> tripIds) {
         BigDecimal allTrips = tripIds.stream()
-                .map(reportService::getTotalSpentForTrip)
+                .map(id -> reportService.getTotalSpentForTrip(id, memberOf(id)))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal everyExpense = nativeDecimal(
@@ -386,12 +386,12 @@ public class QueryVerificationSmokeTest {
         // not be able to disagree.
         boolean consistent = true;
         for (Long userId : nativeIds("SELECT user_id FROM users ORDER BY user_id")) {
-            BigDecimal viaCategories = reportService.getCategorySpendingForUser(userId).stream()
+            BigDecimal viaCategories = reportService.getCategorySpendingForUser(userId, userId).stream()
                     .map(CategorySpendingDTO::getTotalSpent)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             BigDecimal viaBalances = BigDecimal.ZERO;
             for (Long tripId : tripIds) {
-                for (MemberBalanceDTO balance : reportService.getMemberBalances(tripId)) {
+                for (MemberBalanceDTO balance : reportService.getMemberBalances(tripId, memberOf(tripId))) {
                     if (balance.getUserId().equals(userId)) {
                         viaBalances = viaBalances.add(balance.getTotalOwed());
                     }
@@ -574,5 +574,25 @@ public class QueryVerificationSmokeTest {
 
     private void check(List<String> report, String tag, String what, boolean ok) {
         report.add((ok ? "PASS" : "FAIL") + "  [" + tag + "] " + what);
+    }
+
+    /**
+     * Any member of a trip, to act as the caller for a guarded report.
+     *
+     * <p>The reporting methods now insist on knowing who is asking, so a check
+     * has to supply someone who is actually on the trip. Taken from the
+     * database rather than assumed, so the checks exercise the same path a real
+     * caller takes instead of bypassing the guard.
+     *
+     * @return a member's user id, or null when the trip has nobody on it
+     */
+    private Long memberOf(Long tripId) {
+        @SuppressWarnings("unchecked")
+        List<Number> ids = em.createNativeQuery(
+                        "SELECT user_id FROM trip_members WHERE trip_id = ?1")
+                .setParameter(1, tripId)
+                .setMaxResults(1)
+                .getResultList();
+        return ids.isEmpty() ? null : ids.get(0).longValue();
     }
 }

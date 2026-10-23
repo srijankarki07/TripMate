@@ -24,14 +24,14 @@
                 but a reader landing here wants the one-line answer first: are
                 they owed money or do they owe it.
             -->
-            <p class="tm-lede" rendered="#{dashboardBean.hasTrips}">
+<h:panelGroup layout="block" styleClass="tm-lede" rendered="#{dashboardBean.hasTrips}">
                 You are on #{dashboardBean.tripCount} trips,
                 #{dashboardBean.activeTripCount} of them still to come or under way.
                 Across all of them you
                 <h:outputText value="#{dashboardBean.inCredit ? 'are owed' : 'owe'}"/>
                 <strong>NPR #{dashboardBean.netMagnitude}</strong>
                 once every share is counted.
-            </p>
+</h:panelGroup>
         </header>
 
         <section class="tm-stats">

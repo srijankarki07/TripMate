@@ -39,8 +39,33 @@
         <class>com.tripmate.entity.Expense</class>
         <class>com.tripmate.entity.ExpenseSplit</class>
         <class>com.tripmate.entity.Settlement</class>
+        <class>com.tripmate.entity.PasswordReset</class>
 
         <exclude-unlisted-classes>true</exclude-unlisted-classes>
+
+        <!--
+            No second-level cache.
+
+            EclipseLink enables a shared cache by default, and it is the wrong
+            default here. The database is reloaded underneath a running server
+            routinely: database/load.sh and scripts/clean-deploy.sh both drop and
+            reseed every table while the application stays up. The shared cache
+            survives that, so the application keeps serving the entities it read
+            before the reload and the new rows are invisible.
+
+            The symptoms are confusing rather than obvious. A reseeded database
+            and a running server disagree about a user's name, a password that
+            was changed before the reload still works and the seeded one does
+            not, and the entity round-trip on the diagnostics page reports that a
+            row read back after clear() is missing, because clear() empties the
+            persistence context and not the shared cache.
+
+            NONE is the JPA-standard switch and is honoured by any provider, so
+            this does not tie the mapping to EclipseLink. The cost is that every
+            read goes to the database, which for an application of this size is
+            nothing next to being wrong about who somebody is.
+        -->
+        <shared-cache-mode>NONE</shared-cache-mode>
 
         <properties>
 

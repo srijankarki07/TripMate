@@ -35,6 +35,10 @@ public class ItineraryService implements ItineraryServiceRemote {
         if (trip == null) {
             throw new ValidationException("no such trip: " + tripId);
         }
+        // The author must be on the trip. This method previously only checked
+        // that the author existed, so anyone signed in could add an item to
+        // anyone else's trip.
+        TripAccess.requireMember(em, tripId, authorId, "add to this trip's itinerary");
 
         ItineraryItem entity = new ItineraryItem();
         entity.setTrip(trip);
@@ -91,7 +95,7 @@ public class ItineraryService implements ItineraryServiceRemote {
     }
 
     @Override
-    public ItineraryItemDTO updateItem(ItineraryItemDTO item) {
+    public ItineraryItemDTO updateItem(ItineraryItemDTO item, Long actedBy) {
         require(item, "item");
         require(item.getItemId(), "itemId");
 
@@ -99,6 +103,10 @@ public class ItineraryService implements ItineraryServiceRemote {
         if (entity == null) {
             throw new ValidationException("no such itinerary item: " + item.getItemId());
         }
+        // Checked against the item's own trip, which is the only way to know
+        // which trip this is about: the DTO deliberately carries no trip id.
+        TripAccess.requireMember(em, entity.getTrip().getTripId(), actedBy,
+                "edit this trip's itinerary");
 
         if (item.getTitle() != null) {
             entity.setTitle(item.getTitle().trim());
@@ -116,13 +124,16 @@ public class ItineraryService implements ItineraryServiceRemote {
     }
 
     @Override
-    public void deleteItem(Long itemId) {
+    public void deleteItem(Long itemId, Long actedBy) {
         require(itemId, "itemId");
 
         ItineraryItem entity = em.find(ItineraryItem.class, itemId);
         if (entity == null) {
             throw new ValidationException("no such itinerary item: " + itemId);
         }
+        TripAccess.requireMember(em, entity.getTrip().getTripId(), actedBy,
+                "edit this trip's itinerary");
+
         em.remove(entity);
         em.flush();
     }

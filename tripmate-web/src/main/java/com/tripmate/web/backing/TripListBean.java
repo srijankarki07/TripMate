@@ -141,7 +141,7 @@ public class TripListBean implements Serializable {
 
     public int getUpcomingCount() {
         return (int) trips.stream()
-                .filter(t -> t.getStatus() == TripStatus.PLANNING || t.getStatus() == TripStatus.ONGOING)
+                .filter(t -> t.getStatus().isLive())
                 .count();
     }
 

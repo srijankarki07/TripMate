@@ -22,6 +22,22 @@ public class UserDTO implements Serializable {
     private String email;
     private String phone;
 
+    /**
+     * Whether the address has been confirmed.
+     *
+     * <p>Carried in the DTO because the decision it feeds is made in the web
+     * tier: an account whose address is unconfirmed can authenticate but must
+     * not be admitted, and only the caller knows which of the two it is doing.
+     * See {@code UserService.login}.
+     *
+     * <p>Not part of the constructor below, which exists for the other
+     * direction: it builds the profile fields a caller is <em>sending in</em>,
+     * where this flag is ignored. It is set only by {@link #from}, which reads
+     * it from the row. A caller that skipped that and read the field would get
+     * false, which fails closed.
+     */
+    private boolean emailVerified;
+
     /** Required by Java serialization and by CDI proxies. */
     public UserDTO() {
     }
@@ -43,11 +59,13 @@ public class UserDTO implements Serializable {
         if (user == null) {
             return null;
         }
-        return new UserDTO(
+        UserDTO dto = new UserDTO(
                 user.getUserId(),
                 user.getFullName(),
                 user.getEmail(),
                 user.getPhone());
+        dto.setEmailVerified(user.isEmailVerified());
+        return dto;
     }
 
     public Long getUserId() {
@@ -80,6 +98,14 @@ public class UserDTO implements Serializable {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 
     /**

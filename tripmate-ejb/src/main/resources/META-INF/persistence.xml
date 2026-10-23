@@ -40,7 +40,12 @@
         <class>com.tripmate.entity.ExpenseSplit</class>
         <class>com.tripmate.entity.Settlement</class>
         <class>com.tripmate.entity.PasswordReset</class>
+        <class>com.tripmate.entity.EmailVerification</class>
         <class>com.tripmate.entity.TripSummaryEmail</class>
+        <class>com.tripmate.entity.TripCalendarFeed</class>
+        <class>com.tripmate.entity.GoogleCalendarLink</class>
+        <class>com.tripmate.entity.GoogleCalendarEvent</class>
+        <class>com.tripmate.entity.PastTrip</class>
 
         <exclude-unlisted-classes>true</exclude-unlisted-classes>
 
@@ -86,13 +91,30 @@
             -->
             <property name="eclipselink.ddl-generation" value="none"/>
 
-            <!-- Log SQL with bound parameters. Development setting: it is what
-                 makes the ORM's behaviour visible in the server log during the
-                 demo, and it should be turned down before any real deployment
-                 because the parameters include user data. -->
-            <property name="eclipselink.logging.level" value="FINE"/>
-            <property name="eclipselink.logging.level.sql" value="FINE"/>
-            <property name="eclipselink.logging.parameters" value="true"/>
+            <!--
+                SQL logging, substituted at build time from the properties in
+                the parent POM. Quiet by default; FINE under the `dev` profile.
+
+                This is the single largest thing the application was doing to
+                itself. At FINE every query logged the full statement and every
+                bound parameter, on every request, and the log had reached 95 MB
+                with three 100 MB rotations beside it. The cost is not only disk:
+                building the line means converting every parameter to a string,
+                and on a machine where the log is on block storage, writing tens
+                of megabytes costs more CPU than the queries did. Logging
+                parameters also writes user data, including names and addresses
+                pulled from the database, into a file that outlives the request.
+
+                It stays available because it is genuinely useful: `mvn -Pdev`
+                turns it back on, which is what the demo wants when the point is
+                to show the ORM working.
+
+                `logging.level.sql` is set to the same value so that the SQL
+                logger does not outlive the level that is meant to bound it.
+            -->
+            <property name="eclipselink.logging.level" value="${tripmate.eclipselink.logging.level}"/>
+            <property name="eclipselink.logging.level.sql" value="${tripmate.eclipselink.logging.level}"/>
+            <property name="eclipselink.logging.parameters" value="${tripmate.eclipselink.logging.parameters}"/>
 
             <!-- Drop the EclipseLink connection from the pool between
                  transactions so a long-idle pool entry cannot go stale. -->

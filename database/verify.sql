@@ -36,6 +36,23 @@ BEGIN
     SELECT count(*) INTO n FROM expense_splits;
     IF n = 0 THEN RAISE EXCEPTION 'no expense splits loaded'; END IF;
 
+    -- ------------------------------------------------- accounts are usable
+    -- An unverified account cannot sign in, so a seeded one that was left
+    -- unverified would be a demo login that silently refuses. Caught here
+    -- rather than discovered at the sign-in page.
+    SELECT count(*) INTO n FROM users WHERE email_verified_at IS NULL;
+    IF n > 0 THEN
+        RAISE EXCEPTION '% seeded user(s) have an unconfirmed address and cannot sign in', n;
+    END IF;
+
+    -- The mirror of it: a fresh load has no outstanding codes, because every
+    -- verification row belongs to a registration that happened at runtime and
+    -- the seed creates none.
+    SELECT count(*) INTO n FROM email_verifications;
+    IF n <> 0 THEN
+        RAISE EXCEPTION 'expected no verification codes after a load, found %', n;
+    END IF;
+
     RAISE NOTICE 'row counts present';
 
     -- ------------------------------------------- splits reconcile to amounts

@@ -16,7 +16,7 @@ set -uo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
-BASE="http://localhost:8080/tripmate"
+BASE="http://localhost:8080"
 CURL=/usr/bin/curl
 WORK="$(mktemp -d)"
 PASS=0
@@ -437,7 +437,7 @@ echo "  16. Cold deploy on a clean database"
 if "${PROJECT_ROOT}/database/load.sh" > "${WORK}/load.log" 2>&1; then
     TABLES=$(sql "SELECT count(*) FROM pg_tables WHERE schemaname = 'public';")
     record 16 "Cold deploy on a clean database" \
-        "$([[ "${TABLES}" == "9" ]] && echo 1 || echo 0)" \
+        "$([[ "${TABLES}" == "10" ]] && echo 1 || echo 0)" \
         "schema, sample data and integrity checks all pass from empty (${TABLES} tables)"
 else
     record 16 "Cold deploy on a clean database" 0 "load.sh failed"

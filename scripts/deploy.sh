@@ -22,17 +22,27 @@ mvn -B clean package "$@"
 echo
 "$(dirname "${BASH_SOURCE[0]}")/glassfish-setup.sh"
 
-# Same reasoning for the queue: ExpenseMessageBean binds to it during
-# deployment.
+# The lifecycle resources come next, because deployment fails without them and
+# the failure names the missing resource rather than the reason: the persistence
+# unit resolves jdbc/tripmate as it deploys, ExpenseMessageBean binds to the
+# queue, and MailService injects the mail session.
 echo
 "$(dirname "${BASH_SOURCE[0]}")/glassfish-jms.sh"
 
-# And for the mail session: MailService injects it, so a missing resource fails
-# the deployment rather than the send. With no TM_MAIL_HOST set this still
-# creates the resource, and the session carries a flag that makes MailService
-# log each message instead of sending it.
 echo
 "$(dirname "${BASH_SOURCE[0]}")/glassfish-mail.sh"
+
+# Finally the sizes. The thread pool, the JDBC pool, the JVM options and the log
+# rotation all have defaults that are wrong for a small machine, and the request
+# thread pool in particular defaults to five threads, which is the number that
+# decides how many people the application can serve at once. These are applied
+# to any domain the scripts touch, so a deployment that never reads
+# docs/deployment.md still gets a server sized for its host.
+#
+# It runs after glassfish-setup.sh because that is what creates the JDBC pool
+# whose size is being set here.
+echo
+"$(dirname "${BASH_SOURCE[0]}")/glassfish-tune.sh"
 
 echo
 echo "==> Deploying '${APP_NAME}'"

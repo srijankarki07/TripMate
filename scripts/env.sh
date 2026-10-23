@@ -61,7 +61,7 @@ export ASADMIN
 export APP_NAME="tripmate"
 export APP_VERSION="1.0.0-SNAPSHOT"
 export EAR_FILE="${PROJECT_ROOT}/tripmate-ear/target/tripmate-ear-${APP_VERSION}.ear"
-export APP_URL="http://localhost:8080/tripmate/"
+export APP_URL="http://localhost:8080/"
 export ADMIN_URL="http://localhost:4848"
 
 # ---------------------------------------------------------------------------
@@ -139,7 +139,84 @@ export TM_MAIL_USER="${TM_MAIL_USER:-}"
 export TM_MAIL_PASSWORD="${TM_MAIL_PASSWORD:-}"
 export TM_MAIL_FROM="${TM_MAIL_FROM:-TripMate <no-reply@tripmate.test>}"
 export TM_MAIL_STARTTLS="${TM_MAIL_STARTTLS:-true}"
-export TM_APP_BASE_URL="${TM_APP_BASE_URL:-http://localhost:8080/tripmate}"
+export TM_APP_BASE_URL="${TM_APP_BASE_URL:-http://localhost:8080}"
+
+# How long a mail conversation may take, in milliseconds, applied to connecting,
+# waiting for a reply, and writing. JavaMail leaves all three unlimited by
+# default, which means a mail server that goes quiet mid-conversation holds the
+# sending thread for as long as the TCP stack allows. Ten seconds each is far
+# more than a working SMTP server needs and short enough that a broken one is a
+# failed send rather than a stalled server.
+export TM_MAIL_TIMEOUT_MS="${TM_MAIL_TIMEOUT_MS:-10000}"
+
+# ---------------------------------------------------------------------------
+# Runtime tuning
+# ---------------------------------------------------------------------------
+# Applied to the domain by scripts/glassfish-tune.sh. The defaults are the ones
+# docs/deployment.md arrives at for a 1 GB machine, so a deployment that does
+# nothing but run the scripts still gets a server sized to its host.
+#
+# Every one of these is a real trade, and every one of them can be changed by
+# exporting it or by putting it in .env. That is the point of having them here
+# rather than only in a document.
+# ---------------------------------------------------------------------------
+
+# Heap, in megabytes. Small on purpose: the machine this defaults for has 1 GB
+# of RAM, and the JVM needs roughly 250 MB on top of its heap for metaspace, the
+# code cache, thread stacks and GC structures. The script sets Xms equal to Xmx
+# so the heap is never resized at runtime.
+export TM_JVM_HEAP_MB="${TM_JVM_HEAP_MB:-384}"
+
+# Metaspace ceiling. PrimeFaces, Mojarra and EclipseLink together want about
+# 120-150 MB, so this is a bound rather than a constraint: it turns an
+# unbounded leak into a failure that names itself.
+export TM_JVM_METASPACE_MB="${TM_JVM_METASPACE_MB:-192}"
+
+# Each thread's stack. Halved from the default, which is 20-40 MB across the
+# process given how many pools GlassFish starts. Safe because nothing in this
+# application recurses.
+export TM_JVM_THREAD_STACK_KB="${TM_JVM_THREAD_STACK_KB:-512}"
+
+# NIO direct memory, where Grizzly puts every network buffer it hands out. It
+# is outside the heap, so -Xmx does not bound it, and unbounded it is the
+# reason a process can be killed for memory while the heap looks comfortable.
+export TM_JVM_DIRECT_MEMORY_MB="${TM_JVM_DIRECT_MEMORY_MB:-64}"
+
+# The request thread pool, and the setting that matters most for the load this
+# application is expected to take.
+#
+# GlassFish 7 creates http-thread-pool at min 5, max 5. Five threads handle
+# every request in the server, static resources included, and several request
+# paths block for a long time: password verification is 210,000 rounds of
+# PBKDF2, a trip summary waits on SMTP once per recipient, placing a trip waits
+# on a reverse geocode, and a calendar sync waits on Google once per member per
+# itinerary item. Five threads means five such requests stop the server for
+# everybody else.
+export TM_HTTP_THREADS_MIN="${TM_HTTP_THREADS_MIN:-8}"
+export TM_HTTP_THREADS_MAX="${TM_HTTP_THREADS_MAX:-24}"
+
+# How many requests may wait for a thread. The default of 4096 accepts far more
+# work than the server can ever do and then lets it all time out. A smaller
+# queue turns overload into a fast, visible failure instead of a slow one.
+export TM_HTTP_QUEUE_SIZE="${TM_HTTP_QUEUE_SIZE:-256}"
+
+# The JDBC pool. steady-pool-size is not a maximum: it is how many PostgreSQL
+# connections are held open even when idle, and each one is a backend process
+# with its own memory. max-pool-size must stay under PostgreSQL's
+# max_connections, which the tuning docs set to 20; a pool allowed past that
+# fails to connect rather than degrading.
+export TM_DB_POOL_STEADY="${TM_DB_POOL_STEADY:-3}"
+export TM_DB_POOL_MAX="${TM_DB_POOL_MAX:-16}"
+
+# A ceiling on any single statement. Without one, a query that goes wrong holds
+# its connection until the database gives up, and on a pool this small two or
+# three of those is the entire pool.
+export TM_DB_STATEMENT_TIMEOUT="${TM_DB_STATEMENT_TIMEOUT:-30}"
+
+# Log rotation. GlassFish's default keeps three files of 100 MB each, which is
+# 300 MB of disk on a machine whose whole database is smaller than that.
+export TM_LOG_ROTATION_MB="${TM_LOG_ROTATION_MB:-10}"
+export TM_LOG_HISTORY_FILES="${TM_LOG_HISTORY_FILES:-5}"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -178,3 +255,22 @@ tm_domain_running() {
 # the application.
 export TM_SHOW_DIAGNOSTICS="${TM_SHOW_DIAGNOSTICS:-false}"
 export TM_FOOTER_STACK="${TM_FOOTER_STACK:-Jakarta EE 10 - GlassFish 7 - PostgreSQL}"
+
+# Whether a proxy or a tunnel is in front of this deployment and sets the
+# X-Forwarded-Proto and X-Forwarded-Host headers. Off unless an operator says
+# otherwise, because a request carries those headers whether or not anything
+# put them there, and the application writes absolute addresses of its own (the
+# calendar feed's subscribe address) from what it is told.
+#
+#   TM_TRUST_PROXY=true ./scripts/glassfish-setup.sh
+#
+# is enough; the property is read per request, so no redeploy is needed.
+export TM_TRUST_PROXY="${TM_TRUST_PROXY:-false}"
+
+# The Google Calendar connection. With no client id the feature reports itself
+# unavailable rather than offering a button that would fail, and the subscribe
+# address is unaffected. TM_CREDENTIALS_KEY encrypts refresh tokens at rest and
+# has no default: without it nothing is stored, which is the safe direction.
+export TM_GOOGLE_CLIENT_ID="${TM_GOOGLE_CLIENT_ID:-}"
+export TM_GOOGLE_CLIENT_SECRET="${TM_GOOGLE_CLIENT_SECRET:-}"
+export TM_CREDENTIALS_KEY="${TM_CREDENTIALS_KEY:-}"

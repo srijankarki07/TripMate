@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:tm="jakarta.faces.composite/tm"
+      lang="en"
+      data-theme="#{themeBean.theme}"
+      data-tm-context-path="#{request.contextPath}">
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Terms of service · TripMate</title>
+    <meta name="description" content="The terms you agree to when you use TripMate."/>
+    <meta name="theme-color" content="#ff385c"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.svg" type="image/svg+xml"/>
+    <link rel="icon" href="#{request.contextPath}/img/favicon.ico" sizes="16x16 32x32 48x48"/>
+    <link rel="apple-touch-icon" href="#{request.contextPath}/img/apple-touch-icon.png"/>
+    <h:outputStylesheet library="css" name="tripmate.css"/>
+    <h:outputScript library="js" name="theme.js" target="head"/>
+</h:head>
+
+<h:body>
+    <tm:toast/>
+
+    <main class="tm-doc">
+        <header class="tm-doc-header">
+            <a class="tm-doc-brand" href="#{request.contextPath}/index.xhtml">
+                <img src="#{request.contextPath}/img/favicon.svg" alt=""/>
+                TripMate
+            </a>
+            <a href="#{request.contextPath}/privacy.xhtml">Privacy policy</a>
+        </header>
+
+        <h1>Terms of service</h1>
+        <p class="tm-doc-meta">Last updated 2 October 2026.</p>
+
+        <h2>1. What you are agreeing to</h2>
+        <p>
+            By creating an account you agree to these terms. If you do not agree
+            with them, do not use the application. TripMate is operated as a
+            student project and is offered free of charge.
+        </p>
+
+        <h2>2. Your account</h2>
+        <ul>
+            <li>Give accurate details, and keep your password to yourself.</li>
+            <li>
+                You are responsible for what happens through your account. Tell
+                the operator (section 9) if you think somebody else has it.
+            </li>
+            <li>One account per person. Do not create accounts for other people.</li>
+        </ul>
+
+        <h2>3. Using it sensibly</h2>
+        <p>Do not:</p>
+        <ul>
+            <li>use the application for anything unlawful, or to harass anybody;</li>
+            <li>
+                upload or type anything you do not have the right to share, or
+                anything designed to damage the service or somebody else's use of
+                it;
+            </li>
+            <li>
+                attempt to reach trips, accounts or data that are not yours,
+                including by guessing identifiers or tampering with requests;
+            </li>
+            <li>
+                automate heavy use of the service in a way that degrades it for
+                others.
+            </li>
+        </ul>
+
+        <h2>4. Your content</h2>
+        <p>
+            What you put into TripMate stays yours. By adding it you give the
+            operator permission to store it and to show it to the people on your
+            trips, which is what the application is for. Nothing else is done
+            with it. Section 6 of the
+            <a href="#{request.contextPath}/privacy.xhtml">privacy policy</a>
+            says who can see what.
+        </p>
+        <p>
+            You are responsible for what you add. In particular, do not put
+            anybody else's personal information into a trip without their
+            agreement.
+        </p>
+
+        <h2>5. Connecting Google Calendar</h2>
+        <p>
+            Connecting a calendar is optional, and you can disconnect at any time
+            as described in the privacy policy. If you connect it, you are asking
+            TripMate to write the itinerary of your trips into that calendar and
+            keep it up to date. You can remove any event it writes, and doing so
+            does not affect the trip.
+        </p>
+        <p>
+            The Google permission you grant is between you and Google. This
+            application's handling of what it receives under that permission is
+            governed by the privacy policy, and it makes no other use of it.
+        </p>
+
+        <h2>6. Shared trips and money</h2>
+        <p>
+            TripMate records what people say they spent and works out who owes
+            whom. What it produces is arithmetic on what was entered, not
+            financial advice, and it is not a payment service. No money moves
+            through the application. Settling up happens between you, by whatever
+            means you choose, and the application only records that it happened.
+        </p>
+        <p>
+            If a trip's figures matter, check them. Everyone on a trip can add and
+            change entries, so a balance is only as good as what was typed in.
+        </p>
+
+        <h2>7. Availability</h2>
+        <p>
+            The service is provided as it is and as it is available. There is no
+            promise that it will be running, that it will be free of faults, or
+            that data will never be lost. Do not rely on it as the only copy of
+            anything you would be sorry to lose, and keep your own record of
+            anything that matters, particularly money.
+        </p>
+
+        <h2>8. Ending it</h2>
+        <p>
+            You may stop using the application at any time and may ask for your
+            account to be deleted as described in the privacy policy. The
+            operator may suspend or remove an account that breaches these terms,
+            or close the service altogether; because this is a project rather
+            than a product, that can happen without much notice.
+        </p>
+
+        <h2>9. Contact</h2>
+        <p>
+            Anything about these terms goes to
+            <strong>privacy@tripmate.example</strong>.
+        </p>
+
+        <h2>10. Changes to these terms</h2>
+        <p>
+            These terms may change, and the date at the top changes with them.
+            Continuing to use the application after a change means accepting it.
+        </p>
+
+        <p class="tm-doc-footer">
+            <a href="#{request.contextPath}/privacy.xhtml">Privacy policy</a>
+            &#160;·&#160;
+            <a href="#{request.contextPath}/index.xhtml">Back to TripMate</a>
+        </p>
+    </main>
+</h:body>
+</html>

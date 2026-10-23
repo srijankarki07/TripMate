@@ -7,9 +7,29 @@
 
     <display-name>TripMate</display-name>
 
+    <!--
+        The Faces project stage. Substituted at build time from the
+        `tripmate.projectStage` property in the parent POM, which is Production
+        by default and Development under the `dev` profile.
+
+        It is worth understanding what this actually changes, because it is the
+        difference between a page being re-parsed and being cached. In the
+        Development stage Mojarra stops caching Facelets templates, so every
+        request re-checks each view it renders for changes and re-parses it if
+        the timestamp moved. That is what you want while editing XHTML, and it
+        is a per-request cost on a server that is not going to change its
+        templates at all. Production caches them.
+
+        Mojarra resolves the stage from this init parameter or from the JNDI
+        entry java:comp/env/faces/ProjectStage, and there is no system-property
+        or environment fallback, which is why this is a build-time substitution
+        rather than something the deployment scripts can set. If the parameter
+        is absent altogether the stage is Production anyway, so a build that
+        loses the substitution fails safe.
+    -->
     <context-param>
         <param-name>jakarta.faces.PROJECT_STAGE</param-name>
-        <param-value>Development</param-value>
+        <param-value>${tripmate.projectStage}</param-value>
     </context-param>
 
     <!--
@@ -42,6 +62,38 @@
     <context-param>
         <param-name>jakarta.faces.STATE_SAVING_METHOD</param-name>
         <param-value>server</param-value>
+    </context-param>
+
+    <!--
+        How many views a single session may keep state for.
+
+        Server-side state saving keeps the whole component tree of each view,
+        plus the fields of every @ViewScoped bean behind it, in that user's
+        session until the view is evicted. They are evicted in least-recently-
+        used order, and the number held at once is what these two settings
+        decide: the last N views in the session, and the last N logical views
+        across postbacks.
+
+        Left unset, Mojarra's defaults are 15 and 15. On a machine where the
+        heap is 384 MB that is a lot of retained trees per session, and it
+        compounds with the thirty-day session timeout set below: a session that
+        nobody has touched for a month still holds all of it. A trip detail view
+        here carries nine collections, so the difference between 15 views and 5
+        is tens of megabytes across a handful of users, which is the difference
+        between fitting and not fitting.
+
+        Five is chosen to be well past what a person actually navigates back
+        through. The visible effect of going too low is that the Back button
+        re-renders a stale page instead of restoring it, which is worth knowing
+        if this is ever tuned further down.
+    -->
+    <context-param>
+        <param-name>jakarta.faces.NUMBER_OF_VIEWS_IN_SESSION</param-name>
+        <param-value>5</param-value>
+    </context-param>
+    <context-param>
+        <param-name>jakarta.faces.NUMBER_OF_LOGICAL_VIEWS_IN_SESSION</param-name>
+        <param-value>5</param-value>
     </context-param>
 
     <!--

@@ -3,12 +3,11 @@ package com.tripmate.web.backing;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import com.tripmate.dto.ExpenseDTO;
 import com.tripmate.dto.TripDTO;
-import com.tripmate.entity.TripStatus;
 import com.tripmate.remote.ExpenseServiceRemote;
 import com.tripmate.remote.ReportServiceRemote;
 import com.tripmate.remote.TripServiceRemote;
@@ -69,24 +68,29 @@ public class DashboardBean implements Serializable {
     /**
      * Gathers the newest expenses across every trip the user belongs to.
      *
-     * <p>One call per trip, which is the N+1 pattern. At three trips it costs
-     * nothing and reuses the existing query 2 rather than adding a sixth query
-     * to the reporting service for a dashboard list. It would need replacing
-     * with a single query if a user could belong to dozens of trips.
+     * <p>One query, bounded, rather than one call per trip.
+     *
+     * <p>This used to call {@code getExpensesForTrip} for each trip and merge
+     * the results, which read every expense and every split of every trip the
+     * reader belonged to in order to show eight rows, and grew with their
+     * history rather than with the list. The reader's own trips are already in
+     * hand from {@link #load}, so the trip name costs no extra query.
      */
     private List<RecentExpense> collectRecentExpenses() {
-        return trips.stream()
-                .flatMap(trip -> expenseService.getExpensesForTrip(trip.getTripId()).stream()
-                        .map(expense -> new RecentExpense(
-                                expense.getExpenseId(),
-                                trip.getTripName(),
-                                expense.getDescription(),
-                                expense.getAmount(),
-                                expense.getExpenseDate(),
-                                expense.getPaidByName())))
-                .sorted(Comparator.comparing(RecentExpense::getDate,
-                        Comparator.nullsLast(Comparator.reverseOrder())))
-                .limit(RECENT_LIMIT)
+        Map<Long, String> tripNames = new HashMap<>();
+        for (TripDTO trip : trips) {
+            tripNames.put(trip.getTripId(), trip.getTripName());
+        }
+
+        return expenseService.getRecentExpensesForUser(currentUser.getUserId(), RECENT_LIMIT)
+                .stream()
+                .map(expense -> new RecentExpense(
+                        expense.getExpenseId(),
+                        tripNames.get(expense.getTripId()),
+                        expense.getDescription(),
+                        expense.getAmount(),
+                        expense.getExpenseDate(),
+                        expense.getPaidByName()))
                 .toList();
     }
 
@@ -100,8 +104,7 @@ public class DashboardBean implements Serializable {
 
     public int getActiveTripCount() {
         return (int) trips.stream()
-                .filter(t -> t.getStatus() == TripStatus.ONGOING
-                        || t.getStatus() == TripStatus.PLANNING)
+                .filter(t -> t.getStatus().isLive())
                 .count();
     }
 

@@ -74,7 +74,19 @@
                             <groupId>com.tripmate</groupId>
                             <artifactId>tripmate-web</artifactId>
                             <bundleFileName>tripmate-web.war</bundleFileName>
-                            <contextRoot>/tripmate</contextRoot>
+                            <!--
+                                Served at the root of the host rather than
+                                under /tripmate. One application on one server
+                                has no reason to be a directory under it, and
+                                the address people type is the address that
+                                should work.
+
+                                This is the deployment's decision, not the
+                                application's: the pages build every address
+                                from the request's own context path, so they
+                                are correct either way.
+                            -->
+                            <contextRoot>/</contextRoot>
                         </webModule>
                     </modules>
                 </configuration>

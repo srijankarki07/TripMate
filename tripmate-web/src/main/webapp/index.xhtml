@@ -1,25 +1,21 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
-      xmlns:p="http://primefaces.org/ui"
-      xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
+      xmlns:tm="jakarta.faces.composite/tm"
       lang="en"
       data-theme="#{themeBean.theme}"
       data-tm-context-path="#{request.contextPath}">
 <h:head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>TripMate</title>
-    <meta name="description" content="Group trip planning and expense tracking: a shared itinerary and a running record of who paid for what."/>
+    <title>TripMate · group trip planning and expense splitting</title>
+    <meta name="description" content="TripMate is a shared itinerary and expense tracker for a small group of people travelling together. Plan the days, log what everybody paid, and see who owes whom. Optionally keeps the plan in step with your Google Calendar."/>
     <meta name="theme-color" content="#ff385c"/>
     <link rel="icon" href="#{request.contextPath}/img/favicon.svg" type="image/svg+xml"/>
     <link rel="icon" href="#{request.contextPath}/img/favicon.ico" sizes="16x16 32x32 48x48"/>
     <link rel="apple-touch-icon" href="#{request.contextPath}/img/apple-touch-icon.png"/>
     <h:outputStylesheet library="css" name="tripmate.css"/>
-
-    <!-- In the head and not deferred, so a visitor whose desktop is dark
-         does not get a white flash before the theme resolves. See theme.js. -->
     <h:outputScript library="js" name="theme.js" target="head"/>
     <h:outputScript library="js" name="tripmate.js" target="body"/>
 </h:head>
@@ -28,61 +24,907 @@
     <tm:toast/>
 
     <!--
-        The landing page, in the same two-column shell as sign-in and register.
+        The public home page.
 
-        It used to be a single card floating in the middle of an otherwise
-        blank page, which is the one thing a first-time visitor cannot make a
-        decision from: it said what the product was called and offered a button,
-        and nothing about whether the thing behind the button was worth
-        signing up for. The pitch column is that answer, and it is the same
-        column the other two pages use, so arriving here and arriving at the
-        sign-in form does not feel like two different products.
+        It is a page of explanation first and a way in second, and that is not
+        a style preference. An earlier version was a two-column shell whose
+        second column, carrying every word of description, collapsed away below
+        900px: on a narrow viewport it was a sign-in card and nothing else. It
+        was rejected for exactly that, and for not explaining what the
+        application is for.
+
+        Two rules hold here, and breaking either undoes that:
+
+          - Every sentence that explains the product is in the document, in
+            reading order, at every width. Nothing explanatory is behind a
+            disclosure, a hover or a media query. There is far less of it than
+            there was, because prose nobody reads explains nothing, but what
+            there is is always present.
+          - Nothing inside a drawing is load-bearing. Every mock below is
+            `aria-hidden`, and the sentence it illustrates is beside it in
+            text. A reader who cannot see any of this loses the illustrations,
+            not the argument.
+
+        The drawings are the point of the page, so two things about them are
+        worth stating plainly, because a mock that quietly invents its numbers
+        is a lie told in a friendly typeface:
+
+          - Every figure in them is real. The places, the itinerary items, the
+            expenses, the category totals and the four balances are all
+            computed from database/seed.sql, which is the same data the
+            published demonstration account signs in to. Nothing here was made
+            up to look plausible.
+          - The map is a real outline of Nepal, not a shape drawn to resemble
+            one. scripts/make-landing-map.py fetches the border and projects
+            the markers onto it; the page credits OpenStreetMap beneath it,
+            which is a condition of the licence rather than a courtesy.
+
+        The navigation and the calls to action are `h:link` rather than
+        PrimeFaces `p:button`. `p:button` renders a `<button>` that navigates
+        from script, so it carries no href: nothing can follow it, including a
+        crawler deciding whether this is a real public page, and nothing
+        renders it if a script fails. `h:link` renders a real anchor. The page
+        is outside every form, because there is nothing here to submit.
     -->
-    <main class="tm-auth-page">
-        <div class="tm-auth-shell">
+    <main class="tm-landing">
 
-            <section class="tm-auth-panel">
-                <div class="tm-auth-card">
-                    <p class="tm-eyebrow">Group trip planning and expense tracking</p>
-                    <h1 class="tm-display-lg">TripMate</h1>
-                    <p class="tm-body-sm tm-text-muted">
-                        A shared itinerary and a running record of who paid for what,
-                        for a small group of travellers.
+        <!-- ========================================================= nav -->
+        <nav class="tm-land-nav" aria-label="Main">
+            <div class="tm-land-nav-inner">
+                <a class="tm-land-brand" href="#{request.contextPath}/index.xhtml">
+                    <img src="#{request.contextPath}/img/favicon.svg" alt=""/>
+                    <span>TripMate</span>
+                </a>
+
+                <ul class="tm-land-links">
+                    <li><a href="#why">Why</a></li>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#how">How it works</a></li>
+                    <li><a href="#calendar">Calendar</a></li>
+                </ul>
+
+                <div class="tm-land-nav-end">
+                    <!--
+                        The same control the signed-in application carries, and
+                        the same script. theme.js writes the cookie and flips
+                        the attribute on <html>, which repaints the whole page
+                        because every colour on it is a custom property.
+                    -->
+                    <button type="button"
+                            class="tm-theme-toggle"
+                            data-tm-theme-toggle="true"
+                            aria-label="#{themeBean.toggleLabel}"
+                            title="#{themeBean.toggleLabel}">
+                        <i class="pi #{themeBean.toggleIcon}" aria-hidden="true"></i>
+                    </button>
+
+                    <h:panelGroup layout="block" styleClass="tm-land-nav-actions"
+                                  rendered="#{not currentUser.loggedIn}">
+                        <h:link outcome="/login.xhtml" styleClass="tm-cta tm-cta-ghost tm-cta-sm">Sign in</h:link>
+                        <h:link outcome="/register.xhtml" styleClass="tm-cta tm-cta-primary tm-cta-sm">Get started</h:link>
+                    </h:panelGroup>
+
+                    <!--
+                        Unreachable in practice, and kept anyway.
+
+                        AuthenticationFilter sends a signed-in reader from the
+                        root and from this page to the dashboard, so nothing
+                        renders this branch today: that was checked by signing
+                        in and requesting the bare context root, and the answer
+                        was a redirect to dashboard.xhtml. It is here because
+                        the page should render correctly for whatever state it
+                        is handed rather than depending on a filter elsewhere
+                        to guarantee it is never handed a signed-in reader. A
+                        version of this page with no such branch would offer
+                        "Create an account" to somebody who already had one.
+                    -->
+                    <h:panelGroup layout="block" styleClass="tm-land-nav-actions"
+                                  rendered="#{currentUser.loggedIn}">
+                        <h:link outcome="/dashboard.xhtml" styleClass="tm-cta tm-cta-primary tm-cta-sm">
+                            Your dashboard
+                        </h:link>
+                    </h:panelGroup>
+                </div>
+            </div>
+        </nav>
+
+        <!-- ======================================================= hero -->
+        <header class="tm-land-hero">
+            <div class="tm-land-hero-inner">
+                <p class="tm-land-hero-badge">
+                    <span class="tm-land-hero-dot" aria-hidden="true"></span>
+                    Group trip planning and expense splitting
+                </p>
+
+                <h1 class="tm-land-hero-title">Plan the trip. Split the costs. Settle up.</h1>
+
+                <p class="tm-land-hero-lede">
+                    One shared itinerary and one running record of who paid
+                    what, for the people actually travelling together.
+                </p>
+
+                <h:panelGroup layout="block" rendered="#{not currentUser.loggedIn}">
+                    <div class="tm-land-hero-cta">
+                        <h:link outcome="/register.xhtml" styleClass="tm-cta tm-cta-primary tm-cta-lg">
+                            Create an account
+                        </h:link>
+                        <a href="#features" class="tm-cta tm-cta-ghost tm-cta-lg">See what it does</a>
+                    </div>
+                    <p class="tm-land-hero-note">
+                        There is a demonstration account, with the trip below
+                        already in it. Its password is on the
+                        <a href="#{request.contextPath}/login.xhtml">sign-in page</a>.
                     </p>
+                </h:panelGroup>
 
-                    <h:panelGroup layout="block" rendered="#{currentUser.loggedIn}">
-                        <p class="tm-body-sm tm-auth-alt">
-                            Signed in as <strong>#{currentUser.fullName}</strong>.
-                        </p>
-                        <div class="tm-actions">
-                            <p:button outcome="/dashboard.xhtml" value="Go to the dashboard"
-                                      styleClass="tm-button-block"/>
-                        </div>
-                    </h:panelGroup>
+                <h:panelGroup layout="block" rendered="#{currentUser.loggedIn}">
+                    <p class="tm-land-hero-lede">
+                        Signed in as <strong>#{currentUser.fullName}</strong>.
+                    </p>
+                    <div class="tm-land-hero-cta">
+                        <h:link outcome="/dashboard.xhtml" styleClass="tm-cta tm-cta-primary tm-cta-lg">
+                            Go to your dashboard
+                        </h:link>
+                    </div>
+                </h:panelGroup>
+            </div>
+        </header>
 
-                    <h:panelGroup layout="block" rendered="#{not currentUser.loggedIn}">
-                        <div class="tm-actions">
-                            <p:button outcome="/login.xhtml" value="Sign in"
-                                      styleClass="tm-button-block"/>
+        <!-- ================================================ the product -->
+        <figure class="tm-shot">
+            <!--
+                A drawing of the trip page, not a screenshot. Every row in it is
+                from the Pokhara Weekend trip in database/seed.sql, so a reader
+                who signs in with the published password finds this trip rather
+                than something invented here.
+
+                `aria-hidden`, because a table of example rows read aloud in the
+                middle of the argument is noise. The caption below carries what
+                the picture is for.
+            -->
+            <div class="tm-shot-frame" aria-hidden="true">
+                <div class="tm-shot-chrome">
+                    <span class="tm-shot-dot"></span>
+                    <span class="tm-shot-dot"></span>
+                    <span class="tm-shot-dot"></span>
+                    <span class="tm-shot-address">tripmate / trips / Pokhara Weekend</span>
+                </div>
+
+                <div class="tm-shot-view">
+                    <div class="tm-shot-head">
+                        <div>
+                            <p class="tm-shot-title">Pokhara Weekend</p>
+                            <p class="tm-shot-sub">Pokhara, Gandaki · 25 to 28 September 2026</p>
                         </div>
-                        <div class="tm-actions">
-                            <p:button outcome="/register.xhtml" value="Create an account"
-                                      styleClass="tm-button-block ui-button-secondary"/>
+                        <span class="tm-shot-pill">Under way</span>
+                    </div>
+
+                    <div class="tm-shot-cols">
+                        <div class="tm-shot-col">
+                            <p class="tm-shot-label">Saturday 26 September</p>
+                            <div class="tm-shot-item">
+                                <span class="tm-shot-time">05:00</span>
+                                <span class="tm-shot-item-body">
+                                    <strong>Sarangkot sunrise</strong>
+                                    <span>Sarangkot</span>
+                                </span>
+                            </div>
+                            <div class="tm-shot-item">
+                                <span class="tm-shot-time">09:00</span>
+                                <span class="tm-shot-item-body">
+                                    <strong>Paragliding</strong>
+                                    <span>Sarangkot launch</span>
+                                </span>
+                            </div>
+                            <div class="tm-shot-item tm-shot-item-muted">
+                                <span class="tm-shot-time">10:00</span>
+                                <span class="tm-shot-item-body">
+                                    <strong>Davis Falls and Gupteshwor Cave</strong>
+                                    <span>Davis Falls</span>
+                                </span>
+                            </div>
                         </div>
-                        <p class="tm-caption-sm tm-text-muted tm-auth-hint">
-                            The sample data signs in as
-                            <strong>alice@tripmate.test</strong> with the password
-                            <strong>tripmate123</strong>.
+
+                        <div class="tm-shot-col">
+                            <p class="tm-shot-label">What everyone paid</p>
+                            <div class="tm-shot-row">
+                                <span class="tm-shot-row-name">Lakeside guesthouse, 2 nights</span>
+                                <span class="tm-shot-amt">NPR 9,600</span>
+                            </div>
+                            <div class="tm-shot-row">
+                                <span class="tm-shot-row-name">Paragliding flights</span>
+                                <span class="tm-shot-amt">NPR 18,000</span>
+                            </div>
+                            <div class="tm-shot-row">
+                                <span class="tm-shot-row-name">Dinner at Lakeside</span>
+                                <span class="tm-shot-amt">NPR 4,800</span>
+                            </div>
+                            <div class="tm-shot-row tm-shot-row-open">
+                                <span class="tm-shot-row-name">Sarangkot jeep hire</span>
+                                <span class="tm-shot-amt">NPR 2,500</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <figcaption class="tm-shot-caption">
+                The trip page, showing the Pokhara Weekend trip that comes with
+                the demonstration account.
+            </figcaption>
+        </figure>
+
+        <div class="tm-land-body">
+
+            <!-- ============================================== why it exists -->
+            <section class="tm-band" id="why">
+                <div class="tm-band-head">
+                    <p class="tm-eyebrow">Why it exists</p>
+                    <h2 class="tm-band-title">
+                        Planned in one place. Paid for in another.
+                    </h2>
+                    <p class="tm-band-lede">
+                        Three things go wrong on every group trip. TripMate takes
+                        one of them each.
+                    </p>
+                </div>
+
+                <div class="tm-cols-2">
+                    <div class="tm-pairs">
+                        <div class="tm-pair">
+                            <p class="tm-pair-bad">
+                                <i class="pi pi-comments" aria-hidden="true"></i>
+                                The plan lives in a group chat
+                            </p>
+                            <p class="tm-pair-good">
+                                <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                                It lives in one itinerary everybody edits.
+                            </p>
+                        </div>
+                        <div class="tm-pair">
+                            <p class="tm-pair-bad">
+                                <i class="pi pi-credit-card" aria-hidden="true"></i>
+                                Whoever's card was out pays
+                            </p>
+                            <p class="tm-pair-good">
+                                <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                                Every expense is logged as it happens.
+                            </p>
+                        </div>
+                        <div class="tm-pair">
+                            <p class="tm-pair-bad">
+                                <i class="pi pi-calculator" aria-hidden="true"></i>
+                                Somebody does the maths at the end
+                            </p>
+                            <p class="tm-pair-good">
+                                <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                                The balances keep themselves current.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!--
+                        The four balances below are computed from the seed data,
+                        not invented: 53,300 spent across four people, with the
+                        two part-repayments that trip already records applied.
+                        They sum to zero, which is the property the whole
+                        expense feature exists to maintain.
+                    -->
+                    <div class="tm-mock" aria-hidden="true">
+                        <div class="tm-mock-head">
+                            <span>Pokhara Weekend, so far</span>
+                            <span class="tm-mock-tag">Under way</span>
+                        </div>
+                        <div class="tm-mock-figures">
+                            <span><strong>53,300</strong> spent</span>
+                            <span><strong>13,325</strong> each</span>
+                        </div>
+                        <div class="tm-bal">
+                            <div class="tm-bal-row tm-tone-3">
+                                <span class="tm-bal-who">Bob</span>
+                                <span class="tm-bal-bar"><span style="width: 54%"></span></span>
+                                <span class="tm-bal-amt tm-bal-amt-up">+4,475</span>
+                            </div>
+                            <div class="tm-bal-row tm-tone-3">
+                                <span class="tm-bal-who">David</span>
+                                <span class="tm-bal-bar"><span style="width: 72%"></span></span>
+                                <span class="tm-bal-amt tm-bal-amt-up">+5,925</span>
+                            </div>
+                            <div class="tm-bal-row tm-tone-6">
+                                <span class="tm-bal-who">Alice</span>
+                                <span class="tm-bal-bar"><span style="width: 26%"></span></span>
+                                <span class="tm-bal-amt tm-bal-amt-down">-2,175</span>
+                            </div>
+                            <div class="tm-bal-row tm-tone-6">
+                                <span class="tm-bal-who">Carol</span>
+                                <span class="tm-bal-bar"><span style="width: 100%"></span></span>
+                                <span class="tm-bal-amt tm-bal-amt-down">-8,225</span>
+                            </div>
+                        </div>
+                        <p class="tm-mock-foot">
+                            Three payments would clear the whole trip.
                         </p>
-                    </h:panelGroup>
+                    </div>
                 </div>
             </section>
 
-            <section class="tm-auth-pitch">
-                <ui:include src="/WEB-INF/includes/auth-pitch.xhtml"/>
+            <!-- ================================================ the features -->
+            <section class="tm-band" id="features">
+                <div class="tm-band-head">
+                    <p class="tm-eyebrow">What it does</p>
+                    <h2 class="tm-band-title">Four things, one shared place.</h2>
+                    <p class="tm-band-lede">
+                        Everything is the trip's, not the person who set it up's,
+                        so there is no master copy and nobody holding the
+                        spreadsheet.
+                    </p>
+                </div>
+
+                <div class="tm-features">
+                    <article class="tm-feature">
+                        <span class="tm-feature-icon tm-tone-2" aria-hidden="true">
+                            <i class="pi pi-map"></i>
+                        </span>
+                        <h3 class="tm-feature-title">A shared itinerary</h3>
+                        <p class="tm-feature-text">
+                            Every day, every time, edited by anybody on the trip.
+                        </p>
+                        <div class="tm-mock" aria-hidden="true">
+                            <p class="tm-mock-day">Saturday 26 September</p>
+                            <div class="tm-mock-item">
+                                <span class="tm-mock-time">05:00</span>
+                                <span class="tm-mock-item-body"><strong>Sarangkot sunrise</strong><span>Sarangkot</span></span>
+                            </div>
+                            <div class="tm-mock-item">
+                                <span class="tm-mock-time">09:00</span>
+                                <span class="tm-mock-item-body"><strong>Paragliding</strong><span>Sarangkot launch</span></span>
+                            </div>
+                            <div class="tm-mock-item">
+                                <span class="tm-mock-time">10:00</span>
+                                <span class="tm-mock-item-body"><strong>Davis Falls and cave</strong><span>Davis Falls</span></span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="tm-feature">
+                        <span class="tm-feature-icon tm-tone-4" aria-hidden="true">
+                            <i class="pi pi-receipt"></i>
+                        </span>
+                        <h3 class="tm-feature-title">Split any way you like</h3>
+                        <p class="tm-feature-text">
+                            Equally, or by exact shares. Skipping the paragliding
+                            means not paying for it.
+                        </p>
+                        <div class="tm-mock" aria-hidden="true">
+                            <div class="tm-mock-head">
+                                <span>Paragliding</span>
+                                <span class="tm-mock-amt">NPR 18,000</span>
+                            </div>
+                            <div class="tm-mock-avatars">
+                                <span class="tm-mock-avatar tm-tone-1">A</span>
+                                <span class="tm-mock-avatar tm-mock-avatar-off">B</span>
+                                <span class="tm-mock-avatar tm-tone-3">C</span>
+                                <span class="tm-mock-avatar tm-tone-5">D</span>
+                            </div>
+                            <div class="tm-mock-chips">
+                                <span class="tm-mock-chip">3 of 4 people</span>
+                                <span class="tm-mock-chip">6,000 each</span>
+                            </div>
+                            <p class="tm-mock-foot">Bob sat this one out.</p>
+                        </div>
+                    </article>
+
+                    <article class="tm-feature">
+                        <span class="tm-feature-icon tm-tone-3" aria-hidden="true">
+                            <i class="pi pi-globe"></i>
+                        </span>
+                        <h3 class="tm-feature-title">Everywhere you have been</h3>
+                        <p class="tm-feature-text">
+                            Every trip on one map, drawn by how it ended, with
+                            the whole place filled in rather than a dot.
+                        </p>
+                        <div class="tm-mock tm-mock-map" aria-hidden="true">
+                            <div class="tm-mock-map-body" data-tm-map-mock="true">
+                                <!--
+                                    Nepal and its districts, from OpenStreetMap,
+                                    projected and simplified by
+                                    scripts/make-landing-map.py.
+
+                                    Each district is the administrative area its
+                                    own coordinates fall inside, fetched by the
+                                    same reverse lookup the application makes
+                                    when a trip is placed on the real map. So a
+                                    filled district here is the same shape the
+                                    map page fills, and the three fills below are
+                                    the three trips in database/seed.sql rather
+                                    than shapes chosen to look good.
+
+                                    The districts are clipped to the border.
+                                    Both were simplified separately, so a
+                                    district edge can land a pixel or two outside
+                                    it, and clipping is cheaper than a tolerance
+                                    tight enough to make that impossible.
+
+                                    The fills are the map page's own legend
+                                    colours, taken from the same tokens, so the
+                                    two maps cannot disagree about what green
+                                    means.
+                                -->
+                                <svg class="tm-mock-map-svg" viewBox="0 0 420 240"
+                                     xmlns="http://www.w3.org/2000/svg" focusable="false">
+                                    <defs>
+                                        <clipPath id="tmMockNepal">
+                                            <path d="M0.0 90.1 0.9 95.1 23.8 111.1 26.3 103.1 59.5 122.3 65.0 135.6 70.6 133.4 94.3 151.8 103.8 147.9 123.3 162.2 136.7 159.7 138.1 172.6 161.5 175.4 168.1 182.7 171.8 173.9 195.9 181.4 196.8 176.6 210.8 171.6 218.5 179.5 235.5 182.3 239.0 189.4 236.5 199.3 253.0 204.3 256.2 210.6 264.8 209.7 265.8 216.2 287.6 209.5 298.8 227.3 307.9 221.6 323.7 224.4 344.2 235.9 361.7 226.3 362.8 234.3 375.6 240.3 382.0 234.9 389.3 238.4 403.9 232.1 410.0 239.5 414.5 235.0 418.6 209.9 409.0 195.0 419.7 151.9 400.9 146.2 395.5 154.8 387.1 151.2 366.9 153.9 344.5 137.4 336.2 136.8 327.7 148.9 318.2 144.5 316.1 133.2 310.7 138.1 312.9 147.6 306.5 148.6 291.6 120.8 286.3 128.4 280.9 123.8 274.4 127.1 261.1 123.7 264.6 105.8 257.9 103.4 247.5 110.0 235.6 100.2 228.4 100.2 223.7 93.1 215.0 91.0 213.8 70.9 208.2 67.6 198.4 65.6 181.6 74.3 166.1 51.4 142.9 44.3 128.5 28.2 109.1 22.3 110.8 17.1 104.3 5.1 69.7 1.5 69.0 14.0 61.9 17.3 60.6 25.7 43.8 13.3 35.5 25.8 15.9 40.9 18.1 49.8 9.6 58.8 12.4 72.7Z"/>
+                                        </clipPath>
+                                    </defs>
+
+                                    <path class="tm-mock-map-land" d="M0.0 90.1 0.9 95.1 23.8 111.1 26.3 103.1 59.5 122.3 65.0 135.6 70.6 133.4 94.3 151.8 103.8 147.9 123.3 162.2 136.7 159.7 138.1 172.6 161.5 175.4 168.1 182.7 171.8 173.9 195.9 181.4 196.8 176.6 210.8 171.6 218.5 179.5 235.5 182.3 239.0 189.4 236.5 199.3 253.0 204.3 256.2 210.6 264.8 209.7 265.8 216.2 287.6 209.5 298.8 227.3 307.9 221.6 323.7 224.4 344.2 235.9 361.7 226.3 362.8 234.3 375.6 240.3 382.0 234.9 389.3 238.4 403.9 232.1 410.0 239.5 414.5 235.0 418.6 209.9 409.0 195.0 419.7 151.9 400.9 146.2 395.5 154.8 387.1 151.2 366.9 153.9 344.5 137.4 336.2 136.8 327.7 148.9 318.2 144.5 316.1 133.2 310.7 138.1 312.9 147.6 306.5 148.6 291.6 120.8 286.3 128.4 280.9 123.8 274.4 127.1 261.1 123.7 264.6 105.8 257.9 103.4 247.5 110.0 235.6 100.2 228.4 100.2 223.7 93.1 215.0 91.0 213.8 70.9 208.2 67.6 198.4 65.6 181.6 74.3 166.1 51.4 142.9 44.3 128.5 28.2 109.1 22.3 110.8 17.1 104.3 5.1 69.7 1.5 69.0 14.0 61.9 17.3 60.6 25.7 43.8 13.3 35.5 25.8 15.9 40.9 18.1 49.8 9.6 58.8 12.4 72.7Z"/>
+
+                                    <!--
+                                        Focusable, so the same information is
+                                        reachable from a keyboard. It is the
+                                        only thing on the page that answers to
+                                        a pointer, and a reader without one
+                                        loses a detail rather than the point:
+                                        every figure in these tooltips is also
+                                        written out in the band above.
+                                    -->
+                                    <g clip-path="url(#tmMockNepal)">
+                                        <!--
+                                            The seven provinces, as lines
+                                            inside the border. Nepal has
+                                            seventy-seven districts and at
+                                            this size each would be about
+                                            fifteen pixels across, which is
+                                            a mesh rather than a map; the
+                                            provinces divide it into seven
+                                            readable regions instead.
+                                        -->
+                                        <path class="tm-mock-map-border"
+                                              d="M314.6 206.1 319.1 210.0 321.3 208.7 325.3 209.5 326.3 207.3 331.2 208.5 333.3 211.9 335.1 211.9 333.9 214.4 336.3 214.7 335.0 216.9 338.0 220.3 340.8 219.3 341.8 220.3 344.5 218.9 345.3 220.4 349.0 218.8 350.2 220.1 354.0 215.7 359.1 220.2 357.1 222.7 357.7 227.1 353.1 232.0 354.4 232.0 354.5 230.4 358.8 229.5 360.4 226.2 361.7 226.3 362.8 234.3 366.4 237.0 371.5 236.7 371.8 238.7 375.6 240.3 377.1 236.7 382.0 234.9 389.3 238.4 391.7 237.6 393.0 235.1 397.2 236.7 398.9 233.2 401.8 235.0 403.9 232.1 405.9 236.2 409.2 237.6 409.4 239.2 411.2 239.3 411.2 237.9 414.5 235.0 415.1 227.8 417.9 223.3 419.4 216.3 418.6 209.9 415.8 204.9 416.6 202.9 413.6 199.9 411.6 199.9 409.0 195.0 410.6 192.0 411.3 185.2 413.1 182.3 411.8 180.2 412.2 177.8 413.8 176.8 411.9 172.9 417.1 163.0 417.7 158.8 419.8 155.7 418.5 153.9 419.7 152.0 416.6 150.3 414.6 151.2 414.0 149.5 411.2 148.9 408.8 150.0 406.1 148.2 402.7 148.6 402.2 146.4 400.9 146.2 395.5 154.8 392.4 154.7 392.3 152.9 389.5 154.5 387.1 151.2 381.3 153.8 378.8 153.2 380.3 152.6 379.6 151.5 376.5 153.5 371.7 152.2 369.7 153.9 366.9 153.9 364.0 152.7 360.1 146.3 354.6 145.7 351.1 141.9 347.2 142.3 345.4 141.2 345.9 139.0 344.5 137.4 342.0 137.0 339.3 139.3 335.7 136.9 332.8 145.3 334.8 147.6 334.3 154.3 335.7 154.9 336.0 157.8 334.3 162.7 331.9 166.0 328.9 166.2 325.9 168.7 324.8 171.3 320.1 175.2 317.9 179.6 317.6 182.5 318.9 185.1 317.0 187.4 318.4 188.1 320.2 186.7 324.1 188.6 324.2 190.2 326.6 191.5 325.4 193.8 324.2 193.4 322.3 195.6 325.2 196.2 324.3 198.1 326.2 200.1 325.4 203.2 321.1 205.0 317.9 208.6Z"/>
+                                        <path class="tm-mock-map-border"
+                                              d="M228.3 180.5 235.4 182.3 238.9 189.0 238.1 196.4 236.5 199.3 242.4 201.9 243.2 201.0 244.3 202.3 245.9 200.8 247.5 202.9 253.0 204.3 253.3 206.9 258.1 208.7 256.2 210.6 264.8 209.7 264.0 213.2 265.8 216.2 272.2 217.1 275.9 214.3 278.3 214.8 284.6 210.2 285.3 210.9 287.6 209.5 292.8 214.0 292.8 222.5 297.1 225.3 298.8 225.0 298.7 227.3 303.7 224.7 304.2 222.6 307.9 221.6 313.6 223.8 313.5 225.1 316.4 224.6 317.7 226.2 319.5 224.5 323.7 224.4 334.4 229.1 335.9 231.5 344.2 235.9 346.0 233.7 349.5 234.9 352.6 233.6 354.6 229.4 357.7 227.1 357.1 222.7 359.1 220.1 354.7 217.4 354.0 215.7 350.2 220.1 349.0 218.8 345.3 220.4 344.5 218.9 341.8 220.3 340.8 219.3 336.7 219.8 335.0 216.9 336.3 214.7 333.9 214.4 335.1 211.9 333.3 211.9 331.2 208.5 326.3 207.3 325.3 209.5 321.3 208.7 319.1 210.0 314.5 206.8 317.9 208.6 319.9 207.0 318.6 204.9 311.6 201.0 306.0 200.6 303.3 194.9 300.4 193.4 299.4 194.6 297.7 192.2 292.2 190.6 287.4 194.0 280.7 193.6 280.8 191.8 279.3 192.5 275.2 189.7 264.1 187.4 259.4 180.9 251.1 180.7 244.1 176.3 236.7 176.9 232.5 174.8 230.8 177.7 231.2 179.4Z"/>
+                                        <path class="tm-mock-map-border"
+                                              d="M199.2 170.5 199.7 171.9 201.7 171.7 200.2 173.3 200.6 176.1 204.7 176.6 208.2 173.3 208.4 171.7 210.8 171.6 211.0 173.5 214.0 174.5 214.1 176.1 216.4 175.5 218.4 179.4 227.6 181.2 231.2 179.4 230.8 177.7 232.5 174.8 236.7 176.9 244.1 176.3 251.1 180.7 259.4 180.9 264.1 187.4 275.2 189.7 279.3 192.5 280.8 191.8 280.7 193.6 287.4 194.0 292.2 190.6 297.7 192.2 299.4 194.6 300.4 193.4 303.3 194.9 306.0 200.6 312.0 201.1 316.2 203.1 319.9 206.8 321.1 205.0 325.4 203.2 326.2 200.1 324.3 198.1 325.2 196.2 322.3 195.6 324.2 193.4 325.4 193.8 326.6 191.5 324.2 190.2 324.1 188.6 320.2 186.7 318.4 188.1 317.0 187.4 318.9 185.1 317.6 182.5 318.2 178.7 325.9 168.7 328.9 166.2 332.0 165.9 334.3 162.7 336.0 157.8 335.7 154.9 334.3 154.3 334.7 147.5 332.2 145.9 329.3 148.9 327.7 148.9 324.2 146.8 323.7 145.3 322.8 146.4 321.4 144.7 318.5 144.9 317.0 138.8 317.9 137.6 316.1 133.2 312.8 137.9 310.7 138.1 310.7 142.5 312.9 147.6 309.8 149.3 306.5 148.6 303.8 146.8 305.3 143.6 301.3 140.2 301.3 137.3 298.7 132.7 293.6 129.5 291.6 120.8 290.2 121.0 289.1 125.6 286.3 128.4 285.9 125.6 280.9 123.8 276.3 124.2 274.4 127.1 272.5 125.6 268.1 126.2 265.4 123.5 264.3 124.4 259.5 123.1 257.3 124.3 256.4 128.0 253.0 130.7 252.7 136.0 249.4 137.5 246.8 136.6 245.2 143.2 241.8 145.7 241.3 149.7 243.3 154.6 241.0 155.4 238.6 154.5 235.6 150.5 233.8 150.4 230.0 154.2 225.7 154.3 225.7 156.1 227.7 157.9 225.1 158.6 225.5 160.7 223.0 162.2 221.1 160.8 214.0 164.6 208.9 169.7Z"/>
+                                        <path class="tm-mock-map-border"
+                                              d="M145.3 113.1 147.3 115.4 145.5 115.5 147.5 119.8 148.8 120.1 149.5 122.3 155.3 125.1 156.6 128.4 161.3 127.5 165.9 132.5 170.1 131.8 173.6 136.1 180.3 136.5 181.7 138.9 180.7 141.3 182.9 143.6 179.2 145.5 176.7 144.5 174.8 147.6 178.1 146.9 178.8 147.9 181.2 146.7 184.0 147.7 184.5 149.3 186.6 147.6 191.1 148.7 193.3 150.8 197.0 149.9 204.8 151.8 202.8 158.1 199.4 159.4 195.3 158.9 195.4 160.4 186.7 159.8 187.6 163.3 193.6 163.2 192.5 166.5 194.9 167.7 194.9 170.1 195.6 169.3 197.3 171.1 198.1 172.7 196.9 173.3 198.4 176.4 200.2 175.4 200.3 173.1 201.8 171.9 199.4 171.7 199.5 170.1 208.9 169.7 214.0 164.6 221.1 160.8 223.0 162.2 225.5 160.7 225.1 158.6 227.7 157.9 225.5 155.6 226.3 153.8 230.0 154.2 233.3 150.8 235.3 150.4 238.6 154.5 241.0 155.4 243.7 154.3 241.3 149.7 241.8 145.7 245.2 143.2 246.8 136.6 249.4 137.5 252.7 136.0 253.0 130.7 256.4 128.0 257.3 124.3 260.5 123.1 261.5 120.4 260.1 116.6 264.5 112.1 263.9 108.4 265.1 106.6 260.8 103.1 257.9 103.4 254.1 108.7 249.9 108.6 247.5 110.0 239.2 106.1 239.7 104.1 235.6 100.2 232.0 99.3 228.4 100.2 225.9 98.3 225.8 95.3 224.1 94.8 223.7 93.1 215.0 91.0 216.2 82.6 213.1 82.0 213.7 77.5 212.3 77.1 211.7 73.9 213.7 70.7 209.3 70.4 209.6 68.7 208.4 67.7 204.2 67.8 201.4 65.4 193.7 67.1 192.8 70.1 188.5 70.4 185.6 72.8 186.8 77.5 183.5 79.0 184.3 81.1 183.4 85.6 177.5 92.0 176.7 97.6 166.0 101.1 159.3 99.5 159.6 102.3 157.8 104.1 157.7 106.4 150.6 106.5 149.3 108.3 151.0 109.9 150.4 111.7 147.7 110.2 147.3 112.5Z"/>
+                                        <path class="tm-mock-map-border"
+                                              d="M51.7 119.5 52.8 120.9 59.6 122.4 60.6 126.5 65.2 131.8 65.2 133.5 64.2 133.7 65.5 134.7 65.0 135.6 67.8 135.1 68.0 133.0 70.6 133.4 73.6 136.5 73.3 138.6 80.8 143.3 84.6 144.1 94.3 151.8 96.4 151.6 98.6 147.6 103.8 147.9 106.4 151.3 111.0 152.6 123.3 162.2 136.7 159.6 136.9 163.2 139.2 167.3 138.1 172.6 148.1 172.6 149.4 174.6 153.6 175.7 161.5 175.4 165.8 179.6 167.0 182.5 169.4 182.4 171.8 180.0 172.9 177.8 171.6 176.4 171.9 173.9 183.5 174.5 195.9 181.4 196.3 176.9 198.0 176.4 197.3 171.1 195.6 169.3 194.9 170.1 194.9 167.7 192.6 166.5 193.6 163.2 187.6 163.3 186.7 159.8 195.4 160.4 195.3 158.9 199.4 159.4 203.0 158.0 204.8 153.9 204.5 151.5 197.0 149.9 193.3 150.8 191.7 149.0 186.6 147.6 185.0 149.3 181.2 146.7 178.8 147.9 178.1 146.9 174.8 147.6 176.7 144.5 179.2 145.5 182.9 143.6 180.7 141.3 181.7 138.9 180.3 136.5 173.6 136.1 170.1 131.8 165.9 132.5 161.3 127.5 157.2 128.7 154.9 124.8 149.5 122.3 145.9 116.9 145.5 115.5 147.3 115.4 145.3 113.1 147.3 112.5 147.7 110.2 150.4 111.7 151.0 109.9 149.3 108.3 150.6 106.5 157.7 106.4 157.8 104.1 159.3 103.4 159.3 99.5 157.7 99.8 155.9 97.3 150.7 96.4 149.0 94.8 142.3 94.7 139.8 95.9 136.1 92.7 132.7 93.3 132.2 96.0 129.2 98.4 129.4 99.8 131.2 99.8 132.0 103.0 128.8 105.6 126.1 104.3 125.0 106.2 129.8 107.3 129.7 109.3 124.1 112.8 121.8 112.4 119.6 118.2 118.3 118.6 120.0 121.6 119.0 124.7 122.7 128.9 120.7 133.5 115.3 128.9 107.7 129.5 105.4 128.2 103.0 129.2 101.4 131.6 98.7 130.3 99.4 128.3 97.3 126.8 97.1 129.8 93.0 129.4 92.0 127.4 89.5 127.3 87.0 125.0 88.2 121.7 71.6 110.9 69.3 107.8 65.0 106.0 64.5 103.9 63.3 103.9 62.5 107.1Z"/>
+                                        <path class="tm-mock-map-border"
+                                              d="M47.6 88.4 53.8 93.8 55.9 92.2 56.5 94.7 59.0 95.5 59.2 92.8 61.1 95.8 60.3 96.8 62.4 102.1 63.3 103.9 65.2 104.3 65.0 106.0 69.3 107.8 71.6 110.9 88.2 121.7 87.0 125.0 89.5 127.3 92.0 127.4 93.0 129.4 96.0 130.1 97.8 129.2 96.7 127.6 97.5 126.8 99.4 128.3 98.7 130.3 101.4 131.6 103.0 129.2 105.4 128.2 107.7 129.5 115.7 129.0 120.7 133.5 122.7 128.9 119.0 124.7 120.0 121.6 118.3 118.6 119.6 118.2 121.8 112.4 124.1 112.8 129.7 109.3 129.8 107.3 125.0 106.2 126.1 104.3 128.8 105.6 132.0 103.0 131.2 99.8 129.4 99.8 129.2 98.4 132.2 96.0 133.4 92.6 138.2 93.7 139.8 95.9 142.3 94.7 149.0 94.8 150.7 96.4 155.9 97.3 157.7 99.8 163.5 99.8 166.0 101.1 170.4 100.4 171.7 98.7 176.7 97.6 177.5 92.0 183.4 85.6 184.3 81.1 183.5 79.0 186.8 77.1 185.8 74.6 184.5 75.5 181.6 74.3 181.3 72.9 178.5 72.0 176.9 68.3 175.7 68.6 174.6 64.6 173.2 63.7 173.1 60.0 170.9 59.7 169.6 55.8 165.6 55.0 164.9 52.1 166.1 51.4 163.7 50.9 161.9 48.9 159.9 49.8 159.5 48.2 158.0 47.9 156.2 49.4 152.2 45.4 149.5 46.0 148.4 43.5 142.9 44.3 142.4 42.5 139.7 41.9 138.6 39.6 135.8 40.0 136.1 38.3 138.3 37.0 137.7 35.8 136.1 34.6 132.3 35.6 133.3 33.6 131.3 32.7 128.5 28.2 125.8 29.2 120.6 24.7 118.9 25.5 117.4 23.4 115.6 23.9 112.7 21.7 109.1 22.3 109.8 19.6 108.9 18.9 110.8 17.1 109.6 16.7 109.7 15.0 107.5 14.6 105.3 12.1 106.8 8.4 105.7 5.7 104.0 5.1 103.1 6.6 101.0 6.0 99.6 7.3 97.6 5.1 95.8 5.6 92.7 3.9 87.3 3.4 80.7 -0.1 79.9 2.0 77.6 1.1 77.1 4.5 69.7 1.5 69.3 2.9 70.8 3.7 69.0 4.6 69.0 7.2 70.4 8.2 69.3 9.0 70.1 9.6 69.0 14.0 65.8 17.2 64.3 16.5 61.8 17.7 63.6 19.6 62.6 23.5 67.0 25.7 69.5 25.1 72.5 26.4 72.7 28.5 71.6 29.8 72.4 32.6 74.0 32.9 75.3 30.7 81.8 29.2 84.1 29.1 85.5 31.5 89.9 31.9 88.8 37.5 86.8 38.3 84.6 45.1 85.2 48.0 89.8 50.9 89.5 53.7 88.0 55.1 90.1 56.9 89.6 61.4 87.8 62.2 86.7 65.2 82.1 66.0 81.5 63.6 80.2 63.0 74.8 66.3 72.7 68.8 74.4 70.8 73.8 74.6 77.9 77.4 72.8 80.2 69.9 83.7 70.4 86.6 74.9 91.2 78.6 98.9 75.5 99.5 75.6 96.3 72.5 93.4 72.6 91.0 70.9 90.0 67.0 91.2 64.2 89.1 62.3 90.5 59.1 90.2 54.6 86.8 51.2 86.0Z"/>
+                                        <path class="tm-mock-map-border"
+                                              d="M0.0 90.1 0.9 95.1 3.1 94.8 8.2 99.1 10.0 99.0 10.3 100.6 13.3 102.3 15.7 106.1 20.3 106.5 21.3 109.2 23.8 111.1 23.0 104.4 26.3 103.1 27.5 103.6 27.5 105.4 31.5 105.8 32.6 109.0 36.7 110.2 37.7 112.6 41.7 114.7 41.5 113.8 43.3 113.7 43.8 116.1 47.6 116.7 46.9 117.8 49.5 116.9 49.7 119.3 52.1 120.3 53.3 116.6 56.9 114.0 62.5 107.1 63.3 103.5 59.2 92.8 59.0 95.5 56.5 94.7 55.9 92.2 53.8 93.8 47.6 88.4 51.2 86.0 54.6 86.8 59.1 90.2 62.3 90.5 64.2 89.1 67.0 91.2 70.9 90.0 72.6 91.0 72.5 93.4 75.6 96.3 75.5 99.5 78.6 98.9 74.9 91.2 70.4 86.6 69.9 83.7 72.8 80.2 77.9 77.4 73.8 74.6 74.4 70.8 72.7 68.8 74.8 66.3 80.2 63.0 81.5 63.6 82.1 66.0 86.7 65.2 87.8 62.2 89.6 61.4 90.1 56.9 88.0 55.1 89.5 53.7 89.8 50.9 85.2 48.0 84.6 45.1 86.8 38.3 88.8 37.5 89.9 31.9 85.5 31.5 84.1 29.1 81.8 29.2 75.3 30.7 74.0 32.9 72.4 32.6 72.2 26.2 69.5 25.1 67.0 25.7 62.6 23.5 60.6 25.7 55.5 25.2 53.4 23.0 54.3 21.2 52.9 20.3 52.9 17.4 50.8 14.8 44.9 15.9 43.8 13.3 41.5 16.2 42.3 18.5 36.3 23.3 35.5 25.8 31.8 28.7 28.1 28.6 25.6 34.9 22.5 38.1 19.5 37.5 15.9 40.9 16.9 45.3 18.7 47.3 18.1 49.8 14.7 52.4 15.1 54.4 11.8 56.8 12.6 58.3 9.6 58.8 9.5 60.7 13.4 66.3 12.4 72.7 9.6 72.3 11.1 76.6 9.1 78.0 6.5 76.7 4.5 78.6 4.1 84.2Z"/>
+
+                                        <path class="tm-mock-map-area tm-mock-map-area-planning"
+                                              d="M332.8 145.3 335.1 148.7 334.3 154.3 335.7 154.9 335.6 157.4 337.7 158.0 338.9 160.4 340.8 160.5 342.8 163.2 342.7 166.9 344.1 166.8 343.6 167.9 344.8 168.5 345.7 165.9 347.0 166.6 348.1 165.6 349.0 160.1 352.9 156.0 352.0 152.0 356.7 150.6 357.2 146.4 354.6 145.6 351.1 141.9 347.2 142.3 345.4 141.2 345.9 139.0 344.5 137.4 342.0 137.0 339.3 139.3 336.2 136.8Z"
+                                              tabindex="0"
+                                              data-tip-title="Everest Base Camp Trek"
+                                              data-tip-kind="Planning"
+                                              data-tip-date="5 Nov 2026 to 20 Nov 2026"
+                                              data-tip-figures="5 items · 3 people · NPR 52,500 spent"/>
+                                        <path class="tm-mock-map-area tm-mock-map-area-ongoing"
+                                              d="M193.0 130.0 197.7 132.0 200.1 135.3 202.3 135.0 206.9 138.8 209.9 136.6 208.7 135.0 210.9 132.2 208.9 130.4 205.8 130.6 206.5 127.0 203.6 123.4 199.9 126.2 197.4 126.0 197.2 128.3 194.9 127.9Z"
+                                              tabindex="0"
+                                              data-tip-default="true"
+                                              data-tip-title="Pokhara Weekend"
+                                              data-tip-kind="Under way"
+                                              data-tip-date="25 Sep 2026 to 28 Sep 2026"
+                                              data-tip-figures="5 items · 4 people · NPR 53,300 spent"/>
+                                        <path class="tm-mock-map-area tm-mock-map-area-completed"
+                                              d="M199.2 170.5 199.7 171.9 201.7 171.7 200.2 173.3 200.6 176.1 204.7 176.6 208.2 173.3 208.4 171.7 210.8 171.6 211.0 173.5 214.0 174.5 214.1 176.1 216.4 175.5 218.4 179.4 228.4 181.0 231.2 179.4 232.3 174.9 236.7 176.9 239.1 175.1 238.4 169.7 241.0 167.9 240.3 164.6 242.9 163.5 244.4 160.5 242.4 158.9 238.2 159.2 238.1 156.3 236.2 156.1 236.7 155.1 235.2 154.6 237.6 153.7 237.4 152.2 233.8 150.4 230.0 154.2 225.7 154.3 225.7 156.1 227.7 157.9 225.1 158.6 225.5 160.7 223.0 162.2 221.1 160.8 214.0 164.6 208.9 169.7Z"
+                                              tabindex="0"
+                                              data-tip-title="Chitwan Jungle Safari"
+                                              data-tip-kind="Finished"
+                                              data-tip-date="10 Apr 2026 to 13 Apr 2026"
+                                              data-tip-figures="4 items · 5 people · NPR 54,500 spent"/>
+                                    </g>
+                                </svg>
+
+                                <!--
+                                    Built by tripmate.js from the attributes on
+                                    whichever district is pointed at, into the
+                                    same markup the map page's own tooltip uses,
+                                    so the two bubbles are the same bubble.
+                                -->
+                                <div class="tm-mock-map-tip" hidden="hidden"></div>
+                            </div>
+
+                            <div class="tm-mock-map-legend">
+                                <span class="tm-map-key tm-map-key-planning">Planning</span>
+                                <span class="tm-map-key tm-map-key-ongoing">Under way</span>
+                                <span class="tm-map-key tm-map-key-completed">Finished</span>
+                            </div>
+                            <!-- A licence condition, not a courtesy. -->
+                            <p class="tm-mock-foot">
+                                Borders from
+                                <a href="https://www.openstreetmap.org/copyright"
+                                   target="_blank" rel="noopener">OpenStreetMap</a>
+                                contributors.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="tm-feature">
+                        <span class="tm-feature-icon tm-tone-5" aria-hidden="true">
+                            <i class="pi pi-chart-bar"></i>
+                        </span>
+                        <h3 class="tm-feature-title">Reports</h3>
+                        <p class="tm-feature-text">
+                            What your trips cost, by category and by day, and
+                            what each person paid and owes.
+                        </p>
+                        <div class="tm-mock" aria-hidden="true">
+                            <div class="tm-mock-head">
+                                <span>Where the money went</span>
+                                <span class="tm-mock-tag">All three trips</span>
+                            </div>
+                            <!--
+                                Category totals across all three trips in the
+                                seed data, added up from their twenty-five
+                                expenses and ordered biggest first: transport
+                                41,500, activities 38,000, accommodation 27,600,
+                                other 24,000, food 21,200, equipment 4,500 and
+                                shopping 3,500. Bars are scaled against the
+                                largest, so transport is full width.
+
+                                The bar colours are the chart slots in order.
+                                There are seven categories and six slots, so the
+                                seventh takes the palette's reserved neutral,
+                                which is exactly what the reports page does with
+                                a seventh category: the order is what makes the
+                                palette safe for a colourblind reader and it is
+                                never cycled to make room for one more.
+                            -->
+                            <div class="tm-mock-bars">
+                                <div class="tm-mock-bar tm-tone-1">
+                                    <span class="tm-mock-bar-label">Transport</span>
+                                    <span class="tm-mock-bar-track"><span style="width: 100%"></span></span>
+                                    <span class="tm-mock-bar-amt">41,500</span>
+                                </div>
+                                <div class="tm-mock-bar tm-tone-2">
+                                    <span class="tm-mock-bar-label">Activities</span>
+                                    <span class="tm-mock-bar-track"><span style="width: 92%"></span></span>
+                                    <span class="tm-mock-bar-amt">38,000</span>
+                                </div>
+                                <div class="tm-mock-bar tm-tone-3">
+                                    <span class="tm-mock-bar-label">Stay</span>
+                                    <span class="tm-mock-bar-track"><span style="width: 67%"></span></span>
+                                    <span class="tm-mock-bar-amt">27,600</span>
+                                </div>
+                                <div class="tm-mock-bar tm-tone-4">
+                                    <span class="tm-mock-bar-label">Other</span>
+                                    <span class="tm-mock-bar-track"><span style="width: 58%"></span></span>
+                                    <span class="tm-mock-bar-amt">24,000</span>
+                                </div>
+                                <div class="tm-mock-bar tm-tone-5">
+                                    <span class="tm-mock-bar-label">Food</span>
+                                    <span class="tm-mock-bar-track"><span style="width: 51%"></span></span>
+                                    <span class="tm-mock-bar-amt">21,200</span>
+                                </div>
+                                <div class="tm-mock-bar tm-tone-6">
+                                    <span class="tm-mock-bar-label">Equipment</span>
+                                    <span class="tm-mock-bar-track"><span style="width: 11%"></span></span>
+                                    <span class="tm-mock-bar-amt">4,500</span>
+                                </div>
+                                <div class="tm-mock-bar tm-tone-other">
+                                    <span class="tm-mock-bar-label">Shopping</span>
+                                    <span class="tm-mock-bar-track"><span style="width: 8%"></span></span>
+                                    <span class="tm-mock-bar-amt">3,500</span>
+                                </div>
+                            </div>
+                            <p class="tm-mock-foot">
+                                160,300 across twenty-five expenses, and the
+                                same breakdown by person and by day.
+                            </p>
+                        </div>
+                    </article>
+                </div>
             </section>
 
+            <!-- ================================================= how it works -->
+            <section class="tm-band" id="how">
+                <div class="tm-band-head">
+                    <p class="tm-eyebrow">How it works</p>
+                    <h2 class="tm-band-title">Four steps, and the last one is the point.</h2>
+                    <p class="tm-band-lede">
+                        It takes about a minute to get a trip going. Everything
+                        after that is the group filling it in.
+                    </p>
+                </div>
+
+                <!--
+                    A track rather than a list. Each step is a marker on a line
+                    that runs the width of the band, so the four read as one
+                    journey with a direction rather than as four unrelated
+                    points. The line is drawn by the step itself, reaching from
+                    its own marker towards the next, which is why the last one
+                    has none: a line that runs off the end of a sequence is a
+                    line to nowhere.
+                -->
+                <ol class="tm-steps">
+                    <li class="tm-step">
+                        <span class="tm-step-mark tm-tone-1" aria-hidden="true">
+                            <i class="pi pi-plus"></i>
+                        </span>
+                        <span class="tm-step-num">01</span>
+                        <h3 class="tm-step-title">Create the trip</h3>
+                        <p>A name, the dates, and where it is going.</p>
+                    </li>
+                    <li class="tm-step">
+                        <span class="tm-step-mark tm-tone-2" aria-hidden="true">
+                            <i class="pi pi-users"></i>
+                        </span>
+                        <span class="tm-step-num">02</span>
+                        <h3 class="tm-step-title">Invite the group</h3>
+                        <p>They join with their own account and see the same plan.</p>
+                    </li>
+                    <li class="tm-step">
+                        <span class="tm-step-mark tm-tone-3" aria-hidden="true">
+                            <i class="pi pi-calendar-plus"></i>
+                        </span>
+                        <span class="tm-step-num">03</span>
+                        <h3 class="tm-step-title">Plan the days</h3>
+                        <p>Add what happens and when. Anybody can edit it.</p>
+                    </li>
+                    <li class="tm-step">
+                        <span class="tm-step-mark tm-tone-4" aria-hidden="true">
+                            <i class="pi pi-wallet"></i>
+                        </span>
+                        <span class="tm-step-num">04</span>
+                        <h3 class="tm-step-title">Log it and settle up</h3>
+                        <p>Whoever paid records it, and the balances do the rest.</p>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- ============================================== Google Calendar -->
+            <section class="tm-band" id="calendar">
+                <div class="tm-band-head">
+                    <p class="tm-eyebrow">Optional connection</p>
+                    <h2 class="tm-band-title">Google Calendar, and exactly what it gets.</h2>
+                </div>
+
+                <div class="tm-mock tm-mock-cal" aria-hidden="true">
+                    <div class="tm-mock-head">
+                        <span>November 2026</span>
+                        <span class="tm-mock-tag">From TripMate</span>
+                    </div>
+
+                    <div class="tm-cal-clip">
+                        <div class="tm-cal">
+                            <span class="tm-cal-dow">Mon</span>
+                            <span class="tm-cal-dow">Tue</span>
+                            <span class="tm-cal-dow">Wed</span>
+                            <span class="tm-cal-dow">Thu</span>
+                            <span class="tm-cal-dow">Fri</span>
+                            <span class="tm-cal-dow">Sat</span>
+                            <span class="tm-cal-dow">Sun</span>
+
+                            <div class="tm-cal-cell"></div>
+                            <div class="tm-cal-cell"></div>
+                            <div class="tm-cal-cell"></div>
+                            <div class="tm-cal-cell"></div>
+                            <div class="tm-cal-cell"></div>
+                            <div class="tm-cal-cell"></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">1</span></div>
+
+                            <div class="tm-cal-cell"><span class="tm-cal-date">2</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">3</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">4</span></div>
+                            <div class="tm-cal-cell">
+                                <span class="tm-cal-date">5</span>
+                                <span class="tm-cal-ev"><i></i><b>06:00</b> <span class="tm-cal-ev-name">Fly to Lukla</span></span>
+                            </div>
+                            <div class="tm-cal-cell">
+                                <span class="tm-cal-date">6</span>
+                                <span class="tm-cal-ev"><i></i><b>07:00</b> <span class="tm-cal-ev-name">Trek to Phakding</span></span>
+                            </div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">7</span></div>
+                            <div class="tm-cal-cell">
+                                <span class="tm-cal-date">8</span>
+                                <span class="tm-cal-ev"><i></i><b>09:00</b> <span class="tm-cal-ev-name">Acclimatise in Namche</span></span>
+                            </div>
+
+                            <div class="tm-cal-cell"><span class="tm-cal-date">9</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">10</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">11</span></div>
+                            <div class="tm-cal-cell">
+                                <span class="tm-cal-date">12</span>
+                                <span class="tm-cal-ev"><i></i><b>06:00</b> <span class="tm-cal-ev-name">Reach Base Camp</span></span>
+                            </div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">13</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">14</span></div>
+                            <div class="tm-cal-cell">
+                                <span class="tm-cal-date">15</span>
+                                <span class="tm-cal-ev"><i></i><b>04:30</b> <span class="tm-cal-ev-name">Kala Patthar sunrise</span></span>
+                            </div>
+
+                            <div class="tm-cal-cell"><span class="tm-cal-date">16</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">17</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">18</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">19</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">20</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">21</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">22</span></div>
+
+                            <div class="tm-cal-cell"><span class="tm-cal-date">23</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">24</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">25</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">26</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">27</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">28</span></div>
+                            <div class="tm-cal-cell"><span class="tm-cal-date">29</span></div>
+
+                            <div class="tm-cal-cell"><span class="tm-cal-date">30</span></div>
+                        </div>
+                    </div>
+
+                    <p class="tm-mock-foot">
+                        Everest Base Camp, 5 to 20 November. Every item in the
+                        plan becomes an event in your own calendar, at the time
+                        the plan gives it.
+                    </p>
+                </div>
+
+                <div class="tm-cols-2 tm-cal-top">
+                    <div>
+                        <p class="tm-prose-lead">
+                            The plan can appear in the calendar you already look
+                            at, and follow every change to it. Connecting it is
+                            optional: everything else works without it.
+                        </p>
+                        <ul class="tm-cal-points">
+                            <li>
+                                <i class="pi pi-refresh" aria-hidden="true"></i>
+                                A change to the plan changes the event.
+                            </li>
+                            <li>
+                                <i class="pi pi-trash" aria-hidden="true"></i>
+                                Deleting an item removes it again.
+                            </li>
+                            <li>
+                                <i class="pi pi-clock" aria-hidden="true"></i>
+                                Times are written in the trip's own timezone.
+                            </li>
+                        </ul>
+                        <p class="tm-prose-note">
+                            Connecting it happens from inside a trip, and you can
+                            disconnect from the same place.
+                        </p>
+                    </div>
+
+                    <div>
+                        <p class="tm-prose-lead tm-cal-sub">
+                            One item of the plan becomes one event, like this:
+                        </p>
+
+                        <!--
+                            The first item of the Everest trip, as the calendar
+                            holds it: fly to Lukla, 06:00 to 07:00 on the 5th of
+                            November 2026, which really is a Thursday, from
+                            Tribhuvan International Airport. The shape of the
+                            card is the shape every calendar draws an event in,
+                            a colour bar down one side and the facts beside it.
+                        -->
+                        <div class="tm-mock tm-mock-event" aria-hidden="true">
+                            <span class="tm-mock-event-bar"></span>
+                            <div class="tm-mock-event-body">
+                                <p class="tm-mock-event-title">Fly to Lukla</p>
+                                <p class="tm-mock-event-line">
+                                    <i class="pi pi-clock"></i>
+                                    Thu 5 November 2026, 06:00 to 07:00
+                                </p>
+                                <p class="tm-mock-event-line">
+                                    <i class="pi pi-map-marker"></i>
+                                    Tribhuvan International Airport
+                                </p>
+                                <p class="tm-mock-event-from">
+                                    Everest Base Camp Trek, kept in step by
+                                    TripMate
+                                </p>
+                            </div>
+                        </div>
+
+                        <!--
+                            The permission, what it is used for, what is kept
+                            and how to take it back are not repeated here.
+
+                            They were, as a panel beside this column, until it
+                            was pointed out that the privacy policy already
+                            carries all of it at greater length: the scope by
+                            its name, the four things it does not do, where the
+                            token is stored, and both ways to disconnect. Two
+                            copies of a disclosure is one copy that can go
+                            stale, and the policy is the one Google's own
+                            consent screen links to. So this points at it
+                            rather than paraphrasing it, and the link says what
+                            is behind it instead of "read more".
+                        -->
+                        <p class="tm-prose-note">
+                            The permission it asks for, what is stored and for
+                            how long, and how to take the access back are set out
+                            in full in the
+                            <a href="#{request.contextPath}/privacy.xhtml">privacy
+                            policy</a>.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================================================== closing -->
+            <section class="tm-band tm-band-center">
+                <h2 class="tm-closing-title">Start with the next trip.</h2>
+                <p class="tm-closing-text">
+                    One form to make an account. The demonstration data is there
+                    if you would rather look first.
+                </p>
+                <h:panelGroup layout="block" rendered="#{not currentUser.loggedIn}">
+                    <div class="tm-closing-cta">
+                        <h:link outcome="/register.xhtml" styleClass="tm-cta tm-cta-primary tm-cta-lg">
+                            Create an account
+                        </h:link>
+                        <h:link outcome="/login.xhtml" styleClass="tm-cta tm-cta-ghost tm-cta-lg">
+                            Sign in
+                        </h:link>
+                    </div>
+                </h:panelGroup>
+                <h:panelGroup layout="block" rendered="#{currentUser.loggedIn}">
+                    <div class="tm-closing-cta">
+                        <h:link outcome="/dashboard.xhtml" styleClass="tm-cta tm-cta-primary tm-cta-lg">
+                            Go to your dashboard
+                        </h:link>
+                    </div>
+                </h:panelGroup>
+            </section>
         </div>
+
+        <!-- ====================================================== footer -->
+        <footer class="tm-land-foot">
+            <div class="tm-land-foot-grid">
+                <div class="tm-land-foot-brand">
+                    <a class="tm-land-brand" href="#{request.contextPath}/index.xhtml">
+                        <img src="#{request.contextPath}/img/favicon.svg" alt=""/>
+                        <span>TripMate</span>
+                    </a>
+                    <p>A shared itinerary and a running record of who paid what.</p>
+                </div>
+
+                <nav class="tm-land-foot-col" aria-label="The application">
+                    <h2 class="tm-land-foot-head">The application</h2>
+                    <ul>
+                        <li><a href="#why">Why it exists</a></li>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#how">How it works</a></li>
+                        <li><a href="#calendar">Google Calendar</a></li>
+                    </ul>
+                </nav>
+
+                <nav class="tm-land-foot-col" aria-label="Your account">
+                    <h2 class="tm-land-foot-head">Your account</h2>
+                    <ul>
+                        <ui:fragment rendered="#{not currentUser.loggedIn}">
+                            <li><a href="#{request.contextPath}/register.xhtml">Create an account</a></li>
+                            <li><a href="#{request.contextPath}/login.xhtml">Sign in</a></li>
+                        </ui:fragment>
+                        <ui:fragment rendered="#{currentUser.loggedIn}">
+                            <li><a href="#{request.contextPath}/dashboard.xhtml">Dashboard</a></li>
+                            <li><a href="#{request.contextPath}/profile.xhtml">Your profile</a></li>
+                        </ui:fragment>
+                    </ul>
+                </nav>
+
+                <nav class="tm-land-foot-col" aria-label="Legal">
+                    <h2 class="tm-land-foot-head">Legal</h2>
+                    <ul>
+                        <li><a href="#{request.contextPath}/privacy.xhtml">Privacy policy</a></li>
+                        <li><a href="#{request.contextPath}/terms.xhtml">Terms of service</a></li>
+                        <ui:fragment rendered="#{siteBean.showDiagnostics}">
+                            <li><a href="#{request.contextPath}/diagnostics.xhtml">Integration checks</a></li>
+                        </ui:fragment>
+                    </ul>
+                </nav>
+            </div>
+        </footer>
     </main>
 </h:body>
 </html>

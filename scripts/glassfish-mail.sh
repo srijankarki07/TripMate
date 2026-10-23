@@ -143,6 +143,17 @@ PROPS="${PROPS}:mail.smtp.starttls.enable=${TM_MAIL_STARTTLS}"
 PROPS="${PROPS}:tripmate.deliver=${DELIVER}"
 PROPS="${PROPS}:tripmate.baseUrl=${BASE_URL_ESCAPED}"
 
+# Timeouts, which JavaMail does not have by default: left unset, all three
+# are infinite, and a mail server that accepts a connection and then stops
+# answering blocks the sending thread until the socket gives up, which can be
+# never. That thread is a request thread, and a trip summary holds a database
+# transaction open across the sends, so one unresponsive mail host can take a
+# request thread and a pooled connection out of circulation indefinitely. Set
+# them and the worst case becomes a logged failure that the caller survives.
+PROPS="${PROPS}:mail.smtp.connectiontimeout=${TM_MAIL_TIMEOUT_MS}"
+PROPS="${PROPS}:mail.smtp.timeout=${TM_MAIL_TIMEOUT_MS}"
+PROPS="${PROPS}:mail.smtp.writetimeout=${TM_MAIL_TIMEOUT_MS}"
+
 if [[ -n "${TM_MAIL_USER}" ]]; then
     PROPS="${PROPS}:mail.smtp.auth=true${PASSWORD_REF}"
 else

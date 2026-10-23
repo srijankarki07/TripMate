@@ -32,4 +32,24 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <resources>
+            <!--
+                persistence.xml is filtered so that the EclipseLink logging
+                level can differ between a development build and a deployment
+                one. See the `tripmate.eclipselink.logging.*` properties in the
+                parent POM.
+
+                Filtering is enabled for the whole resource directory rather
+                than for that one file because META-INF is the only thing in it;
+                if anything else is ever added here and contains a `${...}` that
+                is meant literally, it will need excluding.
+            -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+    </build>
+
 </project>

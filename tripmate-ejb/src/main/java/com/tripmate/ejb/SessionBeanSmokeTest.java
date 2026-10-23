@@ -55,6 +55,9 @@ public class SessionBeanSmokeTest {
     private UserServiceRemote userService;
 
     @EJB
+    private EmailVerificationService emailVerificationService;
+
+    @EJB
     private TripServiceRemote tripService;
 
     @EJB
@@ -104,6 +107,35 @@ public class SessionBeanSmokeTest {
                 userService.login(alice.getEmail(), "not-the-password") == null);
         check(report, "UserService", "login fails for an unknown email",
                 userService.login("nobody-" + tag + "@tripmate.test", "whatever") == null);
+
+        // ---------------------------------------------------------------
+        // Email verification
+        //
+        // Only the paths that return rather than throw. The refusal cases
+        // (resending too soon, running out of attempts) raise, and a raise here
+        // would poison the transaction everything else in this method shares.
+        // See the class comment.
+        // ---------------------------------------------------------------
+        check(report, "EmailVerificationService", "registering leaves the address unconfirmed",
+                !alice.isEmailVerified() && !bob.isEmailVerified());
+
+        UserDTO byPassword = userService.login(alice.getEmail(), "smoke-password-1");
+        check(report, "EmailVerificationService",
+                "the credentials still authenticate an unconfirmed account",
+                byPassword != null && !byPassword.isEmailVerified());
+
+        check(report, "EmailVerificationService", "registering leaves a code waiting",
+                emailVerificationService.latestCodeExpiry(alice.getUserId()) != null);
+
+        // Five digits, so it cannot be the six-digit code whatever that is: a
+        // test that guessed would fail once in a million runs, which is worse
+        // than not having it.
+        check(report, "EmailVerificationService", "a code of the wrong length is refused",
+                emailVerificationService.verify(alice.getUserId(), "12345")
+                        == EmailVerificationService.Outcome.WRONG_CODE);
+        check(report, "EmailVerificationService", "a malformed code costs no attempt",
+                emailVerificationService.attemptsRemaining(alice.getUserId())
+                        == EmailVerificationService.MAX_ATTEMPTS);
 
         check(report, "UserService", "getUser reads back",
                 alice.getEmail().equals(userService.getUser(alice.getUserId()).getEmail()));
@@ -205,6 +237,16 @@ public class SessionBeanSmokeTest {
                 "Smoke Brunch".equals(itineraryService.getItem(morning.getItemId()).getTitle()));
         check(report, "ItineraryService", "getItemCountForTrip agrees",
                 itineraryService.getItemCountForTrip(tripId) == 2);
+
+        // The calendar feed writes this count as each event's SEQUENCE, which is
+        // how a calendar application tells an edited event from one it has
+        // already read. A count that does not move means an edit that reaches
+        // this application and nobody's calendar, and nothing else in the
+        // application would look wrong.
+        check(report, "ItineraryService", "a new item starts at revision 0",
+                morning.getRevision() == 0);
+        check(report, "ItineraryService", "an edit counts up once",
+                itineraryService.getItem(morning.getItemId()).getRevision() == 1);
 
         // ==============================================================
         // ExpenseService

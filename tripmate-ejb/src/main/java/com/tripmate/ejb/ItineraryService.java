@@ -119,6 +119,18 @@ public class ItineraryService implements ItineraryServiceRemote {
         entity.setEndTime(item.getEndTime());
         entity.setLocation(item.getLocation());
 
+        // The edit is recorded whether or not the values differ, and the
+        // revision goes up by one every time. A calendar that has already read
+        // the feed compares this number against the one it holds to decide
+        // whether its copy of the event is out of date, so an edit that left
+        // the number alone would be an edit subscribers never see.
+        //
+        // Saving without changing anything therefore also counts, which is
+        // slightly noisy and is the right way round: telling a subscriber that
+        // an event changed when it did not is a wasted refresh, and not telling
+        // them when it did is a calendar that quietly disagrees with the plan.
+        entity.recordEdit();
+
         em.flush();
         return ItineraryItemDTO.from(entity);
     }

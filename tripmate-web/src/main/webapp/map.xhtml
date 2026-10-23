@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pt="jakarta.faces.passthrough"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:tm="jakarta.faces.composite/tm"
+      lang="en">
+<ui:composition template="/WEB-INF/templates/layout.xhtml">
+    <ui:define name="title">Your map</ui:define>
+    <ui:define name="meta">
+        <meta name="description" content="Everywhere you have been and everywhere you are going, on one map."/>
+    </ui:define>
+
+    <ui:define name="content">
+        <!--
+            Leaflet, from the copy vendored under resources/vendor rather than
+            from a CDN, so the map survives a machine with no internet beyond
+            the tiles. `target="head"` because tripmate.js runs at the end of
+            the body and would find no `L` if this loaded after it.
+        -->
+        <h:outputStylesheet library="vendor" name="leaflet.css" target="head"/>
+        <h:outputScript library="vendor" name="leaflet.js" target="head"/>
+
+        <!--
+            No `f:metadata`/`f:viewAction` here. It was inside this `ui:define`,
+            and JSF requires the metadata facet to be a direct child of the
+            view, so the container warned on every render of this page and the
+            action was never the thing loading the data. `@PostConstruct` on the
+            bean already does it, at the moment the bean is created, which is
+            what a view-scoped bean is for.
+        -->
+
+        <header class="tm-page-head">
+            <h1 class="tm-display-lg">Your map</h1>
+            <p class="tm-lede tm-text-muted">
+                Every trip you are part of, and everywhere you went before you
+                started planning them here.
+            </p>
+        </header>
+
+        <!--
+            The map is outside every form, and deliberately.
+
+            PrimeFaces replaces the whole subtree of whatever a response
+            updates, and the map is a live object bound to its container: when
+            the container is replaced, the map goes with it and the box comes
+            back empty. It was inside the form, so placing a trip destroyed the
+            map that had just been clicked.
+
+            So the container stays put, and what the map draws is handed to it
+            from inside the form, which is the part that changes. The script
+            redraws from that after every update.
+        -->
+        <section class="tm-panel">
+            <h2 class="tm-display-sm">Where you have been</h2>
+            <div id="tmMap"
+                 class="tm-map"
+                 role="application"
+                 aria-label="A map of your trips and the places you have been"></div>
+            <p class="tm-caption-sm tm-text-muted tm-map-credit">
+                Map data from
+                <a href="https://www.openstreetmap.org/copyright" target="_blank"
+                   rel="noopener">OpenStreetMap</a> contributors.
+            </p>
+            <div class="tm-map-legend">
+                <span class="tm-map-key tm-map-key-planning">Planning</span>
+                <span class="tm-map-key tm-map-key-ongoing">Under way</span>
+                <span class="tm-map-key tm-map-key-completed">Finished</span>
+                <span class="tm-map-key tm-map-key-cancelled">Called off</span>
+                <span class="tm-map-key tm-map-key-past">From before TripMate</span>
+            </div>
+        </section>
+
+        <h:form id="mapForm">
+            <!--
+                What the map needs, and the only part of it that changes. The
+                points are an attribute rather than a script block because an
+                attribute value is escaped by the template and a script's
+                contents are not: a trip named `</script>` would otherwise end
+                the block and become markup.
+            -->
+            <div id="tmMapData"
+                 data-points="#{travelMapBean.pointsJson}"
+                 data-placing="#{travelMapBean.placing}"
+                 data-placing-name="#{travelMapBean.placingName}"></div>
+
+            <!--
+                Where a click on the map arrives. The map itself is not a form
+                control, so the page's script writes the two numbers into these
+                and then asks the server to apply them. `process` names only
+                these, so a click never disturbs the half-filled form below it.
+            -->
+            <h:inputHidden id="clickLat" value="#{travelMapBean.clickLatitude}"/>
+            <h:inputHidden id="clickLon" value="#{travelMapBean.clickLongitude}"/>
+            <p:remoteCommand name="tmApplyMapClick"
+                             action="#{travelMapBean.mapClicked}"
+                             process="@this clickLat clickLon"
+                             update="@form tmToasts"/>
+
+            <h:panelGroup
+              layout="block"
+              styleClass="tm-field-error tm-form-error"
+              rendered="#{not empty travelMapBean.error}">
+                <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+                <h:outputText value="#{travelMapBean.error}"/>
+            </h:panelGroup>
+
+            <!--
+                `ui:fragment` rather than `rendered` on the `section`. A plain
+                HTML element passes unknown attributes straight through to the
+                browser, so `<section rendered="false">` hides nothing and the
+                panel appeared on every map whether or not there was anything in
+                it. The fragment emits no element of its own, so the panel's
+                markup is unchanged when it does render.
+
+                This is the second time this has been written wrong in this
+                codebase; the other was the calendar dialog.
+            -->
+            <ui:fragment rendered="#{travelMapBean.hasUnplacedTrips}">
+            <section class="tm-panel">
+                <h2 class="tm-display-sm">Not on the map yet</h2>
+                <p class="tm-body-sm tm-text-muted">
+                    Pick one, then click the map where it was. Only a trip's
+                    administrator can place it, because where a trip is belongs
+                    to everybody on it, so a trip you are only a member of is
+                    listed without a button.
+                </p>
+                <ul class="tm-map-list">
+                    <ui:repeat value="#{travelMapBean.unplacedTrips}" var="trip">
+                        <li class="tm-map-row">
+                            <span class="tm-map-dot tm-map-dot-#{trip.status.toLowerCase()}"></span>
+                            <span class="tm-map-row-body">
+                                <strong><h:outputText value="#{trip.name}"/></strong>
+                                <span class="tm-body-sm tm-text-muted">
+                                    <h:outputText value="#{trip.place}"/>
+                                </span>
+                            </span>
+                            <p:commandButton
+                                value="Place"
+                                icon="pi pi-map-marker"
+                                styleClass="ui-button-secondary"
+                                action="#{travelMapBean.startPlacing(trip.id)}"
+                                process="@this"
+                                update="@form"
+                                ajax="true"
+                                rendered="#{trip.canPlace}"
+                            />
+                        </li>
+                    </ui:repeat>
+                </ul>
+            </section>
+            </ui:fragment>
+
+            <!-- ============================== everywhere else -->
+            <section class="tm-panel">
+                <div class="tm-toolbar">
+                    <h2 class="tm-display-sm">Places you have been</h2>
+                    <div class="tm-toolbar-actions">
+                        <!--
+                            `placeForm` is named as well as the form. The
+                            dialog lives in a form of its own, outside the
+                            page's, so updating the page's form re-renders
+                            everything except the one thing whose `visible`
+                            this action changes, and the dialog never opens.
+                        -->
+                        <p:commandButton
+                            value="Add a place"
+                            icon="pi pi-plus"
+                            styleClass="ui-button-secondary"
+                            action="#{travelMapBean.openAddPlace}"
+                            process="@this"
+                            update="@form placeForm"
+                            ajax="true"
+                        />
+                    </div>
+                </div>
+                <p class="tm-body-sm tm-text-muted">
+                    Trips you took before you used TripMate. Kept separately from
+                    the trips above, and drawn differently on the map, because
+                    they are remembered rather than planned.
+                </p>
+
+                <h:panelGroup layout="block" rendered="#{empty travelMapBean.pastTrips}">
+                    <p class="tm-body-sm tm-text-muted">
+                        Nothing recorded yet. The trips above are the only things
+                        on your map.
+                    </p>
+                </h:panelGroup>
+
+                <ui:fragment rendered="#{not empty travelMapBean.pastTrips}">
+                <ul class="tm-map-list">
+                    <ui:repeat value="#{travelMapBean.pastTrips}" var="place">
+                        <li class="tm-map-row">
+                            <span class="tm-map-dot tm-map-dot-past"></span>
+                            <span class="tm-map-row-body">
+                                <strong><h:outputText value="#{place.placeName}"/></strong>
+                                <span class="tm-body-sm tm-text-muted">
+                                    <h:outputText value="#{place.country}"/>
+                                    <h:outputText value=" · " rendered="#{not empty place.country and not empty place.visitedOn}"/>
+                                    <h:outputText value="#{place.visitedOn}" rendered="#{not empty place.visitedOn}"/>
+                                </span>
+                            </span>
+                            <!--
+                                Asked before it happens. Removing a place is
+                                small, and it is also the one thing on this page
+                                that cannot be undone, and it sits a few pixels
+                                from the row it belongs to.
+                            -->
+                            <p:commandButton
+                                value="Remove"
+                                icon="pi pi-trash"
+                                styleClass="ui-button-secondary ui-button-icon-only tm-button-danger-icon"
+                                title="Remove this place"
+                                pt:aria-label="Remove this place"
+                                action="#{travelMapBean.removePastTrip(place.pastTripId)}"
+                                process="@this"
+                                update="@form tmToasts"
+                                ajax="true"
+                            >
+                                <!--
+                                    No icon. The triangle is the strongest mark
+                                    in the system and this is a small, undoable
+                                    -by-adding-it-again action; a warning glyph
+                                    made it look more dangerous than it is.
+                                -->
+                                <p:confirm
+                                    header="Remove this place?"
+                                    message="It comes off your map. The trips you planned in TripMate are not touched."
+                                />
+                            </p:commandButton>
+                        </li>
+                    </ui:repeat>
+                </ul>
+                </ui:fragment>
+
+            </section>
+        </h:form>
+
+        <!--
+            The dialog for somewhere the reader has been.
+
+            Its own form, outside the page's, so the two cannot submit each
+            other's fields. The form wraps the dialog rather than sitting inside
+            it, which is what the project's other dialogs do and is not a
+            preference: an `f:facet name="footer"` is a facet of its nearest
+            parent component, so inside the form it became a facet of the form
+            and the dialog rendered with no buttons at all.
+
+            The pick map is left alone by the response: the lookup fills two
+            text fields and nothing else, because re-rendering the container
+            would take the map with it, pin and all.
+        -->
+        <h:form id="placeForm">
+        <p:dialog
+            id="placeDialog"
+            widgetVar="placeDialogWidget"
+            visible="#{travelMapBean.placeDialogOpen}"
+            header="Somewhere you have been"
+            modal="true"
+            draggable="false"
+            resizable="false"
+            responsive="true"
+            styleClass="tm-dialog"
+            onShow="tmPreparePickMap()"
+        >
+                <div class="tm-dialog-body">
+                    <p class="tm-dialog-lede">
+                        Not a trip you planned here: somewhere you went before
+                        TripMate, so that your map is of everywhere rather than
+                        only of what is in this application.
+                    </p>
+
+                    <div id="tmPickMap" class="tm-pick-map"
+                         role="application"
+                         aria-label="Pick the place on the map"></div>
+                    <p class="tm-field-hint">
+                        Click the map to drop the pin, or drag it to move it. The
+                        name and country are filled in for you, and you can
+                        correct them.
+                    </p>
+
+                    <h:inputHidden id="pickLat" value="#{travelMapBean.newPlace.latitude}"/>
+                    <h:inputHidden id="pickLon" value="#{travelMapBean.newPlace.longitude}"/>
+                    <p:remoteCommand name="tmPlacePicked"
+                                     action="#{travelMapBean.placePicked}"
+                                     process="@this pickLat pickLon"
+                                     update="whereField countryField placePickedHint"/>
+
+                    <div class="tm-form-grid tm-form-grid-2">
+                        <!--
+                            When the lookup has answered, the name is shown
+                            rather than asked for. It came from the pin the
+                            reader dropped, and asking them to type what they
+                            have just pointed at is work with no answer of its
+                            own: whatever they type would only be a second
+                            opinion on where the pin is.
+
+                            The values still travel in the form, as hidden
+                            fields, because they are what gets saved.
+
+                            The reader can overrule it, because a lookup is
+                            usually right and occasionally wrong. That is one
+                            link away rather than the default, which is the
+                            difference between a form and a description.
+                        -->
+                        <!--
+                            One component per field, hidden rather than
+                            replaced.
+
+                            The first version rendered the name as text in one
+                            branch and the input in the other, which is the
+                            shape that reads best and does not work: both
+                            branches build components, both gave theirs the same
+                            id, and the page failed to render at all with
+                            "Component ID placeForm:placeName has already been
+                            found in the view".
+
+                            So the input is always there, holding the value
+                            that gets saved, and it is hidden while the
+                            lookup's answer is on screen in its place. When the
+                            reader asks to type it themselves, the same
+                            component comes back rather than a second one.
+                        -->
+                        <h:panelGroup layout="block" id="whereField" styleClass="tm-field">
+                            <label class="tm-field-label" for="placeName">Where</label>
+                            <h:panelGroup layout="block"
+                                          rendered="#{travelMapBean.nameFromLookup}">
+                                <p class="tm-place-picked">
+                                    <i class="pi pi-map-marker" aria-hidden="true"></i>
+                                    <strong><h:outputText value="#{travelMapBean.newPlace.placeName}"/></strong>
+                                </p>
+                            </h:panelGroup>
+                            <h:panelGroup layout="block"
+                                          styleClass="#{travelMapBean.nameFromLookup ? 'tm-place-held' : ''}">
+                                <p:inputText id="placeName" styleClass="tm-input-full"
+                                             value="#{travelMapBean.newPlace.placeName}"
+                                             required="true"
+                                             requiredMessage="Say where you went."/>
+                                <p:message for="placeName" display="text" styleClass="tm-field-error"/>
+                            </h:panelGroup>
+                        </h:panelGroup>
+                        <h:panelGroup layout="block" id="countryField" styleClass="tm-field">
+                            <label class="tm-field-label" for="placeCountry">Country</label>
+                            <h:panelGroup layout="block"
+                                          rendered="#{travelMapBean.nameFromLookup}">
+                                <p class="tm-place-picked">
+                                    <h:outputText value="#{travelMapBean.newPlace.country}"
+                                                  rendered="#{not empty travelMapBean.newPlace.country}"/>
+                                </p>
+                                <p:commandLink value="Not right? Type it"
+                                               styleClass="tm-place-correct"
+                                               action="#{travelMapBean.correctPlaceName}"
+                                               process="@this"
+                                               update="@form"
+                                               ajax="true"/>
+                            </h:panelGroup>
+                            <h:panelGroup layout="block"
+                                          styleClass="#{travelMapBean.nameFromLookup ? 'tm-place-held' : ''}">
+                                <p:inputText id="placeCountry" styleClass="tm-input-full"
+                                             value="#{travelMapBean.newPlace.country}"/>
+                            </h:panelGroup>
+                        </h:panelGroup>
+                        <div class="tm-field">
+                            <label class="tm-field-label" for="placeVisited">When</label>
+                            <p:datePicker id="placeVisited" styleClass="tm-input-full"
+                                          pattern="yyyy-MM-dd" maxdate="#{travelMapBean.today}"
+                                          value="#{travelMapBean.newPlace.visitedOn}"/>
+                            <span class="tm-field-hint">
+                                A year is enough. Leave it blank if you do not remember.
+                            </span>
+                        </div>
+                        <div class="tm-field">
+                            <span class="tm-field-label">The spot</span>
+                            <!--
+                                `h:panelGroup`, not a `span` with `rendered`.
+                                A plain element passes unknown attributes
+                                through, so both of these rendered at once and
+                                the field read "Pinned." and "No spot picked
+                                yet." together. That is the third time this has
+                                been written wrong here, which is why the check
+                                for it exists.
+                            -->
+                            <h:panelGroup layout="block" id="placePickedHint">
+                                <h:panelGroup layout="block"
+                                              styleClass="tm-field-hint tm-text-success"
+                                              rendered="#{travelMapBean.newPlacePlaced}">
+                                    Pinned. Add it whenever you are ready.
+                                </h:panelGroup>
+                                <h:panelGroup layout="block" styleClass="tm-field-hint"
+                                              rendered="#{not travelMapBean.newPlacePlaced}">
+                                    No spot picked yet.
+                                </h:panelGroup>
+                            </h:panelGroup>
+                        </div>
+                    </div>
+
+                    <div class="tm-field">
+                        <label class="tm-field-label" for="placeNote">What you remember</label>
+                        <p:inputTextarea id="placeNote" styleClass="tm-input-full" rows="2"
+                                         value="#{travelMapBean.newPlace.note}"/>
+                    </div>
+
+                    <h:panelGroup
+                      layout="block"
+                      styleClass="tm-field-error tm-form-error"
+                      rendered="#{not empty travelMapBean.error}">
+                        <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+                        <h:outputText value="#{travelMapBean.error}"/>
+                    </h:panelGroup>
+                </div>
+
+                <f:facet name="footer">
+                    <div class="tm-dialog-actions">
+                        <p:commandButton
+                            value="Cancel"
+                            styleClass="ui-button-secondary"
+                            action="#{travelMapBean.closeAddPlace}"
+                            process="@this"
+                            update="@form"
+                            ajax="true"
+                        />
+                        <!--
+                            Both forms and the toasts. Adding a place changes the
+                            page as well as the dialog: the list gains a row and
+                            the map gains a point. `@form` here is the dialog's
+                            own form, so naming the page's is the difference
+                            between the record being saved and the reader seeing
+                            it saved.
+                        -->
+                        <p:commandButton
+                            icon="pi pi-plus"
+                            value="Add it to my map"
+                            action="#{travelMapBean.addPastTrip}"
+                            process="@form"
+                            update="mapForm placeForm tmToasts"
+                            ajax="true"
+                        />
+                    </div>
+                </f:facet>
+        </p:dialog>
+        </h:form>
+    </ui:define>
+</ui:composition>
+</html>

@@ -3,6 +3,7 @@ package com.tripmate.web.backing;
 import java.io.Serializable;
 
 import com.tripmate.ejb.PasswordResetService;
+import com.tripmate.web.support.ExternalAddress;
 import com.tripmate.web.support.Messages;
 
 import jakarta.ejb.EJB;
@@ -44,7 +45,7 @@ public class ForgotPasswordBean implements Serializable {
     public String submit() {
         if (email != null && !email.isBlank()) {
             try {
-                passwordResetService.requestReset(email.trim(), clientAddress());
+                passwordResetService.requestReset(email.trim(), ExternalAddress.clientAddress(request()));
             } catch (RuntimeException ex) {
                 // A failure here is the application's, not the requester's, and
                 // reporting it would say something about the address that the
@@ -57,22 +58,19 @@ public class ForgotPasswordBean implements Serializable {
     }
 
     /**
-     * @return the caller's address, for the rate limit
+     * The request being answered.
      *
-     * <p>The socket address, not a forwarding header. A header can be set by
-     * anyone, so trusting one without a proxy in front would let a caller
-     * present a new address on every request and never be limited. Behind a
-     * real proxy this is the line that would change.
+     * <p>Asked of the Faces context rather than injected, because a backing
+     * bean is not a servlet. The rule about which address may be believed to
+     * have made the request lives in {@link ExternalAddress}, which the
+     * verification page also needs: two copies of a rule about what
+     * {@code getRemoteAddr()} means is one copy too many.
      */
-    private static String clientAddress() {
+    private static jakarta.servlet.http.HttpServletRequest request() {
         Object request = jakarta.faces.context.FacesContext.getCurrentInstance()
                 .getExternalContext()
                 .getRequest();
-        if (request instanceof jakarta.servlet.http.HttpServletRequest http) {
-            String address = http.getRemoteAddr();
-            return address == null ? null : address.substring(0, Math.min(45, address.length()));
-        }
-        return null;
+        return request instanceof jakarta.servlet.http.HttpServletRequest http ? http : null;
     }
 
     public String getEmail() {

@@ -620,4 +620,699 @@
         };
     })();
 
+    /*
+     * Copy-to-clipboard for the calendar subscribe address.
+     *
+     * The address is a credential, so it is shown in a read-only field rather
+     * than as text in a paragraph: a reader can select it by hand, and the
+     * field is wide enough to see the whole thing. The button is the
+     * convenience.
+     *
+     * Delegated from the document rather than bound to the button, because the
+     * dialog is re-rendered by Ajax every time it opens and every time the
+     * address is reset, and a bound listener would be attached to an element
+     * that has already been thrown away.
+     *
+     * This is the one thing on the page that the server cannot do, and it is
+     * therefore also the one thing that degrades: with JavaScript off, the
+     * field is still there and still selects, and the button does nothing.
+     */
+    (function installCopyButtons() {
+        var RESET_MS = 2000;
+
+        function copy(text) {
+            /* The async clipboard API is unavailable on an insecure origin,
+               which a laptop running this on http://localhost is. Falling back
+               to a selection is not a failure: it leaves the text selected, so
+               the reader's next keystroke is Ctrl-C. */
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(text);
+            }
+            return Promise.reject(new Error('clipboard unavailable'));
+        }
+
+        function select(field) {
+            field.focus();
+            field.select();
+        }
+
+        document.addEventListener('click', function (event) {
+            var button = event.target.closest('[data-tm-copy]');
+            if (!button) {
+                return;
+            }
+            var field = document.getElementById(button.getAttribute('data-tm-copy'));
+            if (!field) {
+                return;
+            }
+
+            var original = button.textContent;
+            var say = function (message) {
+                button.textContent = message;
+                window.setTimeout(function () {
+                    button.textContent = original;
+                }, RESET_MS);
+            };
+
+            copy(field.value).then(
+                function () { say('Copied'); },
+                function () { select(field); say('Press Ctrl-C'); });
+        });
+    })();
+
+    /*
+     * The travel map.
+     *
+     * Leaflet, vendored beside this file rather than pulled from a CDN, so the
+     * map is still there on a machine with no internet beyond the map tiles
+     * themselves.
+     *
+     * The map object is built once and never rebuilt. The container sits
+     * outside every form for that reason: PrimeFaces replaces the whole subtree
+     * of whatever a response updates, and replacing the container takes the map
+     * with it, leaving an empty box. What the map draws is read from inside the
+     * form instead, and redrawn whenever an update lands.
+     *
+     * Three details are deliberate.
+     *
+     * The colours are read from the stylesheet rather than written here, the
+     * same way the charts do it, so a marker is the colour of the status chip
+     * beside it on the trips list and the two cannot drift apart. Reading a
+     * custom property needs the computed style of the root element, not the
+     * element itself: asking the element for `getPropertyValue` throws, which
+     * is how this map first came out blank.
+     *
+     * A past trip is drawn as a dashed outline rather than a filled dot, not
+     * only in a different colour, because colour is the first thing lost to
+     * colour blindness and the legend should not be the only thing saying which
+     * kind a point is.
+     *
+     * The map is only fitted to its points once. Fitting on every redraw would
+     * move the map out from under a reader who is part way through placing
+     * something.
+     */
+    (function installTravelMap() {
+        var container = document.getElementById('tmMap');
+        if (!container || typeof window.L === 'undefined') {
+            return;
+        }
+
+        var root = window.getComputedStyle(document.documentElement);
+        var cssVar = function (name, fallback) {
+            return (root.getPropertyValue(name) || '').trim() || fallback;
+        };
+
+        var colourFor = function (point) {
+            if (point.kind === 'PAST_TRIP') {
+                return cssVar('--tm-chart-5', '#4a3aa7');
+            }
+            switch (point.status) {
+                case 'PLANNING':  return cssVar('--tm-color-info', '#1f5fa8');
+                case 'ONGOING':   return cssVar('--tm-color-success', '#0f7b52');
+                case 'CANCELLED': return cssVar('--tm-color-danger', '#c13515');
+                default:          return cssVar('--tm-color-muted', '#6a6a6a');
+            }
+        };
+
+        var escape = function (value) {
+            return String(value === null || value === undefined ? '' : value)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        };
+
+        var STATUS_LABEL = {
+            PLANNING: 'Being planned',
+            ONGOING: 'Under way',
+            COMPLETED: 'Finished',
+            CANCELLED: 'Called off'
+        };
+
+        var money = function (amount) {
+            var value = Number(amount);
+            if (!isFinite(value) || value === 0) {
+                return null;
+            }
+            var parts = value.toFixed(2).split('.');
+            return 'NPR ' + parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + parts[1];
+        };
+
+        var line = function (text) {
+            return text ? '<p class="tm-map-tip-line">' + escape(text) + '</p>' : '';
+        };
+
+        var tooltipFor = function (point) {
+            var html = '<p class="tm-map-tip-title">' + escape(point.name) + '</p>';
+
+            if (point.kind === 'PAST_TRIP') {
+                html += '<p class="tm-map-tip-kind">Before TripMate</p>';
+                html += line(point.place);
+                html += line(point.visited);
+            } else {
+                html += '<p class="tm-map-tip-kind">'
+                     + escape(STATUS_LABEL[point.status] || point.status || '') + '</p>';
+                html += line(point.place);
+                html += line(point.start ? point.start + (point.end ? ' to ' + point.end : '') : '');
+                var figures = [];
+                if (point.items) {
+                    figures.push(point.items + (point.items === 1 ? ' item' : ' items'));
+                }
+                if (point.members) {
+                    figures.push(point.members + (point.members === 1 ? ' person' : ' people'));
+                }
+                var spent = money(point.spent);
+                if (spent) {
+                    figures.push(spent + ' spent');
+                }
+                html += line(figures.join(' \u00b7 '));
+            }
+
+            if (point.note) {
+                html += '<p class="tm-map-tip-note">' + escape(point.note) + '</p>';
+            }
+            return html;
+        };
+
+        /*
+         * A pin, as an inline drawing rather than Leaflet's marker image.
+         *
+         * The image files were not vendored alongside the script, and one
+         * drawing used for every pin is one place to change it. It is drawn with
+         * `currentColor` so the pin takes the colour of whatever it marks.
+         */
+        var pinIcon = function (colour) {
+            return L.divIcon({
+                className: 'tm-map-pin',
+                iconSize: [30, 42],
+                iconAnchor: [15, 42],
+                html: '<svg viewBox="0 0 30 42" width="30" height="42" aria-hidden="true">'
+                    + '<path d="M15 41C15 41 28 25.5 28 15A13 13 0 1 0 2 15c0 10.5 13 26 13 26z" '
+                    + 'fill="' + colour + '" stroke="' + cssVar('--tm-color-canvas', '#fff') + '" stroke-width="2"/>'
+                    + '<circle cx="15" cy="15" r="5" fill="' + cssVar('--tm-color-canvas', '#fff') + '"/>'
+                    + '</svg>'
+            });
+        };
+
+        var map = L.map(container, { scrollWheelZoom: true, worldCopyJump: true });
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            /* Required by the tile usage policy, and the page repeats it in
+               text for a reader who never hovers the map. */
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        var drawn = [];
+        /* The standing labels, with the region each belongs to, so they can be
+           shown and hidden as the zoom changes. */
+        var labels = [];
+        var fitted = false;
+        var overlay = null;
+        var pendingPin = null;
+
+        /* Everything the map needs, from the part of the page the server
+           rewrites. Absent before the first update, and absent again if the
+           form is ever removed. */
+        var readState = function () {
+            var data = document.getElementById('tmMapData');
+            if (!data) {
+                return { points: [], placing: false, placingName: '' };
+            }
+            var points;
+            try {
+                points = JSON.parse(data.getAttribute('data-points') || '[]');
+            } catch (unreadable) {
+                points = [];
+            }
+            return {
+                points: points,
+                placing: data.getAttribute('data-placing') === 'true',
+                placingName: data.getAttribute('data-placing-name') || ''
+            };
+        };
+
+        var setOverlay = function (text) {
+            if (!text) {
+                if (overlay) {
+                    overlay.parentNode.removeChild(overlay);
+                    overlay = null;
+                }
+                return;
+            }
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'tm-map-overlay';
+                container.appendChild(overlay);
+                /* Leaflet does not know this is here, and a control would
+                   fight it for the corner. It is a sibling of the panes. */
+            }
+            overlay.textContent = 'Click the map to place ' + text + '.';
+        };
+
+        var draw = function () {
+            var state = readState();
+
+            drawn.forEach(function (layer) { map.removeLayer(layer); });
+            drawn = [];
+            labels.forEach(function (entry) { map.removeLayer(entry.label); });
+            labels = [];
+
+            state.points.forEach(function (point) {
+                var past = point.kind === 'PAST_TRIP';
+                var colour = colourFor(point);
+
+                /*
+                 * The place itself, filled.
+                 *
+                 * The real boundary OpenStreetMap holds, not a circle around
+                 * the middle: a reader who has been to Pokhara sees the shape
+                 * of Pokhara. It is drawn under the marker, and it carries both
+                 * the hover tooltip and a standing label, because a filled
+                 * region with nothing written on it is a coloured shape and not
+                 * a place.
+                 *
+                 * Non-interactive would be simpler and would let every hover
+                 * through to the dot, which is nine pixels across and hard to
+                 * hit. The region is the bigger target and the better one.
+                 */
+                if (point.area) {
+                    var shape = L.geoJSON(point.area, {
+                        style: {
+                            color: colour,
+                            weight: 2,
+                            opacity: 0.8,
+                            fillColor: colour,
+                            fillOpacity: 0.3
+                        }
+                    }).addTo(map);
+
+                    /* Bound to each shape inside the group rather than to the
+                       group. A group forwards `bindTooltip` to its children,
+                       and a GeoJSON group has none until it is on the map, so
+                       binding to the group is a call that quietly does nothing. */
+                    shape.eachLayer(function (child) {
+                        child.bindTooltip(tooltipFor(point), {
+                            direction: 'top',
+                            sticky: true,
+                            opacity: 1,
+                            className: 'tm-map-tip'
+                        });
+                    });
+
+                    /* The name, standing on the region, as a tooltip of its own
+                       rather than the layer's. A layer holds one tooltip, so
+                       the second `bindTooltip` replaced the first and the
+                       region ended up with neither. This one belongs to the map
+                       and is placed at the middle of the boundary, which is
+                       rarely the clicked point. */
+                    var label = L.tooltip({
+                        permanent: true,
+                        direction: 'center',
+                        className: 'tm-map-label',
+                        interactive: false
+                    })
+                        .setContent(escape(point.name))
+                        .setLatLng(shape.getBounds().getCenter());
+
+                    labels.push({ shape: shape, label: label });
+                    drawn.push(shape);
+                }
+
+                var marker = L.circleMarker([point.lat, point.lon], {
+                    radius: past ? 6 : 9,
+                    color: colour,
+                    weight: past ? 2 : 3,
+                    dashArray: past ? '3 3' : null,
+                    fillColor: colour,
+                    fillOpacity: past ? 0.25 : 0.65,
+                    /* Above the tiles but below the tooltip. */
+                    pane: 'markerPane'
+                }).addTo(map);
+
+                /* With a region drawn, the region carries the tooltip and this
+                   is only a precise mark inside it. Two tooltips a few pixels
+                   apart make a hover flicker between them. */
+                if (!point.area) {
+                    marker.bindTooltip(tooltipFor(point), {
+                        direction: 'top',
+                        offset: [0, -8],
+                        opacity: 1,
+                        className: 'tm-map-tip'
+                    });
+                }
+                drawn.push(marker);
+            });
+
+            if (!fitted) {
+                if (drawn.length) {
+                    /* Framed on the layers themselves rather than on the
+                       points, so a region is fitted by its boundary. Fitting
+                       on the clicked point would put a district's centre in
+                       the middle of the view and run half of it off the side. */
+                    map.fitBounds(L.featureGroup(drawn).getBounds(),
+                            { padding: [40, 40], maxZoom: 9 });
+                } else {
+                    /* Nothing to frame yet, so somewhere the sample data
+                       suggests rather than the Gulf of Guinea, which is where
+                       a map centred on nothing lands and which reads as
+                       broken. */
+                    map.setView([28.2, 84.0], 6);
+                }
+                fitted = true;
+            }
+
+            container.classList.toggle('tm-map-placing', state.placing);
+            setOverlay(state.placing ? state.placingName : null);
+            showLabelsThatFit();
+        };
+
+        /*
+         * A name is written on a region only when the region is big enough to
+         * hold one.
+         *
+         * Every label at every zoom sounds better than it looks: framed on the
+         * whole map, six regions are a few pixels each and their names pile up
+         * on one another into an unreadable knot over Nepal. A label that
+         * cannot be read is worse than no label, because it hides the map
+         * underneath it as well.
+         *
+         * Re-run on every zoom, so zooming into a district brings its name with
+         * it.
+         */
+        var showLabelsThatFit = function () {
+            var minimumWidth = 70;
+            var minimumHeight = 26;
+
+            labels.forEach(function (entry) {
+                var box = entry.shape.getBounds();
+                var corner = map.latLngToContainerPoint(box.getNorthWest());
+                var opposite = map.latLngToContainerPoint(box.getSouthEast());
+                var wide = Math.abs(opposite.x - corner.x) >= minimumWidth;
+                var tall = Math.abs(opposite.y - corner.y) >= minimumHeight;
+                var fits = wide && tall;
+
+                if (fits && !map.hasLayer(entry.label)) {
+                    entry.label.addTo(map);
+                } else if (!fits && map.hasLayer(entry.label)) {
+                    map.removeLayer(entry.label);
+                }
+            });
+        };
+
+        /* A click only means something while something is waiting to be placed,
+           which is also when the crosshair is showing. */
+        map.on('click', function (event) {
+            if (!container.classList.contains('tm-map-placing')) {
+                return;
+            }
+            var lat = document.getElementById('mapForm:clickLat');
+            var lon = document.getElementById('mapForm:clickLon');
+            if (!lat || !lon || typeof window.tmApplyMapClick !== 'function') {
+                return;
+            }
+            lat.value = event.latlng.lat.toFixed(6);
+            lon.value = event.latlng.lng.toFixed(6);
+
+            /* Dropped immediately, before the server has answered. The point
+               the trip becomes will replace it a moment later, and until then
+               this is the only thing telling the reader their click landed. */
+            if (pendingPin) {
+                map.removeLayer(pendingPin);
+            }
+            pendingPin = L.marker(event.latlng, {
+                icon: pinIcon(cssVar('--tm-color-primary', '#ff385c')),
+                interactive: false
+            }).addTo(map);
+
+            window.tmApplyMapClick();
+        });
+
+        /* A panel opening or the window changing shape does not tell Leaflet,
+           and a map sized while it was hidden draws its tiles in the wrong
+           places until it is asked to measure itself again. */
+        map.on('zoomend', showLabelsThatFit);
+
+        var remeasure = function () { map.invalidateSize(); };
+        window.addEventListener('resize', remeasure);
+        if (window.ResizeObserver) {
+            new ResizeObserver(remeasure).observe(container);
+        }
+
+        draw();
+
+        if (window.jQuery) {
+            window.jQuery(document).on('pfAjaxComplete', function () {
+                /* After the response has been applied, not during it. */
+                window.setTimeout(draw, 0);
+                /* The dialog's map is a second live object, and a response that
+                   re-rendered the dialog has quietly taken its container away. */
+                window.setTimeout(window.tmPreparePickMap, 0);
+            });
+        }
+    })();
+
+    /*
+     * The tooltip on the drawing of the map on the public home page.
+     *
+     * That drawing is a static illustration, not a Leaflet map, so it does not
+     * get Leaflet's tooltips. It shows the same bubble anyway, built from the
+     * same classes, because a reader who has seen the map page should
+     * recognise this as the same thing rather than as a picture of it.
+     *
+     * The content is read from attributes on whichever shape is pointed at, so
+     * the page stays a document: with no script there is no bubble, and every
+     * figure the bubble would have shown is written out in the band above.
+     *
+     * Nothing here is generated by the server and nothing is fetched, so the
+     * only thing to be careful about is that the attributes are put into
+     * markup, which is what the escaping is for.
+     */
+    (function installLandingMapTooltip() {
+        var root = document.querySelector("[data-tm-map-mock]");
+        if (!root) {
+            return;
+        }
+
+        var tip = root.querySelector(".tm-mock-map-tip");
+        if (!tip) {
+            return;
+        }
+
+        /* The shape the bubble currently belongs to, or null. */
+        var current = null;
+
+        function escape(value) {
+            return String(value === null || value === undefined ? "" : value)
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+        }
+
+        function line(value) {
+            return value ? '<p class="tm-map-tip-line">' + escape(value) + "</p>" : "";
+        }
+
+        function place(area) {
+            /* Measured after the text is in it, or a two-line bubble is placed
+               as though it were one line. */
+            var shape = area.getBoundingClientRect();
+            var host = root.getBoundingClientRect();
+            var half = tip.offsetWidth / 2;
+
+            /* Centred on the shape, and held inside the drawing. A district
+               near the edge would otherwise put half its bubble over the
+               panel's border. */
+            var x = shape.left + shape.width / 2 - host.left;
+            x = Math.max(half + 2, Math.min(x, host.width - half - 2));
+
+            tip.style.left = x + "px";
+            tip.style.top = (shape.top - host.top) + "px";
+        }
+
+        function show(area) {
+            tip.innerHTML = '<p class="tm-map-tip-title">'
+                          + escape(area.getAttribute("data-tip-title")) + "</p>"
+                          + '<p class="tm-map-tip-kind">'
+                          + escape(area.getAttribute("data-tip-kind")) + "</p>"
+                          + line(area.getAttribute("data-tip-date"))
+                          + line(area.getAttribute("data-tip-figures"));
+            tip.hidden = false;
+            current = area;
+            place(area);
+        }
+
+        function hide() {
+            current = null;
+            tip.hidden = true;
+        }
+
+        /* The district whose bubble is showing when nothing else is.
+
+           A map that says nothing until it is pointed at is a map a reader has
+           to guess at, and this drawing is about two hundred pixels tall. So
+           one trip introduces itself, and the drawing falls back to it the
+           moment the pointer leaves. */
+        var fallback = root.querySelector("[data-tip-default]");
+
+        function rest() {
+            if (fallback) {
+                show(fallback);
+            } else {
+                hide();
+            }
+        }
+
+        /* Followed rather than dismissed.
+
+           The bubble is positioned in the page, and the drawing moves under it
+           when the page scrolls. Hiding it instead would be simpler and worse:
+           a reader who scrolls with the pointer already over a district gets no
+           new mouseover when they stop, so the bubble would stay gone until
+           they left the shape and came back. */
+        function follow() {
+            if (current) {
+                place(current);
+            }
+        }
+
+        window.addEventListener("scroll", follow, { passive: true });
+        window.addEventListener("resize", follow, { passive: true });
+
+        Array.prototype.forEach.call(
+            root.querySelectorAll(".tm-mock-map-area"),
+            function (area) {
+                area.addEventListener("mouseenter", function () { show(area); });
+                /* Focusable in the markup, so this is not decoration: it is the
+                   only way to reach the same four lines without a pointer. */
+                area.addEventListener("focus", function () { show(area); });
+                area.addEventListener("blur", rest);
+            }
+        );
+
+        /* Leaving the drawing rather than leaving a shape. Moving from one
+           district to the next fires both events in the same tick, and
+           restoring on the way out would flash the default bubble between
+           them. */
+        root.addEventListener("mouseleave", rest);
+
+        /* After the first frame, so the drawing has its size: measured before
+           that, a bubble is positioned against a box that is still zero. */
+        window.requestAnimationFrame(rest);
+    })();
+
+    /*
+     * The map inside the "somewhere you have been" dialog.
+     *
+     * Created when the dialog opens, because a Leaflet map built while its
+     * container is `display: none` measures zero and then draws its tiles in
+     * the wrong places. Rebuilt when the container has been replaced, which is
+     * what an update that re-rendered the dialog leaves behind.
+     *
+     * Exposed on the window because the dialog asks for it by name from
+     * `onShow`, which is a client callback and has no other way in.
+     */
+    (function installPickMap() {
+        var map = null;
+        var marker = null;
+        var held = null;
+
+        var pinIcon = function (colour, edge) {
+            return L.divIcon({
+                className: 'tm-map-pin',
+                iconSize: [30, 42],
+                iconAnchor: [15, 42],
+                html: '<svg viewBox="0 0 30 42" width="30" height="42" aria-hidden="true">'
+                    + '<path d="M15 41C15 41 28 25.5 28 15A13 13 0 1 0 2 15c0 10.5 13 26 13 26z" '
+                    + 'fill="' + colour + '" stroke="' + edge + '" stroke-width="2"/>'
+                    + '<circle cx="15" cy="15" r="5" fill="' + edge + '"/></svg>'
+            });
+        };
+
+        var hidden = function (suffix) {
+            return document.getElementById('placeForm:' + suffix);
+        };
+
+        var send = function (lat, lon) {
+            var latField = hidden('pickLat');
+            var lonField = hidden('pickLon');
+            if (!latField || !lonField) {
+                return;
+            }
+            latField.value = lat.toFixed(6);
+            lonField.value = lon.toFixed(6);
+            if (typeof window.tmPlacePicked === 'function') {
+                window.tmPlacePicked();
+            }
+        };
+
+        var move = function (latlng, announce) {
+            if (!marker) {
+                marker = L.marker(latlng, {
+                    draggable: true,
+                    icon: pinIcon(
+                        window.getComputedStyle(document.documentElement)
+                            .getPropertyValue('--tm-color-primary').trim() || '#ff385c',
+                        window.getComputedStyle(document.documentElement)
+                            .getPropertyValue('--tm-color-canvas').trim() || '#ffffff'),
+                    autoPan: true
+                }).addTo(map);
+
+                /* Dragging is the point: it is how somebody corrects a pin that
+                   landed on the next village without losing the name they have
+                   already been given. */
+                marker.on('dragend', function () {
+                    var at = marker.getLatLng();
+                    send(at.lat, at.lng);
+                });
+            } else {
+                marker.setLatLng(latlng);
+            }
+            if (announce) {
+                send(latlng.lat, latlng.lng);
+            }
+        };
+
+        window.tmPreparePickMap = function () {
+            var div = document.getElementById('tmPickMap');
+            if (!div) {
+                return;
+            }
+
+            /* Alive and still the same element: nothing to do but let it
+               measure itself again, which it may need after the dialog resized. */
+            if (map && held === div && div.querySelector('.leaflet-map-pane')) {
+                map.invalidateSize();
+                return;
+            }
+
+            map = L.map(div, { scrollWheelZoom: true, worldCopyJump: true });
+            held = div;
+            marker = null;
+
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            var latField = hidden('pickLat');
+            var lonField = hidden('pickLon');
+            var existingLat = latField && latField.value ? Number(latField.value) : null;
+            var existingLon = lonField && lonField.value ? Number(lonField.value) : null;
+
+            if (existingLat && existingLon) {
+                map.setView([existingLat, existingLon], 9);
+                move([existingLat, existingLon], false);
+            } else {
+                /* Somewhere the sample data suggests, for the same reason the
+                   main map does: an empty ocean reads as broken. */
+                map.setView([28.2, 84.0], 6);
+            }
+
+            map.on('click', function (event) {
+                move(event.latlng, true);
+            });
+
+            /* The dialog animates open, so the container is still settling when
+               this runs. */
+            window.setTimeout(function () { map.invalidateSize(); }, 250);
+        };
+    })();
+
 })();

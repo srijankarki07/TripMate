@@ -75,7 +75,7 @@
                         <h2 class="tm-display-sm">Repayments</h2>
                         <p:commandButton icon="pi pi-arrow-right-arrow-left"
                                          value="Record a repayment"
-                                        
+                                         styleClass="ui-button-secondary"
                                          action="#{settleBean.openForm}"
                                          update="@form"
                                          ajax="true"/>
@@ -204,9 +204,12 @@
 
                         <f:facet name="footer">
                             <div class="tm-dialog-actions">
+                                <!-- `process="@this"`, or Cancel validates the
+                                     repayment it is cancelling and never runs. -->
                                 <p:commandButton value="Cancel"
                                                  styleClass="ui-button-secondary"
                                                  action="#{settleBean.closeForm}"
+                                                 process="@this"
                                                  update="@form"
                                                  ajax="true"/>
                                 <p:commandButton icon="pi pi-check" value="Record repayment"

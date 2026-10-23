@@ -5,8 +5,6 @@ import java.util.List;
 import com.tripmate.dto.UserDTO;
 import com.tripmate.exception.ValidationException;
 import com.tripmate.entity.User;
-import com.tripmate.mail.MailService;
-import com.tripmate.mail.Templates;
 import com.tripmate.remote.UserServiceRemote;
 import com.tripmate.security.PasswordHasher;
 
@@ -33,11 +31,16 @@ public class UserService implements UserServiceRemote {
 
     /**
      * Injected through its no-interface view, which is local to this module, so
-     * no remote interface is needed or wanted: mail is an internal concern of
-     * the business tier and nothing outside it should be able to send.
+     * no remote interface is needed or wanted: confirming an address is an
+     * internal concern of the business tier and nothing outside it should be
+     * able to trigger a code.
+     *
+     * <p>The dependency runs one way only. This bean asks that one to send a
+     * code; that one never asks this one for anything, which is what keeps
+     * registering and confirming from being tangled together.
      */
     @EJB
-    private MailService mailService;
+    private EmailVerificationService emailVerificationService;
 
     @Override
     public UserDTO register(UserDTO user, String plainPassword) {
@@ -65,32 +68,47 @@ public class UserService implements UserServiceRemote {
         em.persist(entity);
         em.flush(); // so the generated id and created_at are populated
 
-        // Raised here rather than in the web tier, because registering is the
-        // event and this is where it happens. The call is asynchronous and does
-        // not throw, so a mail server that is down cannot turn a successful
-        // registration into an error page.
-        mailService.send(Templates.welcome(
-                entity.getEmail(), entity.getFullName(), signInUrl()));
+        // The confirming code goes out here rather than from the web tier,
+        // because registering is the event and this is where it happens. The
+        // address starts unconfirmed, and the row and the code commit together:
+        // there is no window in which an account exists that nobody can
+        // confirm.
+        //
+        // The welcome message is not sent here any more. It waits until the
+        // address has answered. See EmailVerificationService.
+        //
+        // The source address is null because this bean has no request and the
+        // business tier deliberately has no way to find one. It costs the
+        // record a detail and costs the limit nothing: the cap counts codes per
+        // account, not per address, so it works the same either way.
+        emailVerificationService.issueIfNoneOutstanding(entity.getUserId(), null);
 
         return UserDTO.from(entity);
     }
 
     /**
-     * The absolute URL of the sign-in page.
+     * {@inheritDoc}
      *
-     * <p>Built from the base URL the container holds, which
-     * {@code scripts/glassfish-mail.sh} sets from {@code TM_APP_BASE_URL}. It
-     * cannot be derived from the request: mail is composed on another thread,
-     * after the request that caused it has been answered, so there is no request
-     * to read a host from.
+     * <h2>A returned user is not a signed-in user</h2>
      *
-     * @return the absolute URL, with no double slash if the base ends in one
+     * This answers one question: do these credentials belong together, and to
+     * an account? It deliberately does not also answer whether that account may
+     * be used, because that second question has a different answer for
+     * different callers.
+     *
+     * <p>An account whose address has not been confirmed still authenticates.
+     * It has to: the person typed the right password, and the only way back to
+     * the confirmation page after closing the tab is to sign in again and be
+     * sent there. So the returned {@link UserDTO} carries
+     * {@code emailVerified}, and the caller decides. {@code LoginBean} sends an
+     * unconfirmed account to the verification page; {@code ProfileBean} uses
+     * this to re-check a password before changing it, where confirmation is
+     * irrelevant because the caller is already signed in.
+     *
+     * <p>Putting that decision here instead would mean this method could not
+     * serve both, and the check would have to be duplicated wherever an account
+     * is admitted or a password is re-checked.
      */
-    private String signInUrl() {
-        String base = mailService.getBaseUrl();
-        return base.endsWith("/") ? base + "login.xhtml" : base + "/login.xhtml";
-    }
-
     @Override
     public UserDTO login(String email, String plainPassword) {
         if (email == null || plainPassword == null) {
@@ -137,6 +155,17 @@ public class UserService implements UserServiceRemote {
                 .toList();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Changing the address does not send it back to unconfirmed, and the
+     * gap is deliberate. Re-confirming a new address needs the old one to keep
+     * working until the new one answers, or somebody who mistypes is left with
+     * an account they cannot sign into and cannot correct. That is a
+     * change-of-address flow, which this project does not have; the limitation
+     * is written down in {@code docs/phase-18-email-verification.md} rather
+     * than half-implemented here.
+     */
     @Override
     public UserDTO updateUser(UserDTO user) {
         require(user, "user");

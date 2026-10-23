@@ -2,6 +2,7 @@ package com.tripmate.dto;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Objects;
 
@@ -16,6 +17,14 @@ import com.tripmate.entity.ItineraryItem;
  * trip it belongs to, and the write operations take the trip id as a separate
  * parameter, so repeating it in the payload would be redundant state that could
  * disagree with the argument.
+ *
+ * <p>{@code revision} and {@code updatedAt} carry no meaning to the pages and
+ * are read by the calendar feed alone, which writes them as the event's
+ * {@code SEQUENCE} and {@code LAST-MODIFIED}. They travel on this DTO because
+ * the feed is built from the itinerary the query returns, and the order that
+ * query defines is the order a calendar has to show the day in. Querying the
+ * entities a second time for the feed would be a second definition of that
+ * order, which is exactly what this DTO exists to avoid.
  */
 public class ItineraryItemDTO implements Serializable {
 
@@ -29,13 +38,16 @@ public class ItineraryItemDTO implements Serializable {
     private LocalTime endTime;
     private String location;
     private String authorName;
+    private int revision;
+    private LocalDateTime updatedAt;
 
     public ItineraryItemDTO() {
     }
 
     public ItineraryItemDTO(Long itemId, String title, String description,
                             LocalDate itemDate, LocalTime startTime, LocalTime endTime,
-                            String location, String authorName) {
+                            String location, String authorName,
+                            int revision, LocalDateTime updatedAt) {
         this.itemId = itemId;
         this.title = title;
         this.description = description;
@@ -44,6 +56,8 @@ public class ItineraryItemDTO implements Serializable {
         this.endTime = endTime;
         this.location = location;
         this.authorName = authorName;
+        this.revision = revision;
+        this.updatedAt = updatedAt;
     }
 
     /**
@@ -66,7 +80,9 @@ public class ItineraryItemDTO implements Serializable {
                 item.getStartTime(),
                 item.getEndTime(),
                 item.getLocation(),
-                author == null ? null : author.getFullName());
+                author == null ? null : author.getFullName(),
+                item.getRevision(),
+                item.getUpdatedAt());
     }
 
     public Long getItemId() {
@@ -131,6 +147,24 @@ public class ItineraryItemDTO implements Serializable {
 
     public void setAuthorName(String authorName) {
         this.authorName = authorName;
+    }
+
+    /** @return how many times this item has been edited; never negative */
+    public int getRevision() {
+        return revision;
+    }
+
+    public void setRevision(int revision) {
+        this.revision = revision;
+    }
+
+    /** @return when this item was last written, or null on a DTO the view is filling in */
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     @Override

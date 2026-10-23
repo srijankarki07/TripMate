@@ -141,18 +141,19 @@ record 2 "Login with a wrong password" "$([[ "${REFUSED}" == "1" && "${AFTER}" =
 
 # ---------------------------------------------------------------------------
 # 3. Create a trip
-# ---------------------------------------------------------------------------
+# The form is a dialog on the trips list now, so it is posted to that page.
+TRIPS="${BASE}/trips/list.xhtml"
 sign_in "alice@tripmate.test" "${WORK}/alice.jar" > /dev/null
 TRIP_NAME="Matrix Trip $(date +%s)"
-${CURL} -s -b "${WORK}/alice.jar" -c "${WORK}/alice.jar" -o "${WORK}/tc.html" "${BASE}/trips/create.xhtml"
-TC_FORM=$(grep -oE 'name="[^"]*:tripName"' "${WORK}/tc.html" | head -1 | sed -E 's/name="([^"]*):tripName"/\1/')
-post "${WORK}/alice.jar" "${BASE}/trips/create.xhtml" "${WORK}/tc2.html" \
+${CURL} -s -b "${WORK}/alice.jar" -c "${WORK}/alice.jar" -o "${WORK}/tc.html" "${TRIPS}"
+TC_FORM=$(grep -oE 'name="[^"]*:newTripName"' "${WORK}/tc.html" | head -1 | sed -E 's/name="([^"]*):newTripName"/\1/')
+post "${WORK}/alice.jar" "${TRIPS}" "${WORK}/tc2.html" \
     --data-urlencode "${TC_FORM}=${TC_FORM}" \
-    --data-urlencode "${TC_FORM}:tripName=${TRIP_NAME}" \
-    --data-urlencode "${TC_FORM}:destination=Matrix, Test" \
-    --data-urlencode "${TC_FORM}:status_input=PLANNING" \
-    --data-urlencode "${TC_FORM}:startDate_input=2027-01-10" \
-    --data-urlencode "${TC_FORM}:endDate_input=2027-01-14" \
+    --data-urlencode "${TC_FORM}:newTripName=${TRIP_NAME}" \
+    --data-urlencode "${TC_FORM}:newTripDestination=Matrix, Test" \
+    --data-urlencode "${TC_FORM}:newTripStatus_input=PLANNING" \
+    --data-urlencode "${TC_FORM}:newTripStart_input=2027-01-10" \
+    --data-urlencode "${TC_FORM}:newTripEnd_input=2027-01-14" \
     --data-urlencode "$(button "${WORK}/tc.html" 'Create trip')=Create trip" \
     --data-urlencode "jakarta.faces.ViewState=$(field "${WORK}/tc.html" 'jakarta.faces.ViewState')"
 NEW_TRIP=$(sql "SELECT trip_id FROM trips WHERE trip_name = '${TRIP_NAME}';")
@@ -220,16 +221,18 @@ record 5b "Invite an unknown address" "$([[ "${NOBODY}" == "1" ]] && echo 1 || e
 
 # 6. Add an itinerary item
 # ---------------------------------------------------------------------------
-ITIN="${BASE}/trips/itinerary.xhtml?tripId=${NEW_TRIP}"
+# The itinerary is edited on the trip page now, in a dialog, so the fields are
+# named for that form rather than for a page of their own.
+ITIN="${BASE}/trips/detail.xhtml?tripId=${NEW_TRIP}"
 ${CURL} -s -b "${WORK}/alice.jar" -c "${WORK}/alice.jar" -o "${WORK}/it.html" "${ITIN}"
-IT_FORM=$(grep -oE 'name="[^"]*:title"' "${WORK}/it.html" | head -1 | sed -E 's/name="([^"]*):title"/\1/')
+IT_FORM=$(grep -oE 'name="[^"]*:itemTitle"' "${WORK}/it.html" | head -1 | sed -E 's/name="([^"]*):itemTitle"/\1/')
 post "${WORK}/alice.jar" "${ITIN}" "${WORK}/it2.html" \
     --data-urlencode "${IT_FORM}=${IT_FORM}" \
-    --data-urlencode "${IT_FORM}:title=Matrix breakfast" \
+    --data-urlencode "${IT_FORM}:itemTitle=Matrix breakfast" \
     --data-urlencode "${IT_FORM}:itemDate_input=2027-01-11" \
-    --data-urlencode "${IT_FORM}:startTime_input=08:00" \
-    --data-urlencode "${IT_FORM}:endTime_input=09:00" \
-    --data-urlencode "${IT_FORM}:location=Matrix cafe" \
+    --data-urlencode "${IT_FORM}:itemStart_input=08:00" \
+    --data-urlencode "${IT_FORM}:itemEnd_input=09:00" \
+    --data-urlencode "${IT_FORM}:itemLocation=Matrix cafe" \
     --data-urlencode "$(button "${WORK}/it.html" 'Add to itinerary')=Add to itinerary" \
     --data-urlencode "jakarta.faces.ViewState=$(field "${WORK}/it.html" 'jakarta.faces.ViewState')"
 ITEM_ROWS=$(sql "SELECT count(*) FROM itinerary_items WHERE trip_id = ${NEW_TRIP} AND title = 'Matrix breakfast';")
@@ -329,14 +332,17 @@ record 9 "An expense whose splits do not sum to the amount" \
 # ---------------------------------------------------------------------------
 # 10. View balances
 # ---------------------------------------------------------------------------
-BALANCES="${BASE}/trips/balances.xhtml?tripId=${NEW_TRIP}"
+# The balances page is gone: its figures, its bars and its suggestions are the
+# Balances tab of the trip itself now, which is where a reader was being sent
+# from anyway.
+BALANCES="${BASE}/trips/detail.xhtml?tripId=${NEW_TRIP}"
 ${CURL} -s -b "${WORK}/alice.jar" -c "${WORK}/alice.jar" -o "${WORK}/bal.html" "${BALANCES}"
 # Alice paid 1600 and her share is 550 of the equal split plus 750 of the unequal one.
 EXPECTED_NET=$(sql "SELECT (
     COALESCE((SELECT SUM(e.amount) FROM expenses e WHERE e.trip_id = ${NEW_TRIP} AND e.paid_by = 1),0)
   - COALESCE((SELECT SUM(s.amount_owed) FROM expense_splits s JOIN expenses e2 ON e2.expense_id = s.expense_id
               WHERE e2.trip_id = ${NEW_TRIP} AND s.user_id = 1),0));")
-SHOWN=$(says "${WORK}/bal.html" "Position by member")
+SHOWN=$(says "${WORK}/bal.html" "Who is up and who is down")
 OUTSTANDING_ZERO=$(sql "
 WITH net AS (
   SELECT u.user_id,
@@ -355,10 +361,14 @@ record 10 "View balances (complex query 1)" \
 SETTLE="${BASE}/trips/settle.xhtml?tripId=${NEW_TRIP}"
 ${CURL} -s -b "${WORK}/alice.jar" -c "${WORK}/alice.jar" -o "${WORK}/st.html" "${SETTLE}"
 ST_FORM=$(grep -oE 'name="[^"]*:payer_input"' "${WORK}/st.html" | head -1 | sed -E 's/name="([^"]*):payer_input"/\1/')
+# Alice pays Bob. The settle form hides whoever is chosen as the payer from the
+# list of receivers, and a value the page did not offer is refused, so the pair
+# has to be one the initial render actually shows: the payer defaults to the
+# signed-in user, and Bob is the other member of this trip.
 post "${WORK}/alice.jar" "${SETTLE}" "${WORK}/st2.html" \
     --data-urlencode "${ST_FORM}=${ST_FORM}" \
-    --data-urlencode "${ST_FORM}:payer_input=2" \
-    --data-urlencode "${ST_FORM}:receiver_input=1" \
+    --data-urlencode "${ST_FORM}:payer_input=1" \
+    --data-urlencode "${ST_FORM}:receiver_input=2" \
     --data-urlencode "${ST_FORM}:settleAmount=100.00" \
     --data-urlencode "${ST_FORM}:note=Matrix repayment" \
     --data-urlencode "$(button "${WORK}/st.html" 'Record repayment')=Record repayment" \
@@ -372,7 +382,7 @@ record 11 "Record a settlement" "$([[ "${SETTLEMENT}" == "1" ]] && echo 1 || ech
 # ---------------------------------------------------------------------------
 ${CURL} -s -b "${WORK}/alice.jar" -c "${WORK}/alice.jar" -o "${WORK}/rep.html" "${BASE}/reports/index.xhtml"
 CHART_DATA=$(grep -c '"labels":\["TRANSPORT"' "${WORK}/rep.html")
-REPORT_ROWS=$(says "${WORK}/rep.html" "By category")
+REPORT_ROWS=$(says "${WORK}/rep.html" "Your share, by category")
 record 12 "View the category report (complex query 2)" \
     "$([[ "${CHART_DATA}" -ge 1 && "${REPORT_ROWS}" == "1" ]] && echo 1 || echo 0)" \
     "chart carries the query's series and the table is rendered"
@@ -427,7 +437,7 @@ echo "  16. Cold deploy on a clean database"
 if "${PROJECT_ROOT}/database/load.sh" > "${WORK}/load.log" 2>&1; then
     TABLES=$(sql "SELECT count(*) FROM pg_tables WHERE schemaname = 'public';")
     record 16 "Cold deploy on a clean database" \
-        "$([[ "${TABLES}" == "8" ]] && echo 1 || echo 0)" \
+        "$([[ "${TABLES}" == "9" ]] && echo 1 || echo 0)" \
         "schema, sample data and integrity checks all pass from empty (${TABLES} tables)"
 else
     record 16 "Cold deploy on a clean database" 0 "load.sh failed"

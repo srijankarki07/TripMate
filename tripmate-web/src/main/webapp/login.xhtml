@@ -4,7 +4,9 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:tm="jakarta.faces.composite/tm"
       xmlns:ui="jakarta.faces.facelets"
-      lang="en">
+      lang="en"
+      data-theme="#{themeBean.theme}"
+      data-tm-context-path="#{request.contextPath}">
 <h:head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -15,6 +17,10 @@
     <link rel="icon" href="#{request.contextPath}/img/favicon.ico" sizes="16x16 32x32 48x48"/>
     <link rel="apple-touch-icon" href="#{request.contextPath}/img/apple-touch-icon.png"/>
     <h:outputStylesheet library="css" name="tripmate.css"/>
+
+    <!-- In the head and not deferred, so a visitor whose desktop is dark
+         does not get a white flash before the theme resolves. See theme.js. -->
+    <h:outputScript library="js" name="theme.js" target="head"/>
     <h:outputScript library="js" name="tripmate.js" target="body"/>
 </h:head>
 
@@ -22,18 +28,16 @@
     <tm:toast/>
 
     <!--
-        Two columns: what the product is on the left, the form on the right.
-        The alternative, and what this page used to be, is a lone card centred
-        in a sea of white. That gave a first-time visitor nothing to decide
-        with and no reason to trust the thing they were being asked to sign in
-        to, which is most of what a sign-in page has to do.
+        Two columns: the form on the left, what the product is on the right.
+
+        The form comes first in the markup, and that order is load-bearing. A
+        reader on a screen reader or a keyboard reaches the thing they came for
+        before a paragraph about the product, and because the columns follow
+        the source order rather than being reversed in CSS, the two cannot
+        drift apart later.
     -->
     <main class="tm-auth-page">
         <div class="tm-auth-shell">
-
-            <section class="tm-auth-pitch">
-                <ui:include src="/WEB-INF/includes/auth-pitch.xhtml"/>
-            </section>
 
             <section class="tm-auth-panel">
                 <div class="tm-auth-card">
@@ -55,8 +59,25 @@
                             <p:message for="email" display="text" styleClass="tm-field-error"/>
                         </div>
 
+                        <!--
+                            The reset link sits on the password label's row rather
+                            than under the button.
+
+                            Under the button it was the last thing before the
+                            submit, so it read as part of the action, and it sat
+                            close enough to the button that the two looked like
+                            one control. Here it is beside the field it is
+                            about, which is also where somebody who has just
+                            failed to remember a password is already looking,
+                            and it costs no vertical space at all.
+                        -->
                         <div class="tm-field">
-                            <label class="tm-field-label" for="password">Password</label>
+                            <div class="tm-field-head">
+                                <label class="tm-field-label" for="password">Password</label>
+                                <h:link outcome="/forgot-password.xhtml"
+                                        value="Forgot your password?"
+                                        styleClass="tm-field-link"/>
+                            </div>
                             <p:password id="password"
                                         styleClass="tm-input-full"
                                         value="#{loginBean.password}"
@@ -73,10 +94,6 @@
                                              ajax="false"
                                              styleClass="tm-button-block"/>
                         </div>
-
-                        <p class="tm-body-sm tm-auth-forgot">
-                            <h:link outcome="/forgot-password.xhtml" value="Forgot your password?"/>
-                        </p>
                     </h:form>
 
                     <p class="tm-body-sm tm-text-muted tm-auth-alt">
@@ -94,6 +111,10 @@
                         with the password <strong>tripmate123</strong>.
                     </p>
                 </div>
+            </section>
+
+            <section class="tm-auth-pitch">
+                <ui:include src="/WEB-INF/includes/auth-pitch.xhtml"/>
             </section>
 
         </div>

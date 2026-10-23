@@ -181,7 +181,9 @@ public class BalancesBean implements Serializable {
             BigDecimal amount = owed[d].min(due[c]);
             if (amount.signum() > 0) {
                 transfers.add(new Transfer(
+                        debtors.get(d).getUserId(),
                         debtors.get(d).getFullName(),
+                        creditors.get(c).getUserId(),
                         creditors.get(c).getFullName(),
                         amount));
             }
@@ -299,23 +301,42 @@ public class BalancesBean implements Serializable {
         }
     }
 
-    /** One suggested payment. */
+    /**
+     * One suggested payment.
+     *
+     * <p>Carries both the ids and the names. The names are what the table
+     * prints; the ids are what the settle page needs to preselect the two
+     * people when the reader arrives from a row of the balances table, and a
+     * name is not a reliable way to find somebody again.
+     */
     public static final class Transfer implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
+        private final Long fromId;
         private final String from;
+        private final Long toId;
         private final String to;
         private final BigDecimal amount;
 
-        Transfer(String from, String to, BigDecimal amount) {
+        Transfer(Long fromId, String from, Long toId, String to, BigDecimal amount) {
+            this.fromId = fromId;
             this.from = from;
+            this.toId = toId;
             this.to = to;
             this.amount = amount;
         }
 
+        public Long getFromId() {
+            return fromId;
+        }
+
         public String getFrom() {
             return from;
+        }
+
+        public Long getToId() {
+            return toId;
         }
 
         public String getTo() {

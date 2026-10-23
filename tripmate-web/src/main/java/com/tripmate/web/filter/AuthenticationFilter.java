@@ -75,6 +75,23 @@ public class AuthenticationFilter implements Filter {
         String path = httpRequest.getRequestURI()
                 .substring(httpRequest.getContextPath().length());
 
+        // Somebody who is already signed in and lands on the root goes straight
+        // to their dashboard.
+        //
+        // The landing page exists to explain the product to a visitor who has
+        // not decided yet. To somebody who is signed in it is a page whose only
+        // content is a button offering to take them where they were going, so
+        // every return visit cost a click for nothing. Reported as exactly
+        // that: "it shows me go to dashboard page instead, take me directly
+        // there".
+        //
+        // Checked before the public-path test rather than after, because the
+        // root is a public path and would otherwise be served as-is.
+        if (isHome(path) && isSignedIn(httpRequest)) {
+            httpResponse.sendRedirect(httpRequest.getContextPath() + "/dashboard.xhtml");
+            return;
+        }
+
         if (isPublic(path) || isSignedIn(httpRequest)) {
             chain.doFilter(request, response);
             return;
@@ -94,6 +111,23 @@ public class AuthenticationFilter implements Filter {
 
     private boolean isPublic(String path) {
         return PUBLIC_PATHS.contains(path) || path.startsWith(RESOURCE_PREFIX);
+    }
+
+    /**
+     * Whether this is the landing page, by any of the names it answers to.
+     *
+     * <p>All three, because they are not interchangeable at the container
+     * level: the root arrives as {@code "/"} or as an empty string depending on
+     * how the request was written, and the welcome file arrives as
+     * {@code /index.xhtml} for anyone who reached it by name or by a bookmark.
+     * Testing only one would have made the redirect work at the address people
+     * type and fail at the address they save.
+     *
+     * @param path the request path with the context removed
+     * @return true when the request is for the landing page
+     */
+    private boolean isHome(String path) {
+        return path.isEmpty() || "/".equals(path) || "/index.xhtml".equals(path);
     }
 
     /**

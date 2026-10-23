@@ -6,6 +6,14 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import com.tripmate.entity.SummaryDeliveryStatus;
+import com.tripmate.entity.TripSummaryEmail;
+import com.tripmate.entity.TripSummaryKind;
+import com.tripmate.dto.ItineraryItemDTO;
+import com.tripmate.remote.ExpenseServiceRemote;
+import com.tripmate.remote.ItineraryServiceRemote;
+import com.tripmate.dto.SettlementDTO;
+import com.tripmate.dto.TripSummaryEmailDTO;
 import com.tripmate.dto.CategoryTotalDTO;
 import com.tripmate.dto.MemberBalanceDTO;
 import com.tripmate.dto.TripDTO;
@@ -16,6 +24,7 @@ import com.tripmate.entity.TripMember;
 import com.tripmate.entity.TripRole;
 import com.tripmate.entity.TripStatus;
 import com.tripmate.entity.User;
+import com.tripmate.mail.Email;
 import com.tripmate.mail.MailService;
 import com.tripmate.mail.Templates;
 import com.tripmate.remote.ReportServiceRemote;
@@ -56,6 +65,27 @@ public class TripService implements TripServiceRemote {
     /** Injected through its local no-interface view; see MailService. */
     @EJB
     private MailService mailService;
+
+    /**
+     * Read for the closing summary, which lists what was planned.
+     *
+     * <p>Injected rather than queried here directly so the itinerary is
+     * assembled by the one place that knows how, and through the remote
+     * interface because that is the only view this bean has of it. There is no
+     * cycle: ItineraryService reaches authorisation through the static
+     * {@code TripAccess} helper and never through this bean.
+     */
+    @EJB
+    private ItineraryServiceRemote itineraryService;
+
+    /**
+     * Read for the repayments, so the balances summary can say what a reader
+     * still has to settle rather than only their gross position.
+     *
+     * <p>Injected by its interface for the same reason as the two above.
+     */
+    @EJB
+    private ExpenseServiceRemote expenseService;
 
     @Override
     public TripDTO createTrip(TripDTO trip, Long creatorId) {
@@ -505,36 +535,67 @@ public class TripService implements TripServiceRemote {
     }
 
     /**
-     * Emails every member the trip's closing summary.
+     * Emails part of the trip summary to some or all of its members.
      *
      * <p>One message per person rather than one with everybody on it. The
      * figures are the same, but each reader's own position is different and is
      * the part they actually opened it for, so it is written into each copy
      * rather than left to be found in a table.
      *
-     * <p>Restricted to an administrator: it sends mail to everyone on the trip,
-     * which is not something an ordinary member should be able to trigger.
+     * <p>Any member may send it, not only an administrator. What it contains is
+     * already readable by every member, and the recipient list is the sender's
+     * to choose, so the worst an ordinary member can do is mail their
+     * colleagues something they could already see.
      *
-     * <p>Returns as soon as the messages are handed over. The sends themselves
-     * are asynchronous, so a slow or unreachable mail server delays nobody and
-     * cannot fail this call.
+     * <h2>The sends are not asynchronous</h2>
      *
-     * @return how many people it was sent to
+     * Every other message in the application is handed to {@code MailService}
+     * and forgotten, because it is a notification attached to an action that has
+     * already succeeded. This one is different: it writes a permanent record of
+     * what went out, and a record that cannot tell a delivered message from one
+     * refused by a mail server that was down is a record that misleads the
+     * person reading it. So the sends are made through the variant that answers,
+     * and the answers are what is written down.
+     *
+     * <p>The cost is that the caller waits on SMTP, once per recipient. For a
+     * group trip that is a handful of messages, and the wait buys the only
+     * honest version of the log.
      */
     @Override
-    public int emailTripSummary(Long tripId, Long actedBy) {
+    public TripSummaryEmailDTO emailTripSummary(Long tripId, Long actedBy,
+            TripSummaryKind kind, List<Long> recipientIds) {
         require(tripId, "tripId");
-        TripAccess.requireAdmin(em, tripId, actedBy, "send the trip summary");
+        TripAccess.requireMember(em, tripId, actedBy, "send the trip summary");
+        if (kind == null) {
+            throw new ValidationException("say whether the itinerary or the balances are being sent");
+        }
 
         Trip trip = em.find(Trip.class, tripId);
         if (trip == null) {
             throw new ValidationException("no such trip: " + tripId);
         }
 
+        List<ItineraryItemDTO> itinerary = itineraryService.getItineraryForTrip(tripId);
         List<CategoryTotalDTO> categories =
                 reportService.getCategoryTotalsForTrip(tripId, actedBy);
         List<MemberBalanceDTO> balances = reportService.getMemberBalances(tripId, actedBy);
-        List<TripMemberDTO> members = getTripMembers(tripId);
+
+        // Refused rather than sent empty. A message whose whole content is "no
+        // expenses have been recorded" is not a summary, and the reader who
+        // opens it learns only that somebody pressed a button that should have
+        // been unavailable.
+        if (kind == TripSummaryKind.ITINERARY && itinerary.isEmpty()) {
+            throw new ValidationException(
+                    "there is nothing planned on this trip yet, so there is no itinerary to send");
+        }
+        if (kind == TripSummaryKind.BALANCES && balances.isEmpty()) {
+            throw new ValidationException(
+                    "nobody is on this trip yet, so there are no balances to send");
+        }
+        if (kind == TripSummaryKind.BALANCES && categories.isEmpty()) {
+            throw new ValidationException(
+                    "nothing has been spent on this trip yet, so there are no balances to send");
+        }
 
         BigDecimal total = categories.stream()
                 .map(CategoryTotalDTO::getTotal)
@@ -542,21 +603,172 @@ public class TripService implements TripServiceRemote {
         int expenseCount = categories.stream()
                 .mapToInt(c -> c.getExpenseCount() == null ? 0 : c.getExpenseCount().intValue())
                 .sum();
-        String url = mailService.getBaseUrl() + "/reports/index.xhtml?tripId=" + tripId;
+        String url = mailService.getBaseUrl() + "/trips/detail.xhtml?tripId=" + tripId;
+
+        // What each member still has to settle, once the repayments already
+        // recorded are counted. This is the figure the reader can act on; the
+        // gross difference is the fallback when the trip has no repayments.
+        Map<Long, BigDecimal> outstanding = outstandingByMember(tripId, balances);
+
+        List<TripMemberDTO> chosen = chooseRecipients(getTripMembers(tripId), recipientIds);
+        if (chosen.isEmpty()) {
+            throw new ValidationException("nobody was chosen to receive it");
+        }
 
         int sent = 0;
-        for (TripMemberDTO member : members) {
+        int failed = 0;
+        boolean anyAttempted = false;
+        boolean anyTransport = false;
+        // Who it was accepted for, by name, so the log can answer "who did this
+        // reach" and not only how many.
+        StringBuilder reached = new StringBuilder();
+
+        for (TripMemberDTO member : chosen) {
             User user = em.find(User.class, member.getUserId());
             if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+                // Counted as a failure rather than skipped silently: the sender
+                // chose this person, and a log that says everybody was written
+                // to when one of them has no address is the same lie as one
+                // that ignores a refused message.
+                failed++;
                 continue;
             }
-            mailService.send(Templates.tripSummary(
-                    user.getEmail(), member.getFullName(), member.getUserId(),
-                    trip.getTripName(), trip.getStartDate(), trip.getEndDate(),
-                    total, expenseCount, categories, balances, url));
-            sent++;
+
+            Email message = kind == TripSummaryKind.ITINERARY
+                    ? Templates.itinerarySummary(
+                            user.getEmail(), member.getFullName(),
+                            trip.getTripName(), trip.getStartDate(), trip.getEndDate(),
+                            trip.getStatus(), itinerary, url)
+                    : Templates.balancesSummary(
+                            user.getEmail(), member.getFullName(), member.getUserId(),
+                            trip.getTripName(), trip.getStartDate(), trip.getEndDate(),
+                            trip.getStatus(), total, expenseCount,
+                            categories, balances, outstanding.get(member.getUserId()), url);
+
+            MailService.Delivery delivery = mailService.deliver(message);
+            anyAttempted = true;
+            anyTransport |= delivery != MailService.Delivery.NO_TRANSPORT;
+            if (delivery == MailService.Delivery.SENT) {
+                sent++;
+                if (reached.length() > 0) {
+                    reached.append(", ");
+                }
+                reached.append(member.getFullName());
+            } else {
+                failed++;
+            }
         }
-        return sent;
+
+        SummaryDeliveryStatus status;
+        if (!anyTransport && anyAttempted) {
+            status = SummaryDeliveryStatus.NOT_CONFIGURED;
+        } else if (failed == 0) {
+            status = SummaryDeliveryStatus.SENT;
+        } else if (sent == 0) {
+            status = SummaryDeliveryStatus.FAILED;
+        } else {
+            status = SummaryDeliveryStatus.PARTIAL;
+        }
+
+        User actor = em.find(User.class, actedBy);
+        TripSummaryEmail entry = new TripSummaryEmail();
+        entry.setTrip(trip);
+        entry.setSentBy(actor);
+        entry.setSentByName(actor == null ? "A member" : actor.getFullName());
+        entry.setKind(kind);
+        entry.setRecipientCount(sent);
+        entry.setRecipientNames(truncate(reached.toString(), 1000));
+        entry.setFailedCount(failed);
+        entry.setStatus(status);
+        em.persist(entry);
+        em.flush();
+
+        return TripSummaryEmailDTO.from(entry);
+    }
+
+    /**
+     * A string clipped to a column's width, at a comma where there is one.
+     *
+     * <p>The recipient names are denormalised into a fixed-width column, and a
+     * trip with enough people on it can exceed it. Clipping at a comma keeps
+     * every name in the list whole; clipping mid-name would put half a name in
+     * the log, which reads as a different person.
+     */
+    private static String truncate(String value, int limit) {
+        if (value == null || value.length() <= limit) {
+            return value == null ? "" : value;
+        }
+        int cut = value.lastIndexOf(',', limit);
+        return cut > 0 ? value.substring(0, cut) : value.substring(0, limit);
+    }
+
+    /**
+     * The people a send is addressed to.
+     *
+     * <p>An empty or null list means everybody, which is what the form sends
+     * when "everyone" is chosen. Ids are intersected with the membership rather
+     * than trusted, so a hand-built request cannot mail somebody who is not on
+     * the trip.
+     */
+    private List<TripMemberDTO> chooseRecipients(List<TripMemberDTO> members, List<Long> chosen) {
+        if (chosen == null || chosen.isEmpty()) {
+            return members;
+        }
+        List<TripMemberDTO> result = new ArrayList<>();
+        for (TripMemberDTO member : members) {
+            if (chosen.contains(member.getUserId())) {
+                result.add(member);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * What each member still has to settle, by user id.
+     *
+     * <p>The same arithmetic the balances page does: net position, plus what
+     * they have paid out in recorded repayments, minus what they have received.
+     * Positive means they are still owed it.
+     */
+    private Map<Long, BigDecimal> outstandingByMember(Long tripId, List<MemberBalanceDTO> balances) {
+        Map<Long, BigDecimal> repaidOut = new HashMap<>();
+        Map<Long, BigDecimal> received = new HashMap<>();
+        for (SettlementDTO settlement : expenseService.getSettlementsForTrip(tripId)) {
+            repaidOut.merge(settlement.getPayerId(), settlement.getAmount(), BigDecimal::add);
+            received.merge(settlement.getReceiverId(), settlement.getAmount(), BigDecimal::add);
+        }
+
+        Map<Long, BigDecimal> outstanding = new HashMap<>();
+        for (MemberBalanceDTO balance : balances) {
+            BigDecimal net = balance.getTotalPaid().subtract(balance.getTotalOwed());
+            outstanding.put(balance.getUserId(), net
+                    .add(repaidOut.getOrDefault(balance.getUserId(), BigDecimal.ZERO))
+                    .subtract(received.getOrDefault(balance.getUserId(), BigDecimal.ZERO)));
+        }
+        return outstanding;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Ordered by the database rather than in the DTO, because the list is
+     * read newest first and there is an index on exactly that.
+     */
+    @Override
+    public List<TripSummaryEmailDTO> getSummaryEmails(Long tripId, Long callerId) {
+        require(tripId, "tripId");
+        TripAccess.requireMember(em, tripId, callerId, "see when the summary was sent");
+
+        return em.createQuery(
+                        "SELECT new com.tripmate.dto.TripSummaryEmailDTO("
+                                + "e.summaryId, e.sentByName, e.kind, e.recipientCount, "
+                                + "e.recipientNames, e.failedCount, e.status, e.sentAt) "
+                                + "FROM TripSummaryEmail e "
+                                + "WHERE e.trip.tripId = :tripId "
+                                + "ORDER BY e.sentAt DESC, e.summaryId DESC",
+                        TripSummaryEmailDTO.class)
+                .setParameter("tripId", tripId)
+                .getResultList();
     }
 
     /** Looks a user up by exact address, case-insensitively. */

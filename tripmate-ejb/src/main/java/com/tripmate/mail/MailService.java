@@ -62,6 +62,26 @@ public class MailService {
     @Resource(lookup = "mail/TripMate")
     private Session session;
 
+    /** What became of one attempt to hand a message to a transport. */
+    public enum Delivery {
+
+        /** The transport accepted it. */
+        SENT,
+
+        /** The transport refused it, or the attempt threw. */
+        FAILED,
+
+        /**
+         * No SMTP host is configured for this deployment, so the message was
+         * written to the log instead. Not a failure of the send: nothing was
+         * attempted.
+         */
+        NO_TRANSPORT,
+
+        /** The message had no usable recipient, which is a fault in the caller. */
+        NO_RECIPIENT
+    }
+
     /**
      * Sends a message, or logs it when no transport is configured.
      *
@@ -71,17 +91,41 @@ public class MailService {
      */
     @Asynchronous
     public void send(Email email) {
+        deliver(email);
+    }
+
+    /**
+     * Sends a message and reports what happened, on this thread.
+     *
+     * <p>{@link #send} is asynchronous and deliberately says nothing about the
+     * outcome, which is right for a notification attached to an action that has
+     * already succeeded. It is wrong for the trip summary: that send leaves a
+     * permanent record, and a record that says "sent to four people" when the
+     * mail server was down is worse than no record at all, because the
+     * administrator who is asked why nobody received it has been told
+     * otherwise by the application itself.
+     *
+     * <p>So this variant blocks and answers. The caller accepts the wait,
+     * because it is about to write down what happened and cannot do that from
+     * an asynchronous callback. It still never throws: a failure is an outcome
+     * to record, not an exception that should unwind the transaction holding
+     * the record.
+     *
+     * @param email the message, which must already be fully rendered
+     * @return what became of the attempt
+     */
+    public Delivery deliver(Email email) {
         if (email == null || email.getTo() == null || email.getTo().isBlank()) {
             // Worth a warning rather than silence: it means a caller tried to
             // notify somebody whose address it did not have, which is a bug in
             // the caller rather than a condition to absorb quietly.
             LOG.warning("Refusing to send a mail with no recipient: " + email);
-            return;
+            return Delivery.NO_RECIPIENT;
         }
 
         if (!isDeliveryConfigured()) {
             logInsteadOfSending(email);
-            return;
+            return Delivery.NO_TRANSPORT;
         }
 
         try {
@@ -90,6 +134,7 @@ public class MailService {
             // container closes it and the credentials never appear here.
             Transport.send(message);
             LOG.info("Sent '" + email.getSubject() + "' to " + email.getMaskedRecipient());
+            return Delivery.SENT;
         } catch (MessagingException | RuntimeException ex) {
             // Logged, not rethrown. See the class comment: the action that
             // caused this has already succeeded and must not be reported as
@@ -98,6 +143,7 @@ public class MailService {
                     "Could not send '" + email.getSubject() + "' to "
                             + email.getMaskedRecipient() + "'",
                     ex);
+            return Delivery.FAILED;
         }
     }
 

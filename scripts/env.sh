@@ -71,6 +71,19 @@ export ADMIN_URL="http://localhost:4848"
 # of these by exporting the variable before running a script. The JDBC resource
 # and connection pool are configured on GlassFish in phase 2 and must use the
 # same values.
+# ---------------------------------------------------------------------------
+# Local overrides
+# ---------------------------------------------------------------------------
+# A .env beside the repository root is read first, so anything set there wins
+# over the defaults below and over nothing else. It is not committed; the
+# example beside it lists what it can hold.
+if [[ -f "${PROJECT_ROOT}/.env" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "${PROJECT_ROOT}/.env"
+    set +a
+fi
+
 export TM_DB_NAME="${TM_DB_NAME:-tripmate}"
 export TM_DB_USER="${TM_DB_USER:-tripmate}"
 export TM_DB_PASSWORD="${TM_DB_PASSWORD:-tripmate_dev_pw}"
@@ -154,3 +167,14 @@ tm_domain_running() {
     "${ASADMIN}" list-domains 2>/dev/null \
         | grep -qE '^[[:space:]]*[^[:space:]]+[[:space:]]+running'
 }
+
+# ---------------------------------------------------------------------------
+# Site presentation
+# ---------------------------------------------------------------------------
+# Whether the footer's link to the integration checks is shown, and what the
+# stack line under it says. Both are deployment facts rather than application
+# ones: the checks page is a development tool, and the versions depend on what
+# the server was built with. Set them in .env to change them without touching
+# the application.
+export TM_SHOW_DIAGNOSTICS="${TM_SHOW_DIAGNOSTICS:-false}"
+export TM_FOOTER_STACK="${TM_FOOTER_STACK:-Jakarta EE 10 - GlassFish 7 - PostgreSQL}"

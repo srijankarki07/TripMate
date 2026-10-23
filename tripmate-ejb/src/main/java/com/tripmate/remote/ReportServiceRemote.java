@@ -70,6 +70,20 @@ public interface ReportServiceRemote {
     /** @return everything the user owes across all their trips */
     BigDecimal getTotalOwedByUser(Long userId, Long actedBy);
 
+    /**
+     * Everything the user has paid out in recorded repayments, across every
+     * trip.
+     *
+     * <p>Needed because the profile's net position was gross: it compared what
+     * the user had paid against their share and ignored the repayments they had
+     * already made, so recording one changed nothing anywhere the user could
+     * see it.
+     */
+    BigDecimal getTotalRepaidOutByUser(Long userId, Long actedBy);
+
+    /** @return everything the user has received in recorded repayments */
+    BigDecimal getTotalReceivedByUser(Long userId, Long actedBy);
+
     /** @return how many trips the user belongs to */
     long getTripCountForUser(Long userId, Long actedBy);
 

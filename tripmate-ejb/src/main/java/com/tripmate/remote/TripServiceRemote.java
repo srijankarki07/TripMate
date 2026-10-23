@@ -2,9 +2,11 @@ package com.tripmate.remote;
 
 import java.util.List;
 
+import com.tripmate.dto.TripSummaryEmailDTO;
 import com.tripmate.dto.TripDTO;
 import com.tripmate.dto.TripMemberDTO;
 import com.tripmate.entity.TripRole;
+import com.tripmate.entity.TripSummaryKind;
 
 import jakarta.ejb.Remote;
 
@@ -139,12 +141,50 @@ public interface TripServiceRemote {
     void leaveTrip(Long tripId, Long userId);
 
     /**
-     * Emails every member the trip's closing summary.
+     * Emails part of the trip summary to some or all of its members.
      *
-     * <p>Administrators only. Returns as soon as the messages are handed to the
-     * mail service, which sends them asynchronously.
+     * <h2>One half at a time</h2>
      *
-     * @return how many people it was sent to
+     * The plan and the money are separate sends now. They answer different
+     * questions, and a trip usually has an answer to only one of them: a trip
+     * being planned has an itinerary and nothing spent, and a trip that is over
+     * has figures and nothing left to plan. The combined message therefore
+     * arrived with a section that was empty or all zeroes half the time.
+     *
+     * <p>{@code kind} selects which half, and the send is refused when that
+     * half has nothing in it, rather than mailing everybody a message that says
+     * nothing.
+     *
+     * <h2>Any member may send it</h2>
+     *
+     * This used to be an administrator action. It is not: the itinerary and the
+     * balances are readable by every member, and a member who wants to send
+     * their own copy, or everyone's, is not doing anything privileged. Who
+     * receives it is the sender's choice, so a member can send it to themselves
+     * alone.
+     *
+     * @param tripId       the trip
+     * @param actedBy      who is asking; must be a member of the trip
+     * @param kind         which half of the summary to send
+     * @param recipientIds who to send it to, or null/empty for every member
+     * @return the log entry written for this send, with its outcome
+     * @throws ValidationException if the caller is not a member, the trip does
+     *                             not exist, or the chosen half has no data
      */
-    int emailTripSummary(Long tripId, Long actedBy);
+    TripSummaryEmailDTO emailTripSummary(Long tripId, Long actedBy, TripSummaryKind kind,
+            List<Long> recipientIds);
+
+    /**
+     * When the summary was last asked for, newest first.
+     *
+     * <p>Readable by any member of the trip, not only its administrators. The
+     * summary is a message those members were themselves sent, so whether it
+     * went out and when is not privileged: a member who is looking for it in an
+     * inbox is exactly the person who needs to know it was sent two days ago.
+     *
+     * @param tripId   the trip
+     * @param callerId who is asking, who must be a member
+     * @return the entries, newest first, empty when it has never been sent
+     */
+    List<TripSummaryEmailDTO> getSummaryEmails(Long tripId, Long callerId);
 }

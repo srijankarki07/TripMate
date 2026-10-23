@@ -19,13 +19,23 @@
     </f:metadata>
 
     <ui:define name="title">Expenses · #{expenseBean.trip.tripName}</ui:define>
+        <ui:define name="breadcrumbs">
+            <h:link outcome="/dashboard.xhtml" value="Dashboard" styleClass="tm-crumb"/>
+            <span class="tm-crumb-sep" aria-hidden="true"></span>
+            <h:link outcome="/trips/detail.xhtml" value="#{expenseBean.trip.tripName}" styleClass="tm-crumb">
+                <f:param name="tripId" value="#{expenseBean.tripId}"/>
+            </h:link>
+            <span class="tm-crumb-sep" aria-hidden="true"></span>
+            <span class="tm-crumb-current">Expenses</span>
+        </ui:define>
+
 
     <ui:define name="content">
         <tm:error title="This page could not be loaded"
                   text="#{expenseBean.loadError}"
                   rendered="#{not empty expenseBean.loadError}">
             <f:facet name="action">
-                <p:button outcome="/trips/list.xhtml" value="Back to your trips"
+                <p:button icon="pi pi-arrow-left" outcome="/trips/list.xhtml" value="Back to your trips"
                           styleClass="ui-button-secondary"/>
             </f:facet>
         </tm:error>
@@ -35,11 +45,6 @@
         <ui:fragment rendered="#{expenseBean.loaded}">
 
             <header class="tm-hero">
-                <p class="tm-eyebrow">
-                    <h:link outcome="/trips/detail.xhtml" value="#{expenseBean.trip.tripName}">
-                        <f:param name="tripId" value="#{expenseBean.tripId}"/>
-                    </h:link>
-                </p>
                 <h1 class="tm-title">Expenses</h1>
                 <p class="tm-lede">
                     NPR #{expenseBean.expenseTotal} across
@@ -88,7 +93,7 @@
                         </div>
                         <div class="tm-field">
                             <label class="tm-field-label" for="expenseDate">Date</label>
-                            <p:datePicker id="expenseDate" pattern="yyyy-MM-dd"
+                            <p:datePicker styleClass="tm-input-full" id="expenseDate" pattern="yyyy-MM-dd"
                                           value="#{expenseBean.expenseDate}"
                                           required="true"
                                           requiredMessage="Choose the date."/>
@@ -137,12 +142,12 @@
                     </p:dataTable>
 
                     <div class="tm-actions">
-                        <p:commandButton value="Split equally"
+                        <p:commandButton icon="pi pi-equals" value="Split equally"
                                          action="#{expenseBean.splitEqually}"
                                          update="@form"
                                          ajax="true"/>
-                        <p:commandButton value="Clear shares"
-                                         styleClass="ui-button-secondary"
+                        <p:commandButton icon="pi pi-times" value="Clear shares"
+                                        
                                          action="#{expenseBean.clearSplit}"
                                          update="@form"
                                          ajax="true"/>
@@ -202,7 +207,7 @@
                     </div>
 
                     <div class="tm-actions">
-                        <p:commandButton value="Save expense"
+                        <p:commandButton icon="pi pi-check" value="Save expense"
                                          action="#{expenseBean.save}"
                                          ajax="false"/>
                     </div>
@@ -218,7 +223,15 @@
 
                 <h:form id="expenseListForm">
                     <p:dataTable reflow="true" rowHover="true" value="#{expenseBean.expenses}" var="expense"
-                                 rendered="#{expenseBean.hasExpenses}" emptyMessage="">
+                                 rendered="#{expenseBean.hasExpenses}" emptyMessage=""
+                          paginator="true"
+                         rows="10"
+                         paginatorAlwaysVisible="false"
+                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
+                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
+                            <p:column headerText="SN" styleClass="tm-col-sn">
+                                <h:outputText value="#{expenseBean.expenses.indexOf(expense) + 1}"/>
+                            </p:column>
                         <p:column headerText="Date" sortBy="#{expense.expenseDate}">
                             <h:outputText value="#{expense.expenseDate}"/>
                         </p:column>
@@ -226,7 +239,10 @@
                             <h:outputText value="#{expense.description}"/>
                         </p:column>
                         <p:column headerText="Category" sortBy="#{expense.category}">
-                            <h:outputText value="#{expense.category}"/>
+                            <span class="#{categoryChip.css(expense.category)}">
+                                <i class="#{categoryChip.icon(expense.category)}" aria-hidden="true"></i>
+                                <h:outputText value="#{expense.category}"/>
+                            </span>
                         </p:column>
                         <p:column headerText="Paid by">
                             <h:outputText value="#{expense.paidByName}"/>
@@ -239,8 +255,8 @@
                             <h:outputText value="NPR #{expense.amount}"/>
                         </p:column>
                         <p:column headerText="">
-                            <p:commandButton value="Delete"
-                                             styleClass="ui-button-secondary"
+                            <p:commandButton icon="pi pi-trash" value="Delete"
+                                            
                                              action="#{expenseBean.delete(expense.expenseId)}"
                                              ajax="false"
                                              >

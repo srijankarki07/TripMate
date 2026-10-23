@@ -13,6 +13,12 @@
 
 <ui:composition template="/WEB-INF/templates/layout.xhtml">
     <ui:define name="title">Profile</ui:define>
+        <ui:define name="breadcrumbs">
+            <h:link outcome="/dashboard.xhtml" value="Dashboard" styleClass="tm-crumb"/>
+            <span class="tm-crumb-sep" aria-hidden="true"></span>
+            <span class="tm-crumb-current">Your profile</span>
+        </ui:define>
+
 
     <ui:define name="content">
 
@@ -36,7 +42,7 @@
                 </p>
             </div>
             <h:form>
-                <p:commandButton value="Sign out"
+                <p:commandButton icon="pi pi-sign-out" value="Sign out"
                                  styleClass="ui-button-secondary"
                                  action="#{currentUser.logoutAndReturn}"
                                  ajax="false"/>
@@ -76,24 +82,48 @@
                             <p class="tm-stat-value">NPR #{profileBean.totalOwed}</p>
                             <p class="tm-stat-note">what your splits come to</p>
                         </div>
+                        <!--
+                            The one figure that answers "where do I stand", and
+                            the only one here that moves when a repayment is
+                            recorded. The two above it are statements of fact
+                            that a repayment does not change.
+                        -->
                         <div class="tm-stat #{profileBean.netPosition.signum() >= 0 ? 'tm-stat-credit' : 'tm-stat-debit'}">
                             <span class="tm-stat-icon" aria-hidden="true">
                                 <i class="pi #{profileBean.netPosition.signum() >= 0 ? 'pi-arrow-down-left' : 'pi-arrow-up-right'}"></i>
                             </span>
-                            <p class="tm-stat-label">Net position</p>
-                            <p class="tm-stat-value #{profileBean.netPosition.signum() >= 0 ? 'tm-positive' : 'tm-negative'}">
+                            <p class="tm-stat-label">Left to settle</p>
+                            <p class="tm-stat-value #{profileBean.netPosition.signum() >= 0 ? 'tm-stat-value-get' : 'tm-stat-value-pay'}">
                                 NPR #{profileBean.netPosition.abs()}
                             </p>
                             <p class="tm-stat-note">
-                                <h:outputText value="#{profileBean.netPosition.signum() >= 0 ? 'owed back to you' : 'you still owe'}"/>
+                                <h:outputText value="#{profileBean.netPosition.signum() >= 0 ? 'you get back' : 'you still pay'}"/>
                             </p>
                         </div>
+
+                        <h:panelGroup layout="block" styleClass="tm-stat"
+                                      rendered="#{profileBean.touchedByRepayments}">
+                            <span class="tm-stat-icon" aria-hidden="true"><i class="pi pi-arrow-up-right"></i></span>
+                            <p class="tm-stat-label">You have repaid</p>
+                            <p class="tm-stat-value tm-stat-value-repaid">NPR #{profileBean.totalRepaidOut}</p>
+                            <p class="tm-stat-note">paid back to others</p>
+                        </h:panelGroup>
+
+                        <h:panelGroup layout="block" styleClass="tm-stat"
+                                      rendered="#{profileBean.touchedByRepayments}">
+                            <span class="tm-stat-icon" aria-hidden="true"><i class="pi pi-arrow-down-left"></i></span>
+                            <p class="tm-stat-label">You have received</p>
+                            <p class="tm-stat-value tm-stat-value-received">NPR #{profileBean.totalReceived}</p>
+                            <p class="tm-stat-note">paid back by others</p>
+                        </h:panelGroup>
                     </section>
 
                     <p class="tm-caption-sm tm-text-muted">
-                        These are your gross positions across every trip, counting
-                        every split whether or not it has been repaid. What is still
-                        outstanding on a particular trip is on that trip's page.
+                        <strong>You have paid</strong> and <strong>your share</strong> count
+                        every split, whether or not it has since been repaid.
+                        <strong>Left to settle</strong> also counts the repayments recorded
+                        on your trips, so it is what actually still has to move. The
+                        per-trip figures are on each trip's own page.
                     </p>
                 </p:tab>
 
@@ -127,7 +157,7 @@
 
 
                 <div class="tm-actions">
-                    <p:commandButton value="Save details"
+                    <p:commandButton icon="pi pi-check" value="Save details"
                                      action="#{profileBean.saveProfile}"
                                      update="@form"
                                      ajax="false"/>
@@ -168,7 +198,7 @@
 
 
                 <div class="tm-actions">
-                    <p:commandButton value="Change password"
+                    <p:commandButton icon="pi pi-key" value="Change password"
                                      action="#{profileBean.changePassword}"
                                      update="@form"
                                      ajax="false"/>

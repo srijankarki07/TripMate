@@ -294,3 +294,70 @@ CREATE TABLE password_resets (
 -- always by age.
 CREATE INDEX idx_password_resets_user ON password_resets (user_id);
 CREATE INDEX idx_password_resets_expiry ON password_resets (expires_at);
+
+
+-- ----------------------------------------------------------------------------
+-- trip_summary_emails
+-- ----------------------------------------------------------------------------
+-- A record of every time somebody asked for the closing summary to be mailed
+-- out. Its purpose is answerable from nothing else in the schema: the summary
+-- is sent by email and leaves no trace in the application, so a member who did
+-- not receive one, or who received two, had no way to find out whether it was
+-- ever sent and when.
+--
+-- Denormalised on purpose in two places. The sender's name is stored rather
+-- than joined, because the log has to keep reading correctly after that person
+-- leaves the trip or the account; and the recipient count is stored rather
+-- than counted, because it records what actually happened at that moment
+-- rather than what the membership happens to be now.
+--
+-- Visible to every member of the trip, not only its administrators. Knowing
+-- whether the summary has gone out is not privileged information: it is about
+-- a message those members were themselves sent.
+
+-- kind says which half of the trip the send was about. The itinerary and the
+-- balances are separate sends, because a trip usually has an answer to only one
+-- of them: a trip being planned has a plan and nothing spent, and a finished one
+-- has the reverse.
+--
+-- failed_count and status are what make the entry honest. The recipient count
+-- alone reads as "this arrived", so a send refused by a mail server that was
+-- down produced exactly the same line as one that was delivered, and the
+-- administrator asked why nobody received it was told by the application that
+-- everybody had.
+CREATE TABLE trip_summary_emails (
+    summary_id      BIGSERIAL    PRIMARY KEY,
+    trip_id         BIGINT       NOT NULL,
+    sent_by         BIGINT,
+    sent_by_name    VARCHAR(120) NOT NULL,
+    kind            VARCHAR(16)  NOT NULL DEFAULT 'BALANCES',
+    recipient_count INTEGER      NOT NULL,
+    -- Who the message was actually accepted for, by name. Denormalised for the
+    -- same reason as sent_by_name: the log has to keep reading after somebody
+    -- leaves the trip, and "who did this reach" is the question it exists to
+    -- answer. Truncated to the column if a trip ever grows past it.
+    recipient_names VARCHAR(1000) NOT NULL DEFAULT '',
+    failed_count    INTEGER      NOT NULL DEFAULT 0,
+    status          VARCHAR(16)  NOT NULL DEFAULT 'SENT',
+    sent_at         TIMESTAMP    NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT ck_trip_summary_emails_kind
+        CHECK (kind IN ('ITINERARY', 'BALANCES')),
+    CONSTRAINT ck_trip_summary_emails_status
+        CHECK (status IN ('SENT', 'PARTIAL', 'FAILED', 'NOT_CONFIGURED')),
+
+    -- Nullable rather than cascading: the log entry outlives the account that
+    -- triggered it, because the send still happened and the other members may
+    -- still be looking for it.
+    CONSTRAINT fk_trip_summary_emails_user FOREIGN KEY (sent_by)
+        REFERENCES users (user_id) ON DELETE SET NULL,
+
+    CONSTRAINT fk_trip_summary_emails_trip FOREIGN KEY (trip_id)
+        REFERENCES trips (trip_id) ON DELETE CASCADE
+);
+
+COMMENT ON TABLE trip_summary_emails IS
+    'One row per time the trip summary was emailed, so members can see whether and when it went out.';
+
+-- Always read newest first, for one trip.
+CREATE INDEX idx_trip_summary_emails_trip ON trip_summary_emails (trip_id, sent_at DESC);

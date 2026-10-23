@@ -17,7 +17,6 @@
     <ui:define name="content">
 
         <header class="tm-hero">
-            <p class="tm-eyebrow">Dashboard</p>
             <h1 class="tm-title">Hello, #{currentUser.fullName}</h1>
             <!--
                 A sentence, not just a name. The tiles below carry the numbers,
@@ -74,9 +73,11 @@
             <div class="tm-toolbar">
                 <h2 class="tm-display-sm">My trips</h2>
                 <div class="tm-toolbar-actions">
-                    <p:button outcome="/trips/create.xhtml" value="New trip"/>
+                    <p:button icon="pi pi-plus" outcome="/trips/list.xhtml" value="New trip">
+                        <f:param name="new" value="1"/>
+                    </p:button>
                     <p:button outcome="/trips/list.xhtml" value="View all"
-                              styleClass="ui-button-secondary"
+                             
                               rendered="#{dashboardBean.tripCount gt 3}"/>
                 </div>
             </div>
@@ -86,32 +87,38 @@
                          rendered="#{dashboardBean.hasTrips}"
                          styleClass="tm-table"
                          emptyMessage=""
+                         paginator="true"
                          rows="10"
-                         paginator="false">
+                         paginatorAlwaysVisible="false"
+                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
+                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
+                            <p:column headerText="SN" styleClass="tm-col-sn">
+                                <h:outputText value="#{dashboardBean.trips.indexOf(trip) + 1}"/>
+                            </p:column>
 
-                <p:column headerText="Trip">
+                <p:column headerText="Trip" width="34%">
                     <h:link outcome="/trips/detail.xhtml" value="#{trip.tripName}">
                         <f:param name="tripId" value="#{trip.tripId}"/>
                     </h:link>
                 </p:column>
 
-                <p:column headerText="Where">
+                <p:column headerText="Where" width="20%">
                     <h:outputText value="#{trip.destination}"/>
                 </p:column>
 
-                <p:column headerText="Dates">
+                <p:column headerText="Dates" width="22%">
                     <h:outputText value="#{trip.startDate}"/>
                     <h:outputText value=" to "/>
                     <h:outputText value="#{trip.endDate}"/>
                 </p:column>
 
-                <p:column headerText="State">
+                <p:column headerText="State" width="13%">
                     <span class="tm-status tm-status-#{trip.status.name().toLowerCase()}">
                         <h:outputText value="#{trip.status}"/>
                     </span>
                 </p:column>
 
-                <p:column headerText="Members">
+                <p:column headerText="Members" width="11%">
                     <h:outputText value="#{trip.memberCount}"/>
                 </p:column>
             </p:dataTable>
@@ -124,7 +131,9 @@
                       text="Create one and you become its administrator, which lets you invite the people you are travelling with."
                       rendered="#{not dashboardBean.hasTrips}">
                 <f:facet name="action">
-                    <p:button outcome="/trips/create.xhtml" value="Create a trip"/>
+                    <p:button icon="pi pi-plus" outcome="/trips/list.xhtml" value="Create a trip">
+                        <f:param name="new" value="1"/>
+                    </p:button>
                 </f:facet>
             </tm:empty>
         </section>
@@ -135,7 +144,15 @@
             <p:dataTable reflow="true" rowHover="true" value="#{dashboardBean.recentExpenses}"
                          var="expense"
                          rendered="#{dashboardBean.hasRecentExpenses}"
-                         emptyMessage="">
+                         emptyMessage=""
+                          paginator="true"
+                         rows="10"
+                         paginatorAlwaysVisible="false"
+                         paginatorTemplate="{CurrentPageReport} {RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}" rowsPerPageTemplate="10,25,50"
+                         currentPageReportTemplate="{startRecord} to {endRecord} of {totalRecords}">
+                            <p:column headerText="SN" styleClass="tm-col-sn">
+                                <h:outputText value="#{dashboardBean.recentExpenses.indexOf(expense) + 1}"/>
+                            </p:column>
 
                 <p:column headerText="Date">
                     <h:outputText value="#{expense.date}"/>

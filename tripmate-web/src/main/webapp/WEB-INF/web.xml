@@ -59,4 +59,49 @@
         <welcome-file>index.xhtml</welcome-file>
     </welcome-file-list>
 
+    <!--
+        How long a signed-in session lasts.
+
+        There was no session-config here at all, so the container's own default
+        applied: thirty minutes. On an application people open, leave, and come
+        back to, that means signing in again most times they return, which is
+        what was reported.
+
+        Thirty days, and the two halves of that are separate things that both
+        have to be set.
+
+        session-timeout is measured in minutes and is the server's own idle
+        limit: it is what expires a session nobody has used. The cookie's
+        max-age is measured in seconds and decides whether the browser keeps
+        the session id at all. With only the first set the session would still
+        be valid on the server while the browser had already thrown the id
+        away, which looks exactly the same to the reader as the session
+        expiring, and is the reason changing one alone would not have fixed
+        anything.
+
+        HttpOnly stays on: the session id is a bearer credential for the whole
+        account and no script in this application has any reason to read it.
+        SameSite is left at the container's default, which is Lax, and that is
+        the right value here: it is sent on top-level navigation, so following
+        a link back into the application keeps the session, while a cross-site
+        form post does not carry it.
+
+        Thirty days is a real trade. A stolen session id is usable for as long
+        as it lives, and this makes that window much longer. It is accepted
+        because the alternative was reported as a defect in its own right, and
+        because the account holds trip planning data rather than anything
+        financial. The mitigations that matter are already in place: the id is
+        rotated on sign-in, which closes session fixation, and signing out
+        invalidates the session server-side rather than only dropping the
+        cookie.
+    -->
+    <session-config>
+        <session-timeout>43200</session-timeout>
+        <cookie-config>
+            <http-only>true</http-only>
+            <max-age>2592000</max-age>
+        </cookie-config>
+        <tracking-mode>COOKIE</tracking-mode>
+    </session-config>
+
 </web-app>
